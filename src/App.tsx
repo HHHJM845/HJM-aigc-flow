@@ -294,7 +294,9 @@ function Flow({
         }
         return n;
       });
-      return [...updatedChildren, boardNode];
+      const childrenOfBoard = updatedChildren.filter(n => n.parentId === boardId);
+      const otherNodes = updatedChildren.filter(n => n.parentId !== boardId);
+      return [...otherNodes, boardNode, ...childrenOfBoard];
     });
 
     setBoardDraft(null);
