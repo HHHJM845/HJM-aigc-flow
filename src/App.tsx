@@ -689,6 +689,7 @@ function Flow({
             setStoryboardOrder(newOrder);
             onSaveStoryboardOrder(newOrder);
           }}
+          onToggle={handleToggleStoryboard}
         />
       </div>
 

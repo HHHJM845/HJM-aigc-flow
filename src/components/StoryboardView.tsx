@@ -19,9 +19,10 @@ interface Props {
   storyboardOrder: string[];
   nodes: Node[];
   onReorder: (newOrder: string[]) => void;
+  onToggle: (nodeId: string) => void;
 }
 
-export default function StoryboardView({ storyboardOrder, nodes, onReorder }: Props) {
+export default function StoryboardView({ storyboardOrder, nodes, onReorder, onToggle }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -74,6 +75,7 @@ export default function StoryboardView({ storyboardOrder, nodes, onReorder }: Pr
                     id={nodeId}
                     index={i + 1}
                     imageSrc={getImageSrc(nodeId)}
+                    onRemove={() => onToggle(nodeId)}
                   />
                 ))}
               </div>

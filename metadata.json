@@ -1,0 +1,5 @@
+{
+  "name": "React Flow Canvas",
+  "description": "A dark-themed React Flow canvas with a custom image node.",
+  "requestFramePermissions": []
+}

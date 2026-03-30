@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/oldch/.claude/projects/C--Users-oldch-Desktop-AIGC/**)",
+      "Read(//c/Users/oldch/.claude/projects/C--Users-oldch-Desktop-AIGC/memory/**)",
+      "Bash(taskkill /PID 6616 /F)",
+      "Bash(powershell.exe -Command \"Get-WmiObject Win32_Process -Filter ''ProcessId=6616'' | Invoke-WmiMethod -Name Terminate\")",
+      "Bash(netstat -ano)",
+      "Bash(npm run:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(find /c/Users/oldch/Desktop/AIGC -type f \\\\\\(-name *plan* -o -name *TODO* -o -name *brainstorm* \\\\\\))",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(if not:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(curl -s http://localhost:3001/api/video -X POST -H \"Content-Type: application/json\" -d '{\"\"prompt\"\":\"\"a cat walking --duration 5 --resolution 720p --ratio 16:9 --sound_effect false\"\"}')",
+      "Bash(curl -s http://localhost:3001/api/generate -X POST -H \"Content-Type: application/json\" -d '{\"\"\"\"prompt\"\"\"\":\"\"\"\"a cat\"\"\"\",\"\"\"\"count\"\"\"\":1,\"\"\"\"ratio\"\"\"\":\"\"\"\"16:9\"\"\"\",\"\"\"\"quality\"\"\"\":\"\"\"\"2K\"\"\"\"}')",
+      "Bash(npm uninstall:*)",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/api/generate -X POST -H \"Content-Type: application/json\" -d '{\"\"prompt\"\":\"\"test\"\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/api/analyze -X POST -H \"Content-Type: application/json\" -d '{\"\"image\"\":\"\"test\"\"}')",
+      "Bash(curl -s http://localhost:3001/api/analyze -X POST -H \"Content-Type: application/json\" -d '{\"\"image\"\":\"\"test\"\"}')",
+      "Bash(curl -s http://localhost:3001/api/chat -X POST -H \"Content-Type: application/json\" -d '{\"\"\"\"messages\"\"\"\":[{\"\"\"\"role\"\"\"\":\"\"\"\"user\"\"\"\",\"\"\"\"content\"\"\"\":\"\"\"\"hi\"\"\"\"}]}')",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(npm install:*)",
+      "Bash(findstr \":3000 \\\\|:3001 \")",
+      "Bash(findstr LISTENING)",
+      "Bash(findstr \":300\")",
+      "Bash(taskkill /PID 3568 /PID 30128 /PID 28608 /PID 17108 /F)",
+      "Bash(cmd /c \"taskkill /PID 3568 /F & taskkill /PID 30128 /F & taskkill /PID 28608 /F & taskkill /PID 17108 /F\")",
+      "Bash(cmd /c \"taskkill /PID 3568 /F 2>&1 & taskkill /PID 30128 /F 2>&1 & taskkill /PID 28608 /F 2>&1 & taskkill /PID 17108 /F 2>&1\")",
+      "Bash(cmd /c taskkill /PID 3568 /F)",
+      "Bash(cmd /c taskkill /PID 30128 /F)",
+      "Bash(cmd /c taskkill /PID 28608 /F)",
+      "Bash(cmd /c taskkill /PID 17108 /F)",
+      "Bash(powershell -Command \"Stop-Process -Id 3568,30128,28608,17108 -Force -ErrorAction SilentlyContinue; Write-Host ''done''\")",
+      "Bash(npx tsc:*)",
+      "Bash(C:/Users/oldch/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh --project-dir \"C:/Users/oldch/Desktop/HJM-aigc-flow-main\")",
+      "Bash(node -e \"require\\(''./node_modules/@dnd-kit/core/dist/core.cjs.js''\\); console.log\\(''ok''\\)\")",
+      "Bash(node -e \"require\\(''./node_modules/@dnd-kit/core/dist/core.cjs.development.js''\\); console.log\\(''ok''\\)\")"
+    ]
+  }
+}

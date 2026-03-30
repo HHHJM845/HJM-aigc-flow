@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+.target-glow-mask {
+  padding: 2px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(280%); }
+}
+
+@keyframes gen-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes gen-pulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.8; }
+}
+
+.generating-glow-mask {
+  padding: 2px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* 当节点内的 handle 成为有效的连接目标时，显示光效。排除正在发起连接的源节点 */
+.react-flow__node:has(.react-flow__handle-valid):not(:has(.react-flow__handle-connecting)) .target-glow,
+.react-flow__node:has(.valid):not(:has(.connecting)) .target-glow {
+  opacity: 1 !important;
+}
