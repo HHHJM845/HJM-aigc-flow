@@ -42,7 +42,9 @@ import {
   type Project,
   type AssetItem,
   type HistoryItem,
+  type VideoOrderItem,
 } from './lib/storage';
+import VideoView from './components/VideoView';
 import { FileText } from 'lucide-react';
 
 const nodeTypes = {
@@ -96,6 +98,8 @@ function Flow({
   onSaveHistory,
   initialStoryboardOrder,
   onSaveStoryboardOrder,
+  initialVideoOrder,
+  onSaveVideoOrder,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -109,11 +113,14 @@ function Flow({
   onSaveHistory: (history: HistoryItem[]) => void;
   initialStoryboardOrder: string[];
   onSaveStoryboardOrder: (order: string[]) => void;
+  initialVideoOrder: VideoOrderItem[];
+  onSaveVideoOrder: (order: VideoOrderItem[]) => void;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
-  const [activeView, setActiveView] = useState<'canvas' | 'storyboard' | 'breakdown'>('canvas');
+  const [activeView, setActiveView] = useState<'canvas' | 'storyboard' | 'breakdown' | 'video'>('canvas');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
+  const [videoOrder, setVideoOrder] = useState<VideoOrderItem[]>(initialVideoOrder);
 
   // Toolbar state
   const [activeTool, setActiveTool] = useState<ActiveTool>(null);
@@ -246,6 +253,17 @@ function Flow({
       return next;
     });
   }, [onSaveStoryboardOrder]);
+
+  const handleToggleVideo = useCallback((nodeId: string, url: string, label: string) => {
+    setVideoOrder(prev => {
+      const exists = prev.find(v => v.nodeId === nodeId && v.url === url);
+      const next = exists
+        ? prev.filter(v => v.id !== exists.id)
+        : [...prev, { id: `vid-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, nodeId, url, label }];
+      onSaveVideoOrder(next);
+      return next;
+    });
+  }, [onSaveVideoOrder]);
 
   // ── Board drag-create ────────────────────────────────
   const handleBoardDragStart = useCallback((e: React.MouseEvent) => {
@@ -524,6 +542,10 @@ function Flow({
           isInStoryboard: storyboardOrder.includes(node.id),
           onToggleStoryboard: handleToggleStoryboard,
         } : {}),
+        ...(node.type === 'videoNode' ? {
+          videoOrderUrls: videoOrder.map(v => v.url),
+          onToggleVideo: handleToggleVideo,
+        } : {}),
       },
     };
   });
@@ -714,6 +736,32 @@ function Flow({
         />
       </div>
 
+      {/* Video manager view */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: activeView === 'video' ? 1 : 0,
+          transform: activeView === 'video' ? 'translateY(0)' : 'translateY(8px)',
+          transition: 'opacity 300ms ease-out, transform 300ms ease-out',
+          pointerEvents: activeView === 'video' ? 'auto' : 'none',
+        }}
+      >
+        <VideoView
+          videoOrder={videoOrder}
+          onReorder={(newOrder) => {
+            setVideoOrder(newOrder);
+            onSaveVideoOrder(newOrder);
+          }}
+          onRemove={(id) => {
+            setVideoOrder(prev => {
+              const next = prev.filter(v => v.id !== id);
+              onSaveVideoOrder(next);
+              return next;
+            });
+          }}
+        />
+      </div>
+
       {/* Bottom tab bar — always on top */}
       <BottomTabBar activeView={activeView} onViewChange={setActiveView} />
 
@@ -730,6 +778,7 @@ export default function App() {
   const [canvasInitialAssets, setCanvasInitialAssets] = useState<AssetItem[]>([]);
   const [canvasInitialHistory, setCanvasInitialHistory] = useState<HistoryItem[]>([]);
   const [canvasInitialStoryboardOrder, setCanvasInitialStoryboardOrder] = useState<string[]>([]);
+  const [canvasInitialVideoOrder, setCanvasInitialVideoOrder] = useState<VideoOrderItem[]>([]);
 
   const handleNewProject = () => {
     const proj = createProject();
@@ -752,6 +801,7 @@ export default function App() {
     setCanvasInitialAssets(project.assets || []);
     setCanvasInitialHistory(project.generationHistory || []);
     setCanvasInitialStoryboardOrder(project.storyboardOrder || []);
+    setCanvasInitialVideoOrder(project.videoOrder || []);
     setView('canvas');
   };
 
@@ -794,6 +844,13 @@ export default function App() {
     saveProject(updated);
   };
 
+  const handleVideoOrderSave = (order: VideoOrderItem[]) => {
+    if (!currentProject) return;
+    const updated = { ...currentProject, videoOrder: order, updatedAt: Date.now() };
+    setCurrentProject(updated);
+    saveProject(updated);
+  };
+
   return (
     <ReactFlowProvider>
       {view === 'home' ? (
@@ -818,6 +875,8 @@ export default function App() {
           onSaveHistory={handleHistorySave}
           initialStoryboardOrder={canvasInitialStoryboardOrder}
           onSaveStoryboardOrder={handleStoryboardOrderSave}
+          initialVideoOrder={canvasInitialVideoOrder}
+          onSaveVideoOrder={handleVideoOrderSave}
         />
       )}
     </ReactFlowProvider>
