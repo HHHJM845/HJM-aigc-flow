@@ -221,8 +221,22 @@ function Flow({
   }, [getNodes]);
 
   const handleDeleteNode = useCallback((id: string) => {
-    setNodes(nds => nds.filter(n => n.id !== id));
-  }, [setNodes]);
+    setNodes(nds => {
+      const target = nds.find(n => n.id === id);
+      if (target?.type === 'boardNode') {
+        const childIds = new Set(nds.filter(n => n.parentId === id).map(n => n.id));
+        if (childIds.size > 0) {
+          setStoryboardOrder(prev => {
+            const next = prev.filter(nodeId => !childIds.has(nodeId));
+            onSaveStoryboardOrder(next);
+            return next;
+          });
+        }
+        return nds.filter(n => n.id !== id && n.parentId !== id);
+      }
+      return nds.filter(n => n.id !== id);
+    });
+  }, [setNodes, setStoryboardOrder, onSaveStoryboardOrder]);
 
   const handleToggleStoryboard = useCallback((nodeId: string) => {
     setStoryboardOrder(prev => {
@@ -309,16 +323,23 @@ function Flow({
     const boards = allNodes.filter(n => n.type === 'boardNode');
     if (boards.length === 0 && !draggedNode.parentId) return;
 
-    // Compute absolute position
+    // 计算节点的绝对坐标
+    // 若节点有 parentId，其 position 是相对坐标，需加上父节点的绝对坐标
     let absX = draggedNode.position.x;
     let absY = draggedNode.position.y;
     if (draggedNode.parentId) {
       const parent = allNodes.find(n => n.id === draggedNode.parentId);
-      if (parent) { absX += parent.position.x; absY += parent.position.y; }
+      if (parent) {
+        absX += parent.position.x;
+        absY += parent.position.y;
+      }
     }
+
+    // 用节点中心点判断是否落入画板
     const centerX = absX + (draggedNode.width || 380) / 2;
     const centerY = absY + (draggedNode.height || 300) / 2;
 
+    // boardNode 的 position 始终是绝对坐标（boardNode 自身无 parentId）
     const containingBoard = boards.find(board => {
       const bw = board.width || 600;
       const bh = board.height || 400;
@@ -327,13 +348,23 @@ function Flow({
     });
 
     const newParentId = containingBoard?.id;
+    // parentId 未变化时不做任何更新，避免无效 setNodes
     if (draggedNode.parentId === newParentId) return;
 
     setNodes(nds => nds.map(n => {
       if (n.id !== draggedNode.id) return n;
       if (newParentId && containingBoard) {
-        return { ...n, parentId: newParentId, position: { x: absX - containingBoard.position.x, y: absY - containingBoard.position.y } };
+        // 落入新画板：转换为相对坐标
+        return {
+          ...n,
+          parentId: newParentId,
+          position: {
+            x: absX - containingBoard.position.x,
+            y: absY - containingBoard.position.y,
+          },
+        };
       }
+      // 离开所有画板：使用绝对坐标，清除 parentId
       return { ...n, parentId: undefined, position: { x: absX, y: absY } };
     }));
   }, [setNodes]);
