@@ -3,6 +3,7 @@ export interface StoryboardRow {
   index: number;
   shotType: string;
   description: string;
+  sourceSegment?: string; // 对应的原文段落文本，用于 diff 映射
 }
 
 // ── 剧本拆解 ─────────────────────────────────────────
