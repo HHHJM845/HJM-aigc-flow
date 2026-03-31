@@ -23,7 +23,7 @@ import TextNode from './components/TextNode';
 import VideoNode from './components/VideoNode';
 import ContextMenu from './components/ContextMenu';
 import CustomEdge from './components/CustomEdge';
-import BreakdownModal from './components/BreakdownModal';
+import BreakdownView from './components/BreakdownView';
 import HomePage from './components/HomePage';
 import AIPanel from './components/AIPanel';
 import SkillCommunity from './components/SkillCommunity';
@@ -111,9 +111,8 @@ function Flow({
   onSaveStoryboardOrder: (order: string[]) => void;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
-  const [showBreakdown, setShowBreakdown] = useState(false);
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
-  const [activeView, setActiveView] = useState<'canvas' | 'storyboard'>('canvas');
+  const [activeView, setActiveView] = useState<'canvas' | 'storyboard' | 'breakdown'>('canvas');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
 
   // Toolbar state
@@ -177,7 +176,7 @@ function Flow({
     const newNodes = rowsToNodes(rows, cardW, cardH, ratio);
     setNodes(newNodes);
     setEdges([]);
-    setShowBreakdown(false);
+    setActiveView('canvas');
   }, [setNodes, setEdges, onSaveRows]);
 
   const handleUpdateNode = useCallback((id: string, newData: any) => {
@@ -604,27 +603,7 @@ function Flow({
               </button>
             </Panel>
 
-            {/* Top-center: breakdown trigger */}
-            <Panel position="top-center">
-              <button
-                onClick={() => setShowBreakdown(v => !v)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-[13px] border transition-all backdrop-blur-sm ${
-                  showBreakdown
-                    ? 'bg-white/15 text-white border-white/20'
-                    : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200 border-white/5'
-                }`}
-              >
-                <FileText size={13} />
-                剧本拆解
-                {storyboardRows.length > 0 && (
-                  <span className="bg-white/10 text-gray-400 text-[10px] px-1.5 py-0.5 rounded-full leading-none">
-                    {storyboardRows.length}
-                  </span>
-                )}
-              </button>
-            </Panel>
-
-            <MiniMap nodeColor="#333333" maskColor="rgba(0, 0, 0, 0.8)" className="bg-[#0a0a0a] border-[#1a1a1a]" />
+<MiniMap nodeColor="#333333" maskColor="rgba(0, 0, 0, 0.8)" className="bg-[#0a0a0a] border-[#1a1a1a]" />
           </ReactFlow>
 
           {/* Board drag-create overlay */}
@@ -694,13 +673,6 @@ function Flow({
             onAction={onAction}
           />
 
-          {showBreakdown && (
-            <BreakdownModal
-              initialRows={storyboardRows}
-              onClose={() => setShowBreakdown(false)}
-              onImport={handleImportFromBreakdown}
-            />
-          )}
         </div>
         <AIPanel />
       </div>
@@ -723,6 +695,22 @@ function Flow({
             onSaveStoryboardOrder(newOrder);
           }}
           onToggle={handleToggleStoryboard}
+        />
+      </div>
+
+      {/* Breakdown view */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: activeView === 'breakdown' ? 1 : 0,
+          transform: activeView === 'breakdown' ? 'translateY(0)' : 'translateY(8px)',
+          transition: 'opacity 300ms ease-out, transform 300ms ease-out',
+          pointerEvents: activeView === 'breakdown' ? 'auto' : 'none',
+        }}
+      >
+        <BreakdownView
+          initialRows={storyboardRows}
+          onImport={handleImportFromBreakdown}
         />
       </div>
 
