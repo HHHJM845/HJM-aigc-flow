@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ActiveView = 'canvas' | 'storyboard' | 'breakdown';
+type ActiveView = 'canvas' | 'storyboard' | 'breakdown' | 'video';
 
 interface Props {
   activeView: ActiveView;
@@ -12,6 +12,7 @@ export default function BottomTabBar({ activeView, onViewChange }: Props) {
     { key: 'breakdown', label: '剧本拆解' },
     { key: 'canvas', label: '无限画布' },
     { key: 'storyboard', label: '分镜管理' },
+    { key: 'video', label: '视频管理' },
   ];
 
   return (
