@@ -48,9 +48,13 @@ export default function VideoNode({ id, data, selected }: { id: string, data: an
   const showHandle = isHovered || isOngoingConnection;
   const showPanel = selected && selectedCount === 1;
 
+  const videoOrderUrls: string[] = Array.isArray(data.videoOrderUrls) ? data.videoOrderUrls : [];
+  const onToggleVideo: ((nodeId: string, url: string, label: string) => void) | undefined = data.onToggleVideo;
+
   const contents = Array.isArray(data.content) ? data.content : (data.content ? [data.content] : []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentContent = contents[currentIndex] || null;
+  const isInVideoOrder = currentContent ? videoOrderUrls.includes(currentContent) : false;
 
   // 图生视频模式下使用的参考图：连线参考图优先，其次手动上传
   const activeRefImage = mode === 'image' ? (data.referenceImage || manualRefImage) : undefined;
@@ -98,13 +102,38 @@ export default function VideoNode({ id, data, selected }: { id: string, data: an
   return (
     <div
       className={`relative w-full h-full min-w-[360px] min-h-[250px] flex flex-col bg-[#262626] rounded-2xl shadow-2xl transition-all duration-200 overflow-visible ${
-        selected
-          ? 'ring-2 ring-inset ring-gray-500 shadow-[0_0_25px_rgba(255,255,255,0.05)]'
-          : 'ring-1 ring-inset ring-white/5 hover:ring-white/10'
+        isInVideoOrder
+          ? 'ring-2 ring-inset ring-white/80'
+          : selected
+            ? 'ring-2 ring-inset ring-gray-500 shadow-[0_0_25px_rgba(255,255,255,0.05)]'
+            : 'ring-1 ring-inset ring-white/5 hover:ring-white/10'
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* 视频收录打勾按钮 */}
+      {onToggleVideo && (isHovered || isInVideoOrder) && currentContent && (
+        <button
+          className="nodrag absolute top-2 right-2 z-30 w-[22px] h-[22px] rounded-full flex items-center justify-center transition-all duration-150"
+          style={
+            isInVideoOrder
+              ? { background: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }
+              : { background: 'rgba(0,0,0,0.35)', border: '1.5px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(4px)' }
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleVideo(id, currentContent, data.label || id);
+          }}
+          title={isInVideoOrder ? '从视频管理中移除' : '加入视频管理'}
+        >
+          {isInVideoOrder && (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </button>
+      )}
+
       {/* 预选中环绕光效 */}
       <div className="absolute -inset-[2px] rounded-[18px] pointer-events-none target-glow opacity-0 transition-opacity duration-300 z-50 target-glow-mask">
         <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg_at_50%_50%,#3b82f6_0%,transparent_60%,#3b82f6_100%)] animate-[spin_2s_linear_infinite]" />
