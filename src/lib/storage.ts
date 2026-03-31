@@ -17,6 +17,13 @@ export interface HistoryItem {
   createdAt: number;
 }
 
+export interface VideoOrderItem {
+  id: string;       // e.g. `vid-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+  nodeId: string;   // source VideoNode ID
+  url: string;      // snapshotted video URL at time of check
+  label: string;    // snapshotted node label at time of check
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -29,6 +36,7 @@ export interface Project {
   assets: AssetItem[];
   generationHistory: HistoryItem[];
   storyboardOrder: string[];
+  videoOrder: VideoOrderItem[];
 }
 
 const STORAGE_KEY = 'hjm_aigc_projects';
@@ -83,6 +91,7 @@ export function createProject(name = '未命名项目'): Project {
     assets: [],
     generationHistory: [],
     storyboardOrder: [],
+    videoOrder: [],
   };
 }
 
