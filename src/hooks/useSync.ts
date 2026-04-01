@@ -12,9 +12,10 @@ const RECONNECT_DELAY = 3000;
 function getWsUrl(): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   // In Vite dev mode (port 3000), the Express server is on port 3001.
-  // In production (Express serves the built frontend), same port.
-  const port = window.location.port === '3000' ? '3001' : window.location.port;
-  return `${protocol}//${window.location.hostname}:${port}`;
+  // In production (Express serves the built frontend on same port), use window.location.host.
+  const isDev = window.location.port === '3000';
+  const host = isDev ? `${window.location.hostname}:3001` : window.location.host;
+  return `${protocol}//${host}`;
 }
 
 export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
@@ -24,20 +25,21 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unmountedRef = useRef(false);
   // Keep callback ref stable so connect() closure doesn't go stale
   const onRemoteRef = useRef(onRemoteProjectUpdate);
   onRemoteRef.current = onRemoteProjectUpdate;
 
   const connect = useCallback(() => {
-    // Don't create a duplicate connection
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    // Don't create a duplicate connection (guard both CONNECTING and OPEN states)
+    const rs = wsRef.current?.readyState;
+    if (rs === WebSocket.CONNECTING || rs === WebSocket.OPEN) return;
 
     const ws = new WebSocket(getWsUrl());
     wsRef.current = ws;
 
     ws.onopen = () => {
       setConnected(true);
-      // Clear any pending reconnect timer
       if (reconnectTimer.current) {
         clearTimeout(reconnectTimer.current);
         reconnectTimer.current = null;
@@ -53,9 +55,8 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
       }
 
       if (msg.type === 'init') {
-        const serverProjects = msg.projects as Project[];
-        setProjects(serverProjects);
-        // Update localStorage cache for each project
+        const serverProjects = Array.isArray(msg.projects) ? (msg.projects as Project[]) : [];
+        setProjects([...serverProjects].sort((a, b) => b.updatedAt - a.updatedAt));
         serverProjects.forEach(localSave);
       }
 
@@ -82,7 +83,10 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
 
     ws.onclose = () => {
       setConnected(false);
-      reconnectTimer.current = setTimeout(connect, RECONNECT_DELAY);
+      // Don't reconnect if the component has unmounted
+      if (!unmountedRef.current) {
+        reconnectTimer.current = setTimeout(connect, RECONNECT_DELAY);
+      }
     };
 
     ws.onerror = () => {
@@ -93,6 +97,7 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
   useEffect(() => {
     connect();
     return () => {
+      unmountedRef.current = true;
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       wsRef.current?.close();
     };
@@ -103,11 +108,12 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
     localSave(project);
     setProjects(prev => {
       const idx = prev.findIndex(p => p.id === project.id);
-      return idx >= 0
+      const next = idx >= 0
         ? prev.map((p, i) => (i === idx ? project : p))
         : [project, ...prev];
+      return [...next].sort((a, b) => b.updatedAt - a.updatedAt);
     });
-    // Broadcast to server
+    // Broadcast to server (if offline, save is preserved in localStorage)
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'project_save', project }));
     }
