@@ -4,8 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import type { Project } from '../src/lib/storage.js';
 
+import type BetterSqlite3 from 'better-sqlite3';
+
 const require = createRequire(import.meta.url);
-const Database = require('better-sqlite3');
+const Database = require('better-sqlite3') as typeof BetterSqlite3;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, '../data/projects.db');
@@ -21,7 +23,10 @@ db.exec(`
 
 export function getAllProjects(): Project[] {
   const rows = db.prepare('SELECT data FROM projects ORDER BY updatedAt DESC').all() as { data: string }[];
-  return rows.map((r: { data: string }) => JSON.parse(r.data) as Project);
+  return rows.flatMap((r: { data: string }) => {
+    try { return [JSON.parse(r.data) as Project]; }
+    catch { return []; }
+  });
 }
 
 export function upsertProject(project: Project): void {
