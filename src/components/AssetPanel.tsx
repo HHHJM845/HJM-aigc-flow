@@ -43,6 +43,12 @@ export default function AssetPanel({ assets, onUpload, onRemove }: Props) {
           setPendingFiles(prev => [...prev, ...pending]);
         }
       };
+      reader.onerror = () => {
+        processed++;
+        if (processed === files.length) {
+          setPendingFiles(prev => [...prev, ...pending]);
+        }
+      };
       reader.readAsDataURL(file);
     });
     e.target.value = '';
