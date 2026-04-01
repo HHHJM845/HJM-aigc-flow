@@ -27,12 +27,12 @@ export interface AssetItem {
   src: string;
   name: string;
   createdAt: number;
-  category?: 'character' | 'scene';  // 新增，旧数据无此字段视为未分类
+  category?: 'character' | 'scene' | 'other';  // 新增，旧数据无此字段视为未分类
 }
 ```
 
 - `category` 为可选，历史资产无此字段，仅出现在"全部"分类中
-- 两个合法值：`'character'`（人物）、`'scene'`（场景）
+- 三个合法值：`'character'`（人物）、`'scene'`（场景）、`'other'`（其他）
 
 ---
 
@@ -62,6 +62,8 @@ export interface AssetItem {
 │  │  人物  5 │        │  ┌───┐ ┌───┐ ┌───┐      │
 │  ├──────────┤        │  │   │ │   │ │   │      │
 │  │  场景  7 │        │  └───┘ └───┘ └───┘      │
+│  ├──────────┤        │                          │
+│  │  其他  0 │        │                          │
 │  └──────────┘        │                          │
 └──────────────────────────────────────────────  ┘
 ```
@@ -69,7 +71,7 @@ export interface AssetItem {
 ### 左侧分类栏
 
 - 固定宽度 `68px`，右侧有分隔线
-- 三个选项：**全部**、**人物**、**场景**，各显示当前数量
+- 四个选项：**全部**、**人物**、**场景**、**其他**，各显示当前数量
 - 选中项高亮（`bg-[#333]`，白色文字），未选项暗色
 - 点击切换，过滤右侧网格内容
 
@@ -99,6 +101,7 @@ export interface AssetItem {
    ┌─ 选择分类 ──────┐
    │  👤 人物         │
    │  🏞 场景         │
+   │  📦 其他         │
    └─────────────────┘
    ```
 4. 用户点击分类 → 该文件以对应 `category` 写入 `AssetItem`，弹窗关闭
@@ -138,6 +141,7 @@ const counts = {
   all: assets.length,
   character: assets.filter(a => a.category === 'character').length,
   scene: assets.filter(a => a.category === 'scene').length,
+  other: assets.filter(a => a.category === 'other').length,
 };
 ```
 
