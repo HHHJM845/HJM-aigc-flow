@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Sparkles, Clock, Folder, Trash2, MoreHorizontal } from 'lucide-react';
-import { loadProjects, deleteProject, type Project } from '../lib/storage';
+import { type Project } from '../lib/storage';
 
 function timeAgo(ts: number): string {
   const d = Date.now() - ts;
@@ -11,10 +11,10 @@ function timeAgo(ts: number): string {
 }
 
 interface Props {
-  projects?: Project[];
+  projects: Project[];
   onNewProject: (initialScript?: string) => void;
   onOpenProject: (project: Project) => void;
-  onDeleteProject?: (id: string) => void;
+  onDeleteProject: (id: string) => void;
   onGoToSkills?: () => void;
 }
 
@@ -93,18 +93,9 @@ function ProjectCard({
   );
 }
 
-export default function HomePage({ projects: externalProjects, onNewProject, onOpenProject, onDeleteProject, onGoToSkills }: Props) {
-  const [localProjects, setLocalProjects] = useState<Project[]>([]);
+export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onGoToSkills }: Props) {
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (!externalProjects) {
-      setLocalProjects(loadProjects());
-    }
-  }, [externalProjects]);
-
-  const projects = externalProjects ?? localProjects;
 
   const handleSubmit = () => {
     const text = inputText.trim();
@@ -120,12 +111,7 @@ export default function HomePage({ projects: externalProjects, onNewProject, onO
   };
 
   const handleDelete = (id: string) => {
-    if (onDeleteProject) {
-      onDeleteProject(id);
-    } else {
-      deleteProject(id);
-      setLocalProjects(prev => prev.filter(p => p.id !== id));
-    }
+    onDeleteProject(id);
   };
 
   const quickTags = [
