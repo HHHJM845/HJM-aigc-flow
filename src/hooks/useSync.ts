@@ -56,7 +56,20 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
 
       if (msg.type === 'init') {
         const serverProjects = Array.isArray(msg.projects) ? (msg.projects as Project[]) : [];
-        setProjects([...serverProjects].sort((a, b) => b.updatedAt - a.updatedAt));
+        const serverIds = new Set(serverProjects.map((p: Project) => p.id));
+
+        // Migrate any local projects that the server doesn't have yet.
+        // This recovers data from localStorage on first run or after a server reset.
+        const localProjects = loadProjects();
+        const toUpload = localProjects.filter(p => !serverIds.has(p.id));
+        toUpload.forEach(p => {
+          ws.send(JSON.stringify({ type: 'project_save', project: p }));
+        });
+
+        // Merge: server is authoritative for projects it knows; locals fill the rest
+        const merged = [...serverProjects, ...toUpload]
+          .sort((a, b) => b.updatedAt - a.updatedAt);
+        setProjects(merged);
         serverProjects.forEach(localSave);
       }
 
