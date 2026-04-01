@@ -1,0 +1,74 @@
+// server/ws.ts
+import { WebSocketServer, WebSocket } from 'ws';
+import type { Server } from 'http';
+import type { RawData } from 'ws';
+import { getAllProjects, upsertProject, removeProject } from './db.js';
+import type { Project } from '../src/lib/storage.js';
+
+interface WSMessage {
+  type: string;
+  [key: string]: unknown;
+}
+
+// Track all connected clients: clientId → WebSocket
+const clients = new Map<string, WebSocket>();
+
+function broadcast(data: object, excludeClientId?: string): void {
+  const msg = JSON.stringify(data);
+  clients.forEach((ws, id) => {
+    if (id !== excludeClientId && ws.readyState === WebSocket.OPEN) {
+      ws.send(msg);
+    }
+  });
+}
+
+export function attachWebSocketServer(httpServer: Server): void {
+  const wss = new WebSocketServer({ server: httpServer });
+
+  wss.on('connection', (ws: WebSocket) => {
+    const clientId = `c_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    clients.set(clientId, ws);
+
+    // Send full project list to the newly connected client
+    try {
+      const projects = getAllProjects();
+      ws.send(JSON.stringify({ type: 'init', projects }));
+    } catch (e) {
+      console.error('[ws] init error', e);
+    }
+
+    ws.on('message', (raw: RawData) => {
+      let msg: WSMessage;
+      try {
+        msg = JSON.parse(raw.toString()) as WSMessage;
+      } catch {
+        return; // ignore malformed messages
+      }
+
+      if (msg.type === 'project_save') {
+        const project = msg.project as Project;
+        if (!project?.id) return;
+        upsertProject(project);
+        broadcast({ type: 'project_update', project }, clientId);
+      }
+
+      if (msg.type === 'project_delete') {
+        const id = msg.id as string;
+        if (!id) return;
+        removeProject(id);
+        broadcast({ type: 'project_deleted', id }, clientId);
+      }
+    });
+
+    ws.on('close', () => {
+      clients.delete(clientId);
+    });
+
+    ws.on('error', (err) => {
+      console.error('[ws] client error', err.message);
+      clients.delete(clientId);
+    });
+  });
+
+  console.log('[ws] WebSocket server attached');
+}
