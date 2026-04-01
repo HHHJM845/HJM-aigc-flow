@@ -9,6 +9,8 @@ import chatRouter from './routes/chat.js';
 import generateRouter from './routes/generate.js';
 import videoRouter from './routes/video.js';
 import analyzeRouter from './routes/analyze.js';
+import { createServer } from 'http';
+import { attachWebSocketServer } from './ws.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -48,6 +50,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: err.message });
 });
 
-app.listen(PORT, () => {
+const httpServer = createServer(app);
+attachWebSocketServer(httpServer);
+httpServer.listen(PORT, () => {
   console.log(`[server] running on http://localhost:${PORT}`);
 });
