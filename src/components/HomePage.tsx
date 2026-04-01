@@ -11,8 +11,10 @@ function timeAgo(ts: number): string {
 }
 
 interface Props {
+  projects?: Project[];
   onNewProject: (initialScript?: string) => void;
   onOpenProject: (project: Project) => void;
+  onDeleteProject?: (id: string) => void;
   onGoToSkills?: () => void;
 }
 
@@ -91,14 +93,18 @@ function ProjectCard({
   );
 }
 
-export default function HomePage({ onNewProject, onOpenProject, onGoToSkills }: Props) {
-  const [projects, setProjects] = useState<Project[]>([]);
+export default function HomePage({ projects: externalProjects, onNewProject, onOpenProject, onDeleteProject, onGoToSkills }: Props) {
+  const [localProjects, setLocalProjects] = useState<Project[]>([]);
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setProjects(loadProjects());
-  }, []);
+    if (!externalProjects) {
+      setLocalProjects(loadProjects());
+    }
+  }, [externalProjects]);
+
+  const projects = externalProjects ?? localProjects;
 
   const handleSubmit = () => {
     const text = inputText.trim();
@@ -114,8 +120,12 @@ export default function HomePage({ onNewProject, onOpenProject, onGoToSkills }: 
   };
 
   const handleDelete = (id: string) => {
-    deleteProject(id);
-    setProjects(prev => prev.filter(p => p.id !== id));
+    if (onDeleteProject) {
+      onDeleteProject(id);
+    } else {
+      deleteProject(id);
+      setLocalProjects(prev => prev.filter(p => p.id !== id));
+    }
   };
 
   const quickTags = [

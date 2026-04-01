@@ -37,7 +37,6 @@ import StoryboardView from './components/StoryboardView';
 import { type StoryboardRow } from './lib/api';
 import {
   createProject,
-  saveProject,
   extractThumbnail,
   type Project,
   type AssetItem,
@@ -45,6 +44,7 @@ import {
   type VideoOrderItem,
 } from './lib/storage';
 import VideoView from './components/VideoView';
+import { useSync } from './hooks/useSync';
 import { FileText } from 'lucide-react';
 
 const nodeTypes = {
@@ -100,6 +100,10 @@ function Flow({
   onSaveStoryboardOrder,
   initialVideoOrder,
   onSaveVideoOrder,
+  externalNodes,
+  externalEdges,
+  externalHistory,
+  connected = true,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -115,6 +119,10 @@ function Flow({
   onSaveStoryboardOrder: (order: string[]) => void;
   initialVideoOrder: VideoOrderItem[];
   onSaveVideoOrder: (order: VideoOrderItem[]) => void;
+  externalNodes?: Node[] | null;
+  externalEdges?: Edge[] | null;
+  externalHistory?: HistoryItem[] | null;
+  connected?: boolean;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
@@ -153,9 +161,24 @@ function Flow({
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
   useEffect(() => { edgesRef.current = edges; }, [edges]);
 
+  // Guard: prevents external-applied updates from triggering auto-save loop
+  const isApplyingExternal = useRef(false);
+
+  // Apply remote canvas updates pushed from App (another client edited the project)
+  useEffect(() => {
+    if (!externalNodes || !externalEdges) return;
+    isApplyingExternal.current = true;
+    setNodes(externalNodes);
+    setEdges(externalEdges);
+    if (externalHistory) setGenerationHistory(externalHistory);
+    const t = setTimeout(() => { isApplyingExternal.current = false; }, 200);
+    return () => clearTimeout(t);
+  }, [externalNodes, externalEdges, externalHistory, setNodes, setEdges]);
+
   // 自动保存：nodes 或 edges 变化后 3 秒防抖写入 localStorage
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (isApplyingExternal.current) return; // skip save triggered by remote update
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       onSave(nodesRef.current, edgesRef.current);
@@ -622,6 +645,18 @@ function Flow({
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200 rounded-xl text-[13px] border border-white/5 transition-all backdrop-blur-sm"
               >
                 ⌂ 首页
+                <span
+                  title={connected ? '已连接' : '离线'}
+                  style={{
+                    display: 'inline-block',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: connected ? '#22c55e' : '#6b7280',
+                    marginLeft: 6,
+                    flexShrink: 0,
+                  }}
+                />
               </button>
             </Panel>
 
@@ -780,9 +815,39 @@ export default function App() {
   const [canvasInitialStoryboardOrder, setCanvasInitialStoryboardOrder] = useState<string[]>([]);
   const [canvasInitialVideoOrder, setCanvasInitialVideoOrder] = useState<VideoOrderItem[]>([]);
 
+  // External canvas update: when a remote client saves the currently-open project,
+  // push updated nodes/edges into the live Flow canvas.
+  const [externalCanvasUpdate, setExternalCanvasUpdate] = useState<{
+    nodes: Node[];
+    edges: Edge[];
+    history: HistoryItem[];
+  } | null>(null);
+
+  // Stable ref so the useSync callback can always read the latest currentProject
+  const currentProjectRef = useRef<Project | null>(null);
+  currentProjectRef.current = currentProject;
+
+  const handleRemoteProjectUpdate = useCallback((project: Project) => {
+    const curr = currentProjectRef.current;
+    // Only update the canvas if this is the project currently open
+    if (curr && curr.id === project.id && project.updatedAt > curr.updatedAt) {
+      setCurrentProject(project);
+      setExternalCanvasUpdate({
+        nodes: project.nodes,
+        edges: project.edges,
+        history: project.generationHistory || [],
+      });
+      // Clear after one tick so Flow sees a fresh object reference next time
+      setTimeout(() => setExternalCanvasUpdate(null), 0);
+    }
+  }, []);
+
+  const { projects, connected, saveProject: wsSaveProject, deleteProject: wsDeleteProject } =
+    useSync(handleRemoteProjectUpdate);
+
   const handleNewProject = () => {
     const proj = createProject();
-    saveProject(proj);
+    wsSaveProject(proj);
     setCurrentProject(proj);
     setCanvasInitialNodes([]);
     setCanvasInitialEdges([]);
@@ -790,6 +855,7 @@ export default function App() {
     setCanvasInitialAssets([]);
     setCanvasInitialHistory([]);
     setCanvasInitialStoryboardOrder([]);
+    setCanvasInitialVideoOrder([]);
     setView('canvas');
   };
 
@@ -813,50 +879,52 @@ export default function App() {
     const thumbnail = extractThumbnail(nodes);
     const updated = { ...currentProject, nodes, edges, thumbnail, updatedAt: Date.now() };
     setCurrentProject(updated);
-    saveProject(updated);
+    wsSaveProject(updated);
   };
 
   const handleRowsSave = (rows: StoryboardRow[]) => {
     if (!currentProject) return;
     const updated = { ...currentProject, storyboardRows: rows, updatedAt: Date.now() };
     setCurrentProject(updated);
-    saveProject(updated);
+    wsSaveProject(updated);
   };
 
   const handleAssetsSave = (assets: AssetItem[]) => {
     if (!currentProject) return;
     const updated = { ...currentProject, assets, updatedAt: Date.now() };
     setCurrentProject(updated);
-    saveProject(updated);
+    wsSaveProject(updated);
   };
 
   const handleHistorySave = (history: HistoryItem[]) => {
     if (!currentProject) return;
     const updated = { ...currentProject, generationHistory: history, updatedAt: Date.now() };
     setCurrentProject(updated);
-    saveProject(updated);
+    wsSaveProject(updated);
   };
 
   const handleStoryboardOrderSave = (order: string[]) => {
     if (!currentProject) return;
     const updated = { ...currentProject, storyboardOrder: order, updatedAt: Date.now() };
     setCurrentProject(updated);
-    saveProject(updated);
+    wsSaveProject(updated);
   };
 
   const handleVideoOrderSave = (order: VideoOrderItem[]) => {
     if (!currentProject) return;
     const updated = { ...currentProject, videoOrder: order, updatedAt: Date.now() };
     setCurrentProject(updated);
-    saveProject(updated);
+    wsSaveProject(updated);
   };
 
   return (
     <ReactFlowProvider>
       {view === 'home' ? (
         <HomePage
+          projects={projects}
           onNewProject={handleNewProject}
           onOpenProject={handleOpenProject}
+          onDeleteProject={wsDeleteProject}
           onGoToSkills={handleGoToSkills}
         />
       ) : view === 'skills' ? (
@@ -877,6 +945,10 @@ export default function App() {
           onSaveStoryboardOrder={handleStoryboardOrderSave}
           initialVideoOrder={canvasInitialVideoOrder}
           onSaveVideoOrder={handleVideoOrderSave}
+          externalNodes={externalCanvasUpdate?.nodes ?? null}
+          externalEdges={externalCanvasUpdate?.edges ?? null}
+          externalHistory={externalCanvasUpdate?.history ?? null}
+          connected={connected}
         />
       )}
     </ReactFlowProvider>
