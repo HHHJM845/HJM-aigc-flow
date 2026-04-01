@@ -17,13 +17,15 @@ function broadcast(data: object, excludeClientId?: string): void {
   const msg = JSON.stringify(data);
   clients.forEach((ws, id) => {
     if (id !== excludeClientId && ws.readyState === WebSocket.OPEN) {
-      ws.send(msg);
+      ws.send(msg, (err) => {
+        if (err) console.error('[ws] send error', err.message);
+      });
     }
   });
 }
 
-export function attachWebSocketServer(httpServer: Server): void {
-  const wss = new WebSocketServer({ server: httpServer });
+export function attachWebSocketServer(httpServer: Server): WebSocketServer {
+  const wss = new WebSocketServer({ server: httpServer, maxPayload: 5 * 1024 * 1024 });
 
   wss.on('connection', (ws: WebSocket) => {
     const clientId = `c_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -45,18 +47,20 @@ export function attachWebSocketServer(httpServer: Server): void {
         return; // ignore malformed messages
       }
 
-      if (msg.type === 'project_save') {
-        const project = msg.project as Project;
-        if (!project?.id) return;
-        upsertProject(project);
-        broadcast({ type: 'project_update', project }, clientId);
-      }
-
-      if (msg.type === 'project_delete') {
-        const id = msg.id as string;
-        if (!id) return;
-        removeProject(id);
-        broadcast({ type: 'project_deleted', id }, clientId);
+      try {
+        if (msg.type === 'project_save') {
+          const project = msg.project as Project;
+          if (!project?.id || typeof project.updatedAt !== 'number') return;
+          upsertProject(project);
+          broadcast({ type: 'project_update', project }, clientId);
+        } else if (msg.type === 'project_delete') {
+          const id = msg.id as string;
+          if (!id) return;
+          removeProject(id);
+          broadcast({ type: 'project_deleted', id }, clientId);
+        }
+      } catch (e) {
+        console.error('[ws] message handler error', e);
       }
     });
 
@@ -71,4 +75,5 @@ export function attachWebSocketServer(httpServer: Server): void {
   });
 
   console.log('[ws] WebSocket server attached');
+  return wss;
 }
