@@ -47,6 +47,8 @@ function extractOptimizedScript(response: string): string | null {
   return response.slice(start + '[OPTIMIZED_SCRIPT_START]'.length, end).trim();
 }
 
+// Note: positional diff — compares paragraphs by index.
+// Works well when AI preserves paragraph order; may show false changes if AI reorders content.
 function computeDiff(original: string, optimized: string): DiffChunk[] {
   const origParas = original.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   const optParas = optimized.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
@@ -68,34 +70,46 @@ function computeDiff(original: string, optimized: string): DiffChunk[] {
 export default function ScriptOptimizeModal({ scriptText, onApply, onClose }: ScriptOptimizeModalProps) {
   const [phase, setPhase] = useState<Phase>('questioning');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [apiMessages, setApiMessages] = useState<ApiMessage[]>([]);
+  const apiMessagesRef = useRef<ApiMessage[]>([]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [optimizedScript, setOptimizedScript] = useState('');
   const [diffChunks, setDiffChunks] = useState<DiffChunk[]>([]);
+  const [initialFailed, setInitialFailed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  // Abort any inflight fetch on unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   // On mount: kick off first AI question
   useEffect(() => {
     const initial: ApiMessage[] = [
       { role: 'user', content: `以下是我的剧本：\n\n${scriptText}` },
     ];
-    setApiMessages(initial);
+    apiMessagesRef.current = initial;
     askAI(initial);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function askAI(currentApiMessages: ApiMessage[]) {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setIsLoading(true);
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: currentApiMessages, systemPrompt: SYSTEM_PROMPT }),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(`请求失败 (${res.status})`);
       const data = await res.json();
@@ -107,13 +121,19 @@ export default function ScriptOptimizeModal({ scriptText, onApply, onClose }: Sc
         setDiffChunks(computeDiff(scriptText, optimized));
         setPhase('preview');
         setMessages(prev => [...prev, { role: 'ai', content: '分析完成，请查看下方的修改预览。' }]);
-        setApiMessages(prev => [...prev, { role: 'assistant', content: aiContent }]);
+        apiMessagesRef.current = [...apiMessagesRef.current, { role: 'assistant', content: aiContent }];
       } else {
         setMessages(prev => [...prev, { role: 'ai', content: aiContent }]);
-        setApiMessages(prev => [...prev, { role: 'assistant', content: aiContent }]);
+        apiMessagesRef.current = [...apiMessagesRef.current, { role: 'assistant', content: aiContent }];
       }
-    } catch (err: any) {
-      setMessages(prev => [...prev, { role: 'error', content: err.message || '请求失败，请重试' }]);
+    } catch (err: unknown) {
+      if ((err as { name?: string })?.name === 'AbortError') return;
+      const message = err instanceof Error ? err.message : '请求失败，请重试';
+      setMessages(prev => {
+        const wasEmpty = prev.length === 0;
+        if (wasEmpty) setInitialFailed(true);
+        return [...prev, { role: 'error', content: message }];
+      });
     } finally {
       setIsLoading(false);
     }
@@ -124,8 +144,8 @@ export default function ScriptOptimizeModal({ scriptText, onApply, onClose }: Sc
     if (!text || isLoading || phase !== 'questioning') return;
     setMessages(prev => [...prev, { role: 'user', content: text }]);
     setUserInput('');
-    const next: ApiMessage[] = [...apiMessages, { role: 'user', content: text }];
-    setApiMessages(next);
+    const next: ApiMessage[] = [...apiMessagesRef.current, { role: 'user', content: text }];
+    apiMessagesRef.current = next;
     askAI(next);
   };
 
@@ -136,7 +156,7 @@ export default function ScriptOptimizeModal({ scriptText, onApply, onClose }: Sc
     }
   };
 
-  const changedCount = Math.floor(diffChunks.filter(c => c.type !== 'unchanged').length / 2);
+  const changedCount = diffChunks.filter(c => c.type !== 'unchanged').length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -174,6 +194,20 @@ export default function ScriptOptimizeModal({ scriptText, onApply, onClose }: Sc
               </div>
             </div>
           )}
+          {initialFailed && messages.filter(m => m.role !== 'error').length === 0 && (
+            <div className="flex justify-center mt-2">
+              <button
+                onClick={() => {
+                  setInitialFailed(false);
+                  setMessages([]);
+                  askAI(apiMessagesRef.current);
+                }}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-lg text-xs transition-colors"
+              >
+                重新开始
+              </button>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -183,7 +217,7 @@ export default function ScriptOptimizeModal({ scriptText, onApply, onClose }: Sc
             <div className="px-4 py-2 bg-white/[0.03] flex items-center gap-2">
               <span className="text-xs text-gray-400">修改预览</span>
               {changedCount > 0 && (
-                <span className="text-xs text-gray-500">· {changedCount} 处段落有变动</span>
+                <span className="text-xs text-gray-500">· {changedCount} 处变动</span>
               )}
             </div>
             <div className="overflow-y-auto max-h-48 px-4 py-2 space-y-1.5">
