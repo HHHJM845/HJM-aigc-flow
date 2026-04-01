@@ -7,6 +7,7 @@ export interface AssetItem {
   src: string;
   name: string;
   createdAt: number;
+  category?: 'character' | 'scene' | 'other';
 }
 
 export interface HistoryItem {
