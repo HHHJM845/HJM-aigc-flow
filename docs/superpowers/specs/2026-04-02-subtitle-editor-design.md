@@ -164,24 +164,44 @@ const msFromPx = (px: number) => px * msPerPx;
 ### 触发
 点击顶部「✨ AI 生成字幕」按钮。
 
+### 使用模型
+**豆包 Vision Pro 32k**（`doubao-vision-pro-32k`），通过火山引擎 ARK API 调用，支持图文混合输入。现有 `/api/chat` 使用 DeepSeek（纯文字），不适用此场景。
+
+### 新增后端接口
+`POST /api/subtitle-generate`，复用 `server/routes/analyze.ts` 的调用模式：
+
+```typescript
+// server/routes/subtitle-generate.ts
+const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
+const VISION_MODEL = 'doubao-vision-pro-32k';
+
+// body: { frames: string[],  storyboardText: string }
+// frames: base64 data URLs (image/jpeg)
+// 返回: { subtitles: string[] }  每项格式 "角色名：台词"
+```
+
 ### 步骤
-1. **截取关键帧**：每个视频片段截取 2 帧（片段时长的 25% 和 75% 处），base64 编码
+1. **截取关键帧**：每个视频片段截取 2 帧（片段时长的 25% 和 75% 处），Canvas API → base64 JPEG
 2. **读取剧本**：从 `storyboardRows` 拼接场景描述文字
-3. **调用 `/api/chat`**：
+3. **调用 `/api/subtitle-generate`**，payload：
 ```typescript
 {
-  systemPrompt: `你是专业的影视字幕编辑。根据以下剧本内容和视频画面，
-生成对应的人物对话字幕。每行一句，格式严格为"角色名：台词"，不要包含序号、时间码或其他内容。`,
-  messages: [
+  storyboardText: string,   // 拼接后的剧本文字
+  frames: string[],         // base64 data URL 数组（所有片段的关键帧）
+}
+```
+后端组装豆包请求：
+```typescript
+messages: [{
+  role: 'user',
+  content: [
+    ...frames.map(f => ({ type: 'image_url', image_url: { url: f } })),
     {
-      role: 'user',
-      content: [
-        { type: 'text', text: `剧本内容：\n${storyboardText}` },
-        ...frameImages.map(b64 => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }))
-      ]
+      type: 'text',
+      text: `以下是视频关键帧和对应剧本内容：\n${storyboardText}\n\n请根据画面和剧本生成人物对话字幕。每行一句，格式严格为"角色名：台词"，不含序号、时间码或其他内容。`
     }
   ]
-}
+}]
 ```
 4. **解析响应**：按换行分割，过滤空行，每行生成一条 `SubtitleEntry`（`startMs = 0, endMs = 3000`）
 5. **追加到 `subtitles`**：新条目出现在列表底部，等待用户拖拽定位
@@ -234,3 +254,5 @@ function msToSRTTime(ms: number): string {
 | `src/components/BottomTabBar.tsx` | 修改：新增 `'subtitle'` tab |
 | `src/components/SubtitleView.tsx` | 新建：完整字幕编辑器视图 |
 | `src/App.tsx` | 修改：接入 `SubtitleView`，传入 `videoOrder`、`storyboardRows`、`subtitles`、`onSaveSubtitles` |
+| `server/routes/subtitle-generate.ts` | 新建：调用豆包 Vision Pro 生成字幕文字 |
+| `server/index.ts` | 修改：注册 `/api/subtitle-generate` 路由 |
