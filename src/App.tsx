@@ -178,10 +178,14 @@ function Flow({
   // 自动保存：nodes 或 edges 变化后 3 秒防抖写入 localStorage
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (isApplyingExternal.current) return; // skip save triggered by remote update
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
-      onSave(nodesRef.current, edgesRef.current);
+      // Skip save if this render was triggered by an incoming remote update.
+      // The 3s debounce outlasts the 200ms isApplyingExternal window, so by
+      // the time this fires the flag is clear for any genuine local edits.
+      if (!isApplyingExternal.current) {
+        onSave(nodesRef.current, edgesRef.current);
+      }
     }, 3000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [nodes, edges]);
