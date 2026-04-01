@@ -42,8 +42,10 @@ import {
   type AssetItem,
   type HistoryItem,
   type VideoOrderItem,
+  type SubtitleEntry,
 } from './lib/storage';
 import VideoView from './components/VideoView';
+import SubtitleView from './components/SubtitleView';
 import { useSync } from './hooks/useSync';
 import { FileText } from 'lucide-react';
 
@@ -100,6 +102,9 @@ function Flow({
   onSaveStoryboardOrder,
   initialVideoOrder,
   onSaveVideoOrder,
+  initialSubtitles,
+  onSaveSubtitles,
+  projectName,
   externalNodes,
   externalEdges,
   externalHistory,
@@ -119,6 +124,9 @@ function Flow({
   onSaveStoryboardOrder: (order: string[]) => void;
   initialVideoOrder: VideoOrderItem[];
   onSaveVideoOrder: (order: VideoOrderItem[]) => void;
+  initialSubtitles: SubtitleEntry[];
+  onSaveSubtitles: (subtitles: SubtitleEntry[]) => void;
+  projectName: string;
   externalNodes?: Node[] | null;
   externalEdges?: Edge[] | null;
   externalHistory?: HistoryItem[] | null;
@@ -126,9 +134,10 @@ function Flow({
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
-  const [activeView, setActiveView] = useState<'canvas' | 'storyboard' | 'breakdown' | 'video'>('canvas');
+  const [activeView, setActiveView] = useState<'canvas' | 'storyboard' | 'breakdown' | 'video' | 'subtitle'>('canvas');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
   const [videoOrder, setVideoOrder] = useState<VideoOrderItem[]>(initialVideoOrder);
+  const [subtitles, setSubtitles] = useState<SubtitleEntry[]>(initialSubtitles);
 
   // Toolbar state
   const [activeTool, setActiveTool] = useState<ActiveTool>(null);
@@ -801,6 +810,28 @@ function Flow({
         />
       </div>
 
+      {/* Subtitle editor view */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: activeView === 'subtitle' ? 1 : 0,
+          transform: activeView === 'subtitle' ? 'translateY(0)' : 'translateY(8px)',
+          transition: 'opacity 300ms ease-out, transform 300ms ease-out',
+          pointerEvents: activeView === 'subtitle' ? 'auto' : 'none',
+        }}
+      >
+        <SubtitleView
+          videoOrder={videoOrder}
+          storyboardRows={storyboardRows}
+          subtitles={subtitles}
+          projectName={projectName}
+          onSaveSubtitles={(next) => {
+            setSubtitles(next);
+            onSaveSubtitles(next);
+          }}
+        />
+      </div>
+
       {/* Bottom tab bar — always on top */}
       <BottomTabBar activeView={activeView} onViewChange={setActiveView} />
 
@@ -818,6 +849,7 @@ export default function App() {
   const [canvasInitialHistory, setCanvasInitialHistory] = useState<HistoryItem[]>([]);
   const [canvasInitialStoryboardOrder, setCanvasInitialStoryboardOrder] = useState<string[]>([]);
   const [canvasInitialVideoOrder, setCanvasInitialVideoOrder] = useState<VideoOrderItem[]>([]);
+  const [canvasInitialSubtitles, setCanvasInitialSubtitles] = useState<SubtitleEntry[]>([]);
 
   // External canvas update: when a remote client saves the currently-open project,
   // push updated nodes/edges into the live Flow canvas.
@@ -860,6 +892,7 @@ export default function App() {
     setCanvasInitialHistory([]);
     setCanvasInitialStoryboardOrder([]);
     setCanvasInitialVideoOrder([]);
+    setCanvasInitialSubtitles([]);
     setView('canvas');
   };
 
@@ -872,6 +905,7 @@ export default function App() {
     setCanvasInitialHistory(project.generationHistory || []);
     setCanvasInitialStoryboardOrder(project.storyboardOrder || []);
     setCanvasInitialVideoOrder(project.videoOrder || []);
+    setCanvasInitialSubtitles(project.subtitles || []);
     setView('canvas');
   };
 
@@ -914,6 +948,13 @@ export default function App() {
     wsSaveProject(updated);
   };
 
+  const handleSubtitlesSave = (subtitles: SubtitleEntry[]) => {
+    if (!currentProject) return;
+    const updated = { ...currentProject, subtitles, updatedAt: Date.now() };
+    setCurrentProject(updated);
+    wsSaveProject(updated);
+  };
+
   const handleVideoOrderSave = (order: VideoOrderItem[]) => {
     if (!currentProject) return;
     const updated = { ...currentProject, videoOrder: order, updatedAt: Date.now() };
@@ -949,6 +990,9 @@ export default function App() {
           onSaveStoryboardOrder={handleStoryboardOrderSave}
           initialVideoOrder={canvasInitialVideoOrder}
           onSaveVideoOrder={handleVideoOrderSave}
+          initialSubtitles={canvasInitialSubtitles}
+          onSaveSubtitles={handleSubtitlesSave}
+          projectName={currentProject?.name ?? ''}
           externalNodes={externalCanvasUpdate?.nodes ?? null}
           externalEdges={externalCanvasUpdate?.edges ?? null}
           externalHistory={externalCanvasUpdate?.history ?? null}

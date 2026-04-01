@@ -1,6 +1,13 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { StoryboardRow } from './api';
 
+export interface SubtitleEntry {
+  id: string;
+  startMs: number;
+  endMs: number;
+  text: string;
+}
+
 export interface AssetItem {
   id: string;
   type: 'image' | 'video';
@@ -38,6 +45,7 @@ export interface Project {
   generationHistory: HistoryItem[];
   storyboardOrder: string[];
   videoOrder: VideoOrderItem[];
+  subtitles: SubtitleEntry[];
 }
 
 const STORAGE_KEY = 'hjm_aigc_projects';
@@ -93,6 +101,7 @@ export function createProject(name = '未命名项目'): Project {
     generationHistory: [],
     storyboardOrder: [],
     videoOrder: [],
+    subtitles: [],
   };
 }
 

@@ -9,6 +9,7 @@ import chatRouter from './routes/chat.js';
 import generateRouter from './routes/generate.js';
 import videoRouter from './routes/video.js';
 import analyzeRouter from './routes/analyze.js';
+import subtitleGenerateRouter from './routes/subtitle-generate.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 
@@ -36,6 +37,7 @@ app.use('/api/chat', chatRouter);
 app.use('/api/generate', generateRouter);
 app.use('/api/video', videoRouter);
 app.use('/api/analyze', analyzeRouter);
+app.use('/api/subtitle-generate', subtitleGenerateRouter);
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.resolve(__dirname, '../dist');
