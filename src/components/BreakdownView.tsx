@@ -7,10 +7,11 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  Sparkles, Plus, X, GripVertical, ArrowRight, Loader2, Upload, FileText, ChevronDown,
+  Sparkles, Plus, X, GripVertical, ArrowRight, Loader2, Upload, FileText, ChevronDown, Wand2,
 } from 'lucide-react';
 import { breakdownScript, type StoryboardRow } from '../lib/api';
 import { splitParagraphs, diffParagraphs, mergeRows } from '../lib/diff';
+import ScriptOptimizeModal from './ScriptOptimizeModal';
 
 // ── 比例选项 ─────────────────────────────────────────
 const CARD_RATIOS = [
@@ -101,6 +102,7 @@ export default function BreakdownView({ initialRows, onImport }: Props) {
   const [newlyUpdatedIds, setNewlyUpdatedIds] = useState<Set<string>>(new Set());
   const [cardRatio, setCardRatio] = useState('16:9');
   const [isRatioOpen, setIsRatioOpen] = useState(false);
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -232,6 +234,14 @@ export default function BreakdownView({ initialRows, onImport }: Props) {
                 {isBreaking ? 'AI 拆解中...' : '✨ AI 拆解'}
               </button>
             )}
+            <button
+              onClick={() => setShowOptimizeModal(true)}
+              disabled={!scriptText.trim()}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-purple-300 rounded-lg text-xs transition-colors border border-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Wand2 size={12} />
+              AI 优化
+            </button>
           </div>
         </div>
 
@@ -387,6 +397,16 @@ export default function BreakdownView({ initialRows, onImport }: Props) {
           </>
         )}
       </div>
+      {showOptimizeModal && (
+        <ScriptOptimizeModal
+          scriptText={scriptText}
+          onApply={(optimized) => {
+            setScriptText(optimized);
+            setShowOptimizeModal(false);
+          }}
+          onClose={() => setShowOptimizeModal(false)}
+        />
+      )}
     </div>
   );
 }
