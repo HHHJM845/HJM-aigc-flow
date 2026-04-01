@@ -175,7 +175,7 @@ function Flow({
     return () => clearTimeout(t);
   }, [externalNodes, externalEdges, externalHistory, setNodes, setEdges]);
 
-  // 自动保存：nodes 或 edges 变化后 3 秒防抖写入 localStorage
+  // 自动保存：nodes 或 edges 变化后 3 秒防抖通过 onSave → wsSaveProject 同步到服务器
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
