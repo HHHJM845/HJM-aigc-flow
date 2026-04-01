@@ -51,7 +51,14 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const httpServer = createServer(app);
-attachWebSocketServer(httpServer);
+const wss = attachWebSocketServer(httpServer);
 httpServer.listen(PORT, () => {
   console.log(`[server] running on http://localhost:${PORT}`);
 });
+
+// Graceful shutdown: close WS connections before stopping the HTTP server
+function shutdown() {
+  wss.close(() => httpServer.close(() => process.exit(0)));
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

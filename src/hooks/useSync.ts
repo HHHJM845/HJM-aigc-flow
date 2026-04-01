@@ -111,7 +111,7 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
       const next = idx >= 0
         ? prev.map((p, i) => (i === idx ? project : p))
         : [project, ...prev];
-      return [...next].sort((a, b) => b.updatedAt - a.updatedAt);
+      return [...next].sort((a, b) => b.updatedAt - a.updatedAt); // keep list sorted after local save
     });
     // Broadcast to server (if offline, save is preserved in localStorage)
     if (wsRef.current?.readyState === WebSocket.OPEN) {

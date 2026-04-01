@@ -25,7 +25,8 @@ function broadcast(data: object, excludeClientId?: string): void {
 }
 
 export function attachWebSocketServer(httpServer: Server): WebSocketServer {
-  const wss = new WebSocketServer({ server: httpServer, maxPayload: 5 * 1024 * 1024 });
+  // Match the Express JSON body limit (20MB) to handle projects with base64 image content
+  const wss = new WebSocketServer({ server: httpServer, maxPayload: 20 * 1024 * 1024 });
 
   wss.on('connection', (ws: WebSocket) => {
     const clientId = `c_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
