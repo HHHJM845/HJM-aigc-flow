@@ -50,8 +50,9 @@ interface Props {
 
 const RULER_H = 28;
 const THUMB_TRACK_H = 90;
+const CLIP_BAR_H = 20;
 const SUB_TRACK_H = 48;
-const TIMELINE_H = RULER_H + THUMB_TRACK_H + SUB_TRACK_H + 16; // ~182px
+const TIMELINE_H = RULER_H + THUMB_TRACK_H + CLIP_BAR_H + SUB_TRACK_H + 16; // ~202px
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -564,8 +565,8 @@ export default function SubtitleView({
             {/* Subtitle track */}
             <div
               className="absolute left-0 right-0 cursor-crosshair"
-              style={{ top: RULER_H + THUMB_TRACK_H, height: SUB_TRACK_H, background: '#161616' }}
-              onClick={handleTimelineSubtrackClick}
+              style={{ top: RULER_H + THUMB_TRACK_H + CLIP_BAR_H, height: SUB_TRACK_H, background: '#161616' }}
+              onDoubleClick={handleTimelineSubtrackClick}
             >
               {localSubs.map(sub => {
                 const left = pxFromMs(sub.startMs);
