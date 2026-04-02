@@ -238,7 +238,7 @@ export default function SubtitleView({
   };
 
   const handleTimelineWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (!e.ctrlKey) return;
+    if (!e.altKey) return;
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
     setZoom(prev => Math.min(8, Math.max(0.25, prev * factor)));
