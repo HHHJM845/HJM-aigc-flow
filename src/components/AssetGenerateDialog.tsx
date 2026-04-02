@@ -57,6 +57,8 @@ export default function AssetGenerateDialog({ open, onClose, onAddAsset }: Props
   useEffect(() => {
     setMessages([{ role: 'ai', text: OPENING_GREETINGS[category] }]);
     setGeneratedImage(null);
+    setLoading(false);
+    setGenerating(false);
   }, [category]);
 
   const apiMessages = () =>
@@ -84,6 +86,10 @@ export default function AssetGenerateDialog({ open, onClose, onAddAsset }: Props
           mode: 'chat',
         }),
       });
+      if (!resp.ok) {
+        setMessages(prev => [...prev, { role: 'ai', text: '出错了，请稍后重试。' }]);
+        return;
+      }
       const data = await resp.json() as { reply: string };
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
     } finally {
@@ -101,6 +107,10 @@ export default function AssetGenerateDialog({ open, onClose, onAddAsset }: Props
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: apiMessages(), category, mode: 'extract-prompt' }),
       });
+      if (!extractResp.ok) {
+        setMessages(prev => [...prev, { role: 'ai', text: '提示词提取失败，请重试。' }]);
+        return;
+      }
       const { reply: prompt } = await extractResp.json() as { reply: string };
 
       // Step 2: generate image
@@ -117,6 +127,10 @@ export default function AssetGenerateDialog({ open, onClose, onAddAsset }: Props
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(genBody),
       });
+      if (!genResp.ok) {
+        setMessages(prev => [...prev, { role: 'ai', text: '图片生成失败，请重试。' }]);
+        return;
+      }
       const genData = await genResp.json() as { urls?: string[]; url?: string };
       const url = genData.urls?.[0] ?? genData.url ?? null;
       setGeneratedImage(url);
