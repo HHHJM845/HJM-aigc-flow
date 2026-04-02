@@ -10,6 +10,7 @@ import generateRouter from './routes/generate.js';
 import videoRouter from './routes/video.js';
 import analyzeRouter from './routes/analyze.js';
 import subtitleGenerateRouter from './routes/subtitle-generate.js';
+import exportVideoRouter from './routes/export-video.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 
@@ -38,6 +39,7 @@ app.use('/api/generate', generateRouter);
 app.use('/api/video', videoRouter);
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/subtitle-generate', subtitleGenerateRouter);
+app.use('/api/export-video', exportVideoRouter);
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.resolve(__dirname, '../dist');
