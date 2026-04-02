@@ -829,6 +829,10 @@ function Flow({
             setSubtitles(next);
             onSaveSubtitles(next);
           }}
+          onUpdateVideoOrder={(order) => {
+            setVideoOrder(order);
+            onSaveVideoOrder(order);
+          }}
         />
       </div>
 
