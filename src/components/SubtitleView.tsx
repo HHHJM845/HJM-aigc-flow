@@ -50,9 +50,9 @@ interface Props {
 
 const RULER_H = 28;
 const THUMB_TRACK_H = 90;
-const CLIP_BAR_H = 20;
+const CLIP_BAR_H = 36;
 const SUB_TRACK_H = 48;
-const TIMELINE_H = RULER_H + THUMB_TRACK_H + CLIP_BAR_H + SUB_TRACK_H + 16; // ~202px
+const TIMELINE_H = RULER_H + THUMB_TRACK_H + CLIP_BAR_H + SUB_TRACK_H + 16; // ~218px
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -607,12 +607,12 @@ export default function SubtitleView({
                 return (
                   <div
                     key={item.id}
-                    className="absolute top-0 bottom-0 flex items-center overflow-hidden"
-                    style={{ left, width, background: bg, borderRight: '1px solid rgba(255,255,255,0.08)' }}
+                    className="absolute top-1 bottom-1 rounded flex items-center overflow-hidden"
+                    style={{ left, width, background: bg, borderRight: '1px solid rgba(255,255,255,0.06)' }}
                   >
-                    {width > 40 && (
-                      <span className="text-[9px] text-white/50 pl-1 select-none shrink-0">
-                        {i + 1}
+                    {width > 30 && (
+                      <span className="text-[10px] text-white/70 px-2 truncate select-none">
+                        {item.label || `片段 ${i + 1}`}
                       </span>
                     )}
                   </div>
