@@ -207,6 +207,8 @@ export default function SubtitleView({
   // ── Timeline interaction ──────────────────────────────────────────────────
   const timelineRef = useRef<HTMLDivElement>(null);
   const [timelineWidth, setTimelineWidth] = useState(800);
+  const [zoom, setZoom] = useState(1.0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!timelineRef.current) return;
@@ -217,8 +219,9 @@ export default function SubtitleView({
     return () => ro.disconnect();
   }, []);
 
-  const msPerPx = totalMs > 0 ? totalMs / timelineWidth : 1;
-  const pxFromMs = (ms: number) => (totalMs > 0 ? (ms / totalMs) * timelineWidth : 0);
+  const contentWidth = timelineWidth * zoom;
+  const msPerPx = totalMs > 0 ? totalMs / contentWidth : 1;
+  const pxFromMs = (ms: number) => (totalMs > 0 ? (ms / totalMs) * contentWidth : 0);
 
   const handleRulerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -232,6 +235,13 @@ export default function SubtitleView({
     const px = e.clientX - rect.left;
     const ms = Math.round(px * msPerPx);
     addSubtitleAt(Math.max(0, Math.min(ms, totalMs)));
+  };
+
+  const handleTimelineWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    setZoom(prev => Math.min(8, Math.max(0.25, prev * factor)));
   };
 
   // Drag state for subtitle blocks
@@ -547,14 +557,20 @@ export default function SubtitleView({
         style={{ height: TIMELINE_H }}
       >
         {totalMs > 0 ? (
-          <div className="relative w-full h-full overflow-hidden">
+          <div
+            ref={scrollRef}
+            className="relative w-full h-full overflow-x-auto"
+            style={{ scrollbarWidth: 'none' } as React.CSSProperties}
+            onWheel={handleTimelineWheel}
+          >
+          <div className="relative h-full" style={{ width: contentWidth }}>
             {/* Ruler */}
             <div
               className="absolute left-0 right-0 top-0 flex items-end cursor-pointer"
               style={{ height: RULER_H, background: 'rgba(0,0,0,0.4)' }}
               onClick={handleRulerClick}
             >
-              <RulerTicks totalMs={totalMs} widthPx={timelineWidth} />
+              <RulerTicks totalMs={totalMs} widthPx={contentWidth} />
             </div>
 
             {/* Thumbnail track */}
@@ -648,6 +664,7 @@ export default function SubtitleView({
               className="absolute top-0 bottom-0 w-[2px] bg-red-500/80 pointer-events-none"
               style={{ left: pxFromMs(currentMs) }}
             />
+          </div>
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-white/20 text-[12px]">
