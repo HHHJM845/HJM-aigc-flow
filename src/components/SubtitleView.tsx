@@ -293,6 +293,21 @@ export default function SubtitleView({
     };
   }, [msPerPx, totalMs, onSaveSubtitles]);
 
+  // ── Keyboard delete ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!focusedSubId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const tag = (document.activeElement as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      if ((document.activeElement as HTMLElement)?.isContentEditable) return;
+      e.preventDefault();
+      removeSubtitle(focusedSubId);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [focusedSubId, removeSubtitle]);
+
   // ── Thumbnail extraction ──────────────────────────────────────────────────
   const [thumbs, setThumbs] = useState<{ clipIdx: number; time: number; dataUrl: string }[]>([]);
 
