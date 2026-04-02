@@ -30,6 +30,8 @@ export interface VideoOrderItem {
   nodeId: string;   // source VideoNode ID
   url: string;      // snapshotted video URL at time of check
   label: string;    // snapshotted node label at time of check
+  trimStart?: number; // ms from clip start, default 0
+  trimEnd?: number;   // ms from clip start, default = full clip duration
 }
 
 export interface Project {
