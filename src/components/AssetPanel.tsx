@@ -14,6 +14,7 @@ interface Props {
   assets: AssetItem[];
   onUpload: (items: AssetItem[]) => void;
   onRemove: (id: string) => void;
+  onRename: (id: string, name: string) => void;
 }
 
 const CATEGORIES: { key: ActiveCategory; label: string }[] = [
@@ -23,10 +24,12 @@ const CATEGORIES: { key: ActiveCategory; label: string }[] = [
   { key: 'other', label: '其他' },
 ];
 
-export default function AssetPanel({ assets, onUpload, onRemove }: Props) {
+export default function AssetPanel({ assets, onUpload, onRemove, onRename }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeCategory, setActiveCategory] = useState<ActiveCategory>('all');
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? new FileList()) as File[];
@@ -171,6 +174,44 @@ export default function AssetPanel({ assets, onUpload, onRemove }: Props) {
                   >
                     <X size={10} className="text-white" />
                   </button>
+                  {/* Asset name — click to rename */}
+                  <div
+                    className="px-1.5 py-1 bg-black/40"
+                    onMouseDown={e => e.stopPropagation()}
+                  >
+                    {editingId === asset.id ? (
+                      <input
+                        autoFocus
+                        value={editingName}
+                        onChange={e => setEditingName(e.target.value)}
+                        onBlur={() => {
+                          onRename(asset.id, editingName.trim() || asset.name);
+                          setEditingId(null);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            onRename(asset.id, editingName.trim() || asset.name);
+                            setEditingId(null);
+                          }
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        className="w-full bg-transparent text-[10px] text-white/80 outline-none border-b border-white/30 leading-snug"
+                        onClick={e => e.stopPropagation()}
+                      />
+                    ) : (
+                      <p
+                        className="text-[10px] text-white/40 truncate cursor-pointer hover:text-white/70 leading-snug"
+                        title={`${asset.name} (点击重命名)`}
+                        onClick={e => {
+                          e.stopPropagation();
+                          setEditingId(asset.id);
+                          setEditingName(asset.name);
+                        }}
+                      >
+                        {asset.name}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
