@@ -24,6 +24,8 @@ const RATIO_SIZES: Record<string, { w: number; h: number }> = {
   '21:9': { w: 380, h: 163 },
 };
 
+const STYLE_PRESETS = ['写实', '动漫', '油画', '水彩', '赛博朋克', '中国水墨', '素描', '3D渲染', '皮克斯风格'] as const;
+
 export default function ImageNode({ id, data, selected }: { id: string; data: any; selected?: boolean }) {
   const [isHovered, setIsHovered] = useState(false);
   const isInStoryboard: boolean = Boolean(data.isInStoryboard);
@@ -36,6 +38,34 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
   const [isRatioOpen, setIsRatioOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [genError, setGenError] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState<string>(data.style ?? '');
+  const [customStyle, setCustomStyle] = useState<string>('');
+  const [optimizing, setOptimizing] = useState(false);
+
+  const handleOptimizePrompt = async () => {
+    if (!data.shotDescription) return;
+    const style = selectedStyle || customStyle;
+    setOptimizing(true);
+    try {
+      const resp = await fetch('/api/optimize-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: data.shotDescription,
+          style,
+          label: data.label,
+        }),
+      });
+      if (resp.ok) {
+        const result = await resp.json() as { prompt: string };
+        setPrompt(result.prompt);
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setOptimizing(false);
+    }
+  };
 
   // 手动上传的参考图（多张）
   const [uploadedRefImages, setUploadedRefImages] = useState<string[]>([]);
@@ -340,20 +370,71 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
             </div>
           )}
 
-          {/* 2. 提示词输入区 */}
-          <div className="flex items-start gap-4">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleGenerate();
-                }
+          {/* Style selector */}
+          <div
+            className="flex flex-wrap gap-1.5 items-center"
+            onMouseDown={e => e.stopPropagation()}
+          >
+            {STYLE_PRESETS.map(style => (
+              <button
+                key={style}
+                onClick={() => {
+                  const newStyle = selectedStyle === style ? '' : style;
+                  setSelectedStyle(newStyle);
+                  setCustomStyle('');
+                  data.onUpdate?.(id, { style: newStyle });
+                }}
+                className={`px-2 py-0.5 rounded-full text-[11px] border transition-colors ${
+                  selectedStyle === style
+                    ? 'bg-violet-600/80 border-violet-500 text-white'
+                    : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80'
+                }`}
+              >
+                {style}
+              </button>
+            ))}
+            <input
+              value={customStyle}
+              onChange={e => {
+                setCustomStyle(e.target.value);
+                setSelectedStyle('');
+                data.onUpdate?.(id, { style: e.target.value });
               }}
-              placeholder="描述任何你想生成的内容"
-              className="flex-1 bg-transparent border-none text-[16px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[80px] py-1 leading-relaxed"
+              placeholder="自定义画风"
+              className="flex-1 min-w-[80px] bg-white/5 border border-white/10 rounded-full px-3 py-0.5 text-[11px] text-white/70 placeholder-white/25 outline-none focus:border-white/30"
             />
+          </div>
+
+          {/* 2. 提示词输入区 */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wide">提示词</span>
+              <button
+                onClick={handleOptimizePrompt}
+                disabled={optimizing || !data.shotDescription}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-600/60 hover:bg-violet-600/80 disabled:opacity-40 text-[11px] text-white transition-colors"
+              >
+                {optimizing
+                  ? <Loader2 size={10} className="animate-spin" />
+                  : <span>✨</span>
+                }
+                {optimizing ? '优化中…' : 'AI优化'}
+              </button>
+            </div>
+            <div className="flex items-start gap-4">
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleGenerate();
+                  }
+                }}
+                placeholder="描述任何你想生成的内容"
+                className="flex-1 bg-transparent border-none text-[16px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[80px] py-1 leading-relaxed"
+              />
+            </div>
           </div>
 
           {genError && <p className="text-red-400 text-[12px]">{genError}</p>}
