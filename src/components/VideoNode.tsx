@@ -24,8 +24,8 @@ const VIDEO_RATIO_SIZES: Record<string, { w: number; h: number }> = {
 
 export default function VideoNode({ id, data, selected }: { id: string, data: any, selected?: boolean }) {
   const [isHovered, setIsHovered] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<'text' | 'image'>('text');
+  const [prompt, setPrompt] = useState<string>(data.initialPrompt || '');
+  const [mode, setMode] = useState<'text' | 'image'>(data.referenceImage ? 'image' : 'text');
   const [duration, setDuration] = useState<number>(5);  // 4-12 或 -1(自动)
   const [resolution, setResolution] = useState<'480p' | '720p' | '1080p'>('720p');
   const [ratio, setRatio] = useState<'16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9'>(data.ratio || '16:9');
