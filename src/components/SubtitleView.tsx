@@ -133,23 +133,37 @@ export default function SubtitleView({
   const handleTimeUpdate = useCallback(() => {
     const vid = videoRef.current;
     if (!vid) return;
+    const item = localVideoOrder[currentClipIndex];
+    const trimStartMs = item?.trimStart ?? 0;
+    const trimEndSec = (item?.trimEnd ?? (clipDurations[currentClipIndex] ?? 0)) / 1000;
+    // Auto-advance when video passes trimEnd
+    if (trimEndSec > 0 && vid.currentTime >= trimEndSec) {
+      if (currentClipIndex < localVideoOrder.length - 1) {
+        setCurrentClipIndex(i => i + 1);
+      } else {
+        vid.pause();
+        setIsPlaying(false);
+      }
+      return;
+    }
     const offset = clipOffsets.current[currentClipIndex] ?? 0;
-    setCurrentMs(offset + Math.round(vid.currentTime * 1000));
-  }, [currentClipIndex]);
+    setCurrentMs(offset + Math.round(vid.currentTime * 1000 - trimStartMs));
+  }, [currentClipIndex, localVideoOrder, clipDurations]);
 
   const handleEnded = useCallback(() => {
-    if (currentClipIndex < videoOrder.length - 1) {
+    if (currentClipIndex < localVideoOrder.length - 1) {
       setCurrentClipIndex(i => i + 1);
     } else {
       setIsPlaying(false);
     }
-  }, [currentClipIndex, videoOrder.length]);
+  }, [currentClipIndex, localVideoOrder.length]);
 
-  // Reset video element when clip changes
+  // Reset video element when clip changes — seek to trimStart
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    vid.currentTime = 0;
+    const trimStartSec = (localVideoOrder[currentClipIndex]?.trimStart ?? 0) / 1000;
+    vid.currentTime = trimStartSec;
     if (isPlaying) vid.play().catch(() => {});
   }, [currentClipIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -168,24 +182,25 @@ export default function SubtitleView({
       if (ms >= offsets[i]) { targetClip = i; break; }
     }
     const localMs = ms - (offsets[targetClip] ?? 0);
+    const trimStart = localVideoOrder[targetClip]?.trimStart ?? 0;
+    const actualTimeSec = (trimStart + localMs) / 1000;
     if (targetClip !== currentClipIndex) {
       setCurrentClipIndex(targetClip);
-      // After re-render the useEffect will set currentTime = 0, but we want localMs
-      // so we store it in a ref
-      pendingSeek.current = localMs;
+      pendingSeek.current = localMs; // stored as local-ms; pending handler adds trimStart
     } else {
       const vid = videoRef.current;
-      if (vid) vid.currentTime = localMs / 1000;
+      if (vid) vid.currentTime = actualTimeSec;
     }
     setCurrentMs(ms);
-  }, [currentClipIndex]);
+  }, [currentClipIndex, localVideoOrder]);
 
   const pendingSeek = useRef<number | null>(null);
   useEffect(() => {
     if (pendingSeek.current !== null) {
       const vid = videoRef.current;
       if (vid) {
-        vid.currentTime = (pendingSeek.current) / 1000;
+        const trimStart = localVideoOrder[currentClipIndex]?.trimStart ?? 0;
+        vid.currentTime = (trimStart + pendingSeek.current) / 1000;
         if (isPlaying) vid.play().catch(() => {});
       }
       pendingSeek.current = null;
@@ -433,7 +448,7 @@ export default function SubtitleView({
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const currentClip = videoOrder[currentClipIndex];
+  const currentClip = localVideoOrder[currentClipIndex];
 
   return (
     <div className="w-full h-full flex flex-col bg-[#0a0a0a] text-white overflow-hidden">
@@ -441,7 +456,7 @@ export default function SubtitleView({
       {/* Top bar */}
       <div className="flex items-center gap-3 px-5 py-3 border-b border-white/8 shrink-0">
         <span className="text-[15px] font-semibold">字幕编辑</span>
-        <span className="text-white/40 text-[13px]">{videoOrder.length} 个片段</span>
+        <span className="text-white/40 text-[13px]">{localVideoOrder.length} 个片段</span>
         {totalMs > 0 && (
           <span className="text-white/40 text-[13px]">总时长 {msToDisplay(totalMs)}</span>
         )}
