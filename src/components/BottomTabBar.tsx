@@ -10,9 +10,9 @@ interface Props {
 
 export default function BottomTabBar({ activeView, onViewChange }: Props) {
   const tabs: { key: ActiveView; label: string }[] = [
+    { key: 'assets', label: '资产管理' },
     { key: 'breakdown', label: '剧本拆解' },
     { key: 'canvas', label: '无限画布' },
-    { key: 'assets', label: '资产管理' },
     { key: 'storyboard', label: '分镜管理' },
     { key: 'video', label: '视频管理' },
     { key: 'subtitle', label: '字幕编辑' },
