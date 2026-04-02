@@ -11,6 +11,8 @@ import videoRouter from './routes/video.js';
 import analyzeRouter from './routes/analyze.js';
 import subtitleGenerateRouter from './routes/subtitle-generate.js';
 import exportVideoRouter from './routes/export-video.js';
+import matchAssetsRouter from './routes/match-assets.js';
+import optimizePromptRouter from './routes/optimize-prompt.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 
@@ -40,6 +42,8 @@ app.use('/api/video', videoRouter);
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/subtitle-generate', subtitleGenerateRouter);
 app.use('/api/export-video', exportVideoRouter);
+app.use('/api/match-assets', matchAssetsRouter);
+app.use('/api/optimize-prompt', optimizePromptRouter);
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.resolve(__dirname, '../dist');
