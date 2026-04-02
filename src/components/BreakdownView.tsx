@@ -344,7 +344,7 @@ export default function BreakdownView({ initialRows, onImport }: Props) {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06] flex-shrink-0">
+            <div className="flex items-center justify-between px-4 pt-3 pb-[72px] border-t border-white/[0.06] flex-shrink-0">
               <button
                 onClick={handleAddRow}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-gray-300 rounded-lg text-xs transition-colors border border-white/5"
