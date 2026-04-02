@@ -213,14 +213,42 @@ function Flow({
     onGoHome();
   };
 
-  const handleImportFromBreakdown = useCallback((rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => {
+  const handleImportFromBreakdown = useCallback(async (rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => {
     setStoryboardRows(rows);
     onSaveRows(rows);
     const newNodes = rowsToNodes(rows, cardW, cardH, ratio);
     setNodes(newNodes);
     setEdges([]);
     setActiveView('canvas');
-  }, [setNodes, setEdges, onSaveRows]);
+
+    // AI asset matching — runs after nodes appear on canvas
+    if (assets.length > 0) {
+      try {
+        const resp = await fetch('/api/match-assets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rows: rows.map(r => ({ id: r.id, description: r.description ?? '' })),
+            assets: assets.map(a => ({ id: a.id, name: a.name, category: a.category })),
+          }),
+        });
+        if (resp.ok) {
+          const { matches } = await resp.json() as { matches: { rowId: string; assetId: string }[] };
+          const assetMap = new Map(assets.map(a => [a.id, a]));
+          setNodes(prev => prev.map(node => {
+            const match = matches.find(m => `storyboard-${m.rowId}` === node.id);
+            if (match) {
+              const asset = assetMap.get(match.assetId);
+              if (asset) return { ...node, data: { ...node.data, referenceImage: asset.src } };
+            }
+            return node;
+          }));
+        }
+      } catch {
+        // Silent fail — asset matching is best-effort
+      }
+    }
+  }, [setNodes, setEdges, onSaveRows, assets]);
 
   const handleUpdateNode = useCallback((id: string, newData: any) => {
     // Record generated content to history
