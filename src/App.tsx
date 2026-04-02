@@ -31,6 +31,7 @@ import LeftToolbar, { type ActiveTool } from './components/LeftToolbar';
 import BoardNode from './components/BoardNode';
 import CommentNode from './components/CommentNode';
 import AssetPanel from './components/AssetPanel';
+import AssetManagerView from './components/AssetManagerView';
 import HistoryPanel from './components/HistoryPanel';
 import BottomTabBar from './components/BottomTabBar';
 import StoryboardView from './components/StoryboardView';
@@ -134,7 +135,7 @@ function Flow({
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
-  const [activeView, setActiveView] = useState<'canvas' | 'storyboard' | 'breakdown' | 'video' | 'subtitle'>('canvas');
+  const [activeView, setActiveView] = useState<'canvas' | 'assets' | 'storyboard' | 'breakdown' | 'video' | 'subtitle'>('canvas');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
   const [videoOrder, setVideoOrder] = useState<VideoOrderItem[]>(initialVideoOrder);
   const [subtitles, setSubtitles] = useState<SubtitleEntry[]>(initialSubtitles);
@@ -509,6 +510,14 @@ function Flow({
     });
   }, [onSaveAssets]);
 
+  const handleAddAsset = useCallback((asset: AssetItem) => {
+    setAssets(prev => {
+      const updated = [asset, ...prev];
+      onSaveAssets(updated);
+      return updated;
+    });
+  }, [onSaveAssets]);
+
   const handleHistoryUse = useCallback((item: HistoryItem) => {
     const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     const newId = `from_hist_${Date.now()}`;
@@ -844,6 +853,24 @@ function Flow({
               return next;
             });
           }}
+        />
+      </div>
+
+      {/* Asset manager view */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: activeView === 'assets' ? 1 : 0,
+          transform: activeView === 'assets' ? 'translateY(0)' : 'translateY(8px)',
+          transition: 'opacity 300ms ease-out, transform 300ms ease-out',
+          pointerEvents: activeView === 'assets' ? 'auto' : 'none',
+        }}
+      >
+        <AssetManagerView
+          assets={assets}
+          onAddAsset={handleAddAsset}
+          onDeleteAsset={handleAssetRemove}
+          onRenameAsset={handleAssetRename}
         />
       </div>
 
