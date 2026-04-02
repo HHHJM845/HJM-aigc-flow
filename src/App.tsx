@@ -901,7 +901,7 @@ function Flow({
       </div>
 
       {/* Bottom tab bar — always on top */}
-      <BottomTabBar activeView={activeView} onViewChange={setActiveView} />
+      <BottomTabBar activeView={activeView} onViewChange={setActiveView} onGoHome={onGoHome} />
 
     </div>
   );

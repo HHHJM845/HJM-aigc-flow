@@ -6,9 +6,10 @@ type ActiveView = 'canvas' | 'assets' | 'storyboard' | 'breakdown' | 'video' | '
 interface Props {
   activeView: ActiveView;
   onViewChange: (view: ActiveView) => void;
+  onGoHome: () => void;
 }
 
-export default function BottomTabBar({ activeView, onViewChange }: Props) {
+export default function BottomTabBar({ activeView, onViewChange, onGoHome }: Props) {
   const tabs: { key: ActiveView; label: string }[] = [
     { key: 'assets', label: '资产管理' },
     { key: 'breakdown', label: '剧本拆解' },
@@ -23,6 +24,14 @@ export default function BottomTabBar({ activeView, onViewChange }: Props) {
       className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 p-1 rounded-full border border-white/10 shadow-2xl"
       style={{ background: 'rgba(28,28,28,0.92)', backdropFilter: 'blur(12px)' }}
     >
+      <button
+        onClick={onGoHome}
+        className="px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 text-white/40 hover:text-white/70"
+        title="返回首页"
+      >
+        ⌂
+      </button>
+      <div className="w-px h-4 bg-white/10 mx-0.5" />
       {tabs.map(({ key, label }) => (
         <button
           key={key}
