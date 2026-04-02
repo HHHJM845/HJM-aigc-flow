@@ -18,7 +18,7 @@ interface PendingFile {
   name: string;
 }
 
-const CATEGORIES: { key: ActiveCategory; label: string; icon?: string }[] = [
+const CATEGORIES: { key: ActiveCategory; label: string }[] = [
   { key: 'all', label: '全部' },
   { key: 'character', label: '👤 人物' },
   { key: 'scene', label: '🏙 场景' },
@@ -69,7 +69,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
   };
 
   return (
-    <div className="w-full h-full bg-[#0d0d0d] flex flex-col">
+    <div className="w-full h-full bg-[#0d0d0d] flex flex-col relative">
       {/* Top bar */}
       <div className="flex items-center gap-2 px-6 py-4 border-b border-white/[0.06] flex-shrink-0">
         {/* Category tabs */}
