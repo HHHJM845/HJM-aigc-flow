@@ -473,6 +473,14 @@ function Flow({
     });
   }, [onSaveAssets]);
 
+  const handleAssetRename = useCallback((id: string, name: string) => {
+    setAssets(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, name } : a);
+      onSaveAssets(updated);
+      return updated;
+    });
+  }, [onSaveAssets]);
+
   const handleHistoryUse = useCallback((item: HistoryItem) => {
     const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     const newId = `from_hist_${Date.now()}`;
@@ -724,6 +732,7 @@ function Flow({
               assets={assets}
               onUpload={handleAssetUpload}
               onRemove={handleAssetRemove}
+              onRename={handleAssetRename}
             />
           )}
 
