@@ -463,6 +463,7 @@ export default function SubtitleView({
 
   // ── AI generate ───────────────────────────────────────────────────────────
   const [aiLoading, setAiLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const handleAIGenerate = async () => {
     if (localVideoOrder.length === 0) return;
@@ -507,6 +508,38 @@ export default function SubtitleView({
     }
   };
 
+  const handleExportVideo = async () => {
+    if (localVideoOrder.length === 0 || totalMs === 0) return;
+    setExporting(true);
+    try {
+      const resp = await fetch('/api/export-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoOrder: localVideoOrder,
+          subtitles: localSubs,
+          totalMs,
+        }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: 'unknown' }));
+        alert(`导出失败：${err.error}`);
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `export-${Date.now()}.mp4`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(`导出出错：${String(err)}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   const currentClip = localVideoOrder[currentClipIndex];
@@ -535,6 +568,13 @@ export default function SubtitleView({
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-white/8 hover:bg-white/12 disabled:opacity-40 text-[13px] font-medium border border-white/10 transition-colors"
         >
           导出 SRT
+        </button>
+        <button
+          onClick={handleExportVideo}
+          disabled={exporting || localVideoOrder.length === 0 || totalMs === 0}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-700 disabled:opacity-40 text-[13px] font-medium border border-white/10 transition-colors"
+        >
+          {exporting ? '导出中…' : '导出视频'}
         </button>
       </div>
 
