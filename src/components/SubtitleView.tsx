@@ -562,6 +562,33 @@ export default function SubtitleView({
               })}
             </div>
 
+            {/* Clip bar */}
+            <div
+              className="absolute left-0 right-0 overflow-hidden"
+              style={{ top: RULER_H + THUMB_TRACK_H, height: CLIP_BAR_H, background: '#0d0d0d' }}
+            >
+              {videoOrder.map((item, i) => {
+                const clipMs = clipDurations[i] ?? 0;
+                if (clipMs === 0) return null;
+                const left = pxFromMs(clipOffsets.current[i] ?? 0);
+                const width = pxFromMs(clipMs);
+                const bg = i % 2 === 0 ? '#1e3a5f' : '#1a3350';
+                return (
+                  <div
+                    key={item.id}
+                    className="absolute top-0 bottom-0 flex items-center overflow-hidden"
+                    style={{ left, width, background: bg, borderRight: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    {width > 40 && (
+                      <span className="text-[9px] text-white/50 pl-1 select-none shrink-0">
+                        {i + 1}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Subtitle track */}
             <div
               className="absolute left-0 right-0 cursor-crosshair"
