@@ -195,7 +195,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
               </button>
               <button onClick={() => handleSelectCategory('scene')}
                 className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-200 transition-colors">
-                <span>🏞</span> 场景
+                <span>🏙</span> 场景
               </button>
               <button onClick={() => handleSelectCategory('other')}
                 className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-200 transition-colors">
