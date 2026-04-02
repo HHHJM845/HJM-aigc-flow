@@ -35,7 +35,7 @@ import AssetManagerView from './components/AssetManagerView';
 import HistoryPanel from './components/HistoryPanel';
 import BottomTabBar from './components/BottomTabBar';
 import StoryboardView from './components/StoryboardView';
-import { type StoryboardRow } from './lib/api';
+import { type StoryboardRow, generateVideoPrompt } from './lib/api';
 import {
   createProject,
   extractThumbnail,
@@ -318,6 +318,65 @@ function Flow({
       return next;
     });
   }, [onSaveStoryboardOrder]);
+
+  const handleExportStoryboardToCanvas = useCallback(async () => {
+    const COLS = 4;
+    const NODE_W = 380;
+    const NODE_H = 214;
+    const GAP_X = 60;
+    const GAP_Y = 60;
+
+    // 找现有节点 bounding box 最右边，新节点从右侧追加
+    const currentNodes = nodesRef.current;
+    const startX = currentNodes.length > 0
+      ? Math.max(...currentNodes.map(n => n.position.x + (n.width ?? NODE_W))) + 80
+      : 80;
+    const startY = 80;
+
+    // 收集每个分镜的图片和描述
+    const items = storyboardOrder.map((nodeId, i) => {
+      const node = currentNodes.find(n => n.id === nodeId);
+      const content = node?.data?.content;
+      const contentArr = Array.isArray(content) ? content : (content ? [content] : []);
+      const imageSrc = (contentArr[0] as string) || '';
+      const shotDesc = (node?.data?.shotDescription as string) || '';
+      return { nodeId, imageSrc, shotDesc, index: i + 1 };
+    });
+
+    // 并行调 AI 生成视频提示词，单个失败不阻断
+    const promptResults = await Promise.allSettled(
+      items.map(item => generateVideoPrompt(item.shotDesc))
+    );
+
+    const newNodes: Node[] = items.map((item, i) => {
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const x = startX + col * (NODE_W + GAP_X);
+      const y = startY + row * (NODE_H + GAP_Y);
+      const optimizedPrompt =
+        promptResults[i].status === 'fulfilled' ? promptResults[i].value : '';
+
+      return {
+        id: `export_${item.nodeId}_${Date.now()}_${i}`,
+        type: 'videoNode' as const,
+        position: { x, y },
+        width: NODE_W,
+        height: NODE_H,
+        data: {
+          label: `分镜 ${String(item.index).padStart(2, '0')}`,
+          contentType: 'video',
+          content: null,
+          referenceImage: item.imageSrc || undefined,
+          initialPrompt: optimizedPrompt,
+          onPlusClick: handlePlusClick,
+          onUpdate: handleUpdateNode,
+        },
+      };
+    });
+
+    setNodes(nds => [...nds, ...newNodes]);
+    setActiveView('canvas');
+  }, [storyboardOrder, nodesRef, setNodes, setActiveView, handlePlusClick, handleUpdateNode]);
 
   const handleToggleVideo = useCallback((nodeId: string, url: string, label: string) => {
     setVideoOrder(prev => {
@@ -811,6 +870,7 @@ function Flow({
             onSaveStoryboardOrder(newOrder);
           }}
           onToggle={handleToggleStoryboard}
+          onExportToCanvas={handleExportStoryboardToCanvas}
         />
       </div>
 
