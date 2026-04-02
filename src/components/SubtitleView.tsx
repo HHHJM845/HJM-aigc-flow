@@ -282,6 +282,16 @@ export default function SubtitleView({
     origEnd: number;
   } | null>(null);
 
+  // Drag state for clip trim handles
+  const clipTrimDrag = useRef<{
+    id: string;
+    side: 'left' | 'right';
+    startX: number;
+    origTrimStart: number;
+    origTrimEnd: number;
+    fullDuration: number;
+  } | null>(null);
+
   const handleSubBlockMouseDown = (
     e: React.MouseEvent,
     sub: SubtitleEntry,
@@ -289,6 +299,24 @@ export default function SubtitleView({
   ) => {
     e.stopPropagation();
     dragState.current = { id: sub.id, type, startX: e.clientX, origStart: sub.startMs, origEnd: sub.endMs };
+  };
+
+  const handleClipTrimMouseDown = (
+    e: React.MouseEvent,
+    item: VideoOrderItem,
+    side: 'left' | 'right',
+    clipIdx: number,
+  ) => {
+    e.stopPropagation();
+    const fullDuration = clipDurations[clipIdx] ?? 0;
+    clipTrimDrag.current = {
+      id: item.id,
+      side,
+      startX: e.clientX,
+      origTrimStart: item.trimStart ?? 0,
+      origTrimEnd: item.trimEnd ?? fullDuration,
+      fullDuration,
+    };
   };
 
   useEffect(() => {
@@ -331,6 +359,39 @@ export default function SubtitleView({
       window.removeEventListener('mouseup', onUp);
     };
   }, [msPerPx, totalMs, onSaveSubtitles]);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const d = clipTrimDrag.current;
+      if (!d) return;
+      const dx = e.clientX - d.startX;
+      const dMs = Math.round(dx * msPerPx);
+      setLocalVideoOrder(prev => prev.map(item => {
+        if (item.id !== d.id) return item;
+        if (d.side === 'left') {
+          const newTrimStart = Math.max(0, Math.min(d.origTrimStart + dMs, d.origTrimEnd - 1000));
+          return { ...item, trimStart: newTrimStart };
+        } else {
+          const newTrimEnd = Math.min(d.fullDuration, Math.max(d.origTrimEnd + dMs, d.origTrimStart + 1000));
+          return { ...item, trimEnd: newTrimEnd };
+        }
+      }));
+    };
+    const onUp = () => {
+      if (!clipTrimDrag.current) return;
+      clipTrimDrag.current = null;
+      setLocalVideoOrder(prev => {
+        onUpdateVideoOrder(prev);
+        return prev;
+      });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [msPerPx, onUpdateVideoOrder]);
 
   // ── Keyboard delete ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -391,25 +452,25 @@ export default function SubtitleView({
   }, [totalMs, timelineWidth]);
 
   useEffect(() => {
-    if (clipDurations.length === videoOrder.length && totalMs > 0) {
-      videoOrder.forEach((item, i) => {
+    if (clipDurations.length === localVideoOrder.length && totalMs > 0) {
+      localVideoOrder.forEach((item, i) => {
         if (clipDurations[i] > 0) {
           extractThumbsForClip(i, item.url, clipDurations[i]);
         }
       });
     }
-  }, [clipDurations, videoOrder, totalMs]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clipDurations, localVideoOrder, totalMs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── AI generate ───────────────────────────────────────────────────────────
   const [aiLoading, setAiLoading] = useState(false);
 
   const handleAIGenerate = async () => {
-    if (videoOrder.length === 0) return;
+    if (localVideoOrder.length === 0) return;
     setAiLoading(true);
     try {
       // Extract 2 frames per clip (25% and 75%)
       const frames: string[] = [];
-      for (const item of videoOrder) {
+      for (const item of localVideoOrder) {
         const framesForClip = await extractFrames(item.url, [0.25, 0.75]);
         frames.push(...framesForClip);
       }
@@ -463,7 +524,7 @@ export default function SubtitleView({
         <div className="flex-1" />
         <button
           onClick={handleAIGenerate}
-          disabled={aiLoading || videoOrder.length === 0}
+          disabled={aiLoading || localVideoOrder.length === 0}
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-violet-600/80 hover:bg-violet-600 disabled:opacity-40 text-[13px] font-medium transition-colors"
         >
           {aiLoading ? '生成中…' : '✨ AI 生成字幕'}
@@ -627,11 +688,14 @@ export default function SubtitleView({
               className="absolute left-0 right-0 overflow-hidden"
               style={{ top: RULER_H + THUMB_TRACK_H, height: CLIP_BAR_H, background: '#0d0d0d' }}
             >
-              {videoOrder.map((item, i) => {
-                const clipMs = clipDurations[i] ?? 0;
-                if (clipMs === 0) return null;
+              {localVideoOrder.map((item, i) => {
+                const fullDuration = clipDurations[i] ?? 0;
+                if (fullDuration === 0) return null;
+                const trimStart = item.trimStart ?? 0;
+                const trimEnd = item.trimEnd ?? fullDuration;
+                const trimmedMs = Math.max(0, trimEnd - trimStart);
                 const left = pxFromMs(clipOffsets.current[i] ?? 0);
-                const width = pxFromMs(clipMs);
+                const width = pxFromMs(trimmedMs);
                 const bg = i % 2 === 0 ? '#1e3a5f' : '#1a3350';
                 return (
                   <div
@@ -639,11 +703,21 @@ export default function SubtitleView({
                     className="absolute top-1 bottom-1 rounded flex items-center overflow-hidden"
                     style={{ left, width, background: bg, borderRight: '1px solid rgba(255,255,255,0.06)' }}
                   >
+                    {/* Left trim handle */}
+                    <div
+                      className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 z-10"
+                      onMouseDown={e => handleClipTrimMouseDown(e, item, 'left', i)}
+                    />
                     {width > 30 && (
-                      <span className="text-[10px] text-white/70 px-2 truncate select-none">
+                      <span className="text-[10px] text-white/70 px-2 truncate select-none pointer-events-none">
                         {item.label || `片段 ${i + 1}`}
                       </span>
                     )}
+                    {/* Right trim handle */}
+                    <div
+                      className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 z-10"
+                      onMouseDown={e => handleClipTrimMouseDown(e, item, 'right', i)}
+                    />
                   </div>
                 );
               })}
@@ -697,7 +771,7 @@ export default function SubtitleView({
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-white/20 text-[12px]">
-            {videoOrder.length === 0 ? '请先在视频管理中添加片段' : '加载视频时长中…'}
+            {localVideoOrder.length === 0 ? '请先在视频管理中添加片段' : '加载视频时长中…'}
           </div>
         )}
       </div>
