@@ -143,3 +143,25 @@ export async function generateImages(
   const { urls } = await res.json() as { urls: string[] };
   return urls;
 }
+
+// ── 分镜描述 → 视频提示词 ─────────────────────────────
+export async function generateVideoPrompt(shotDescription: string): Promise<string> {
+  const systemPrompt = `你是专业的AI视频提示词工程师。根据以下分镜描述，生成一段适合AI视频生成的英文提示词，要求：简洁、具体、包含画面运动感描述，不超过80个英文单词。分镜描述：${shotDescription}`;
+
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: [{ role: 'user', content: '生成视频提示词' }],
+      systemPrompt,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` })) as { error: string };
+    throw new Error(err.error || `API 错误 ${res.status}`);
+  }
+
+  const { content } = await res.json() as { content: string };
+  return content;
+}
