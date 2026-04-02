@@ -70,6 +70,7 @@ export default function AssetGenerateDialog({ open, onClose, onAddAsset }: Props
     const text = input.trim();
     if (!text || loading) return;
 
+    const history = apiMessages(); // snapshot before state update
     const userMsg: Message = { role: 'user', text, image: referenceImage ?? undefined };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
@@ -81,7 +82,7 @@ export default function AssetGenerateDialog({ open, onClose, onAddAsset }: Props
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...apiMessages(), { role: 'user', content: text }],
+          messages: [...history, { role: 'user', content: text }],
           category,
           mode: 'chat',
         }),
@@ -100,6 +101,8 @@ export default function AssetGenerateDialog({ open, onClose, onAddAsset }: Props
   const handleGenerate = async () => {
     if (generating) return;
     setGenerating(true);
+    setGeneratedImage(null);
+    const currentRef = referenceImage;
     try {
       // Step 1: extract prompt from conversation
       const extractResp = await fetch('/api/asset-chat', {
@@ -120,7 +123,8 @@ export default function AssetGenerateDialog({ open, onClose, onAddAsset }: Props
         quality: '1K',
         count: 1,
       };
-      if (referenceImage) genBody.referenceImages = [referenceImage];
+      if (currentRef) genBody.referenceImages = [currentRef];
+      setReferenceImage(null);
 
       const genResp = await fetch('/api/generate', {
         method: 'POST',
