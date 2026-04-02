@@ -44,6 +44,7 @@ interface Props {
   subtitles: SubtitleEntry[];
   projectName: string;
   onSaveSubtitles: (subtitles: SubtitleEntry[]) => void;
+  onUpdateVideoOrder: (order: VideoOrderItem[]) => void;
 }
 
 // ── Timeline constants ────────────────────────────────────────────────────────
@@ -62,25 +63,38 @@ export default function SubtitleView({
   subtitles,
   projectName,
   onSaveSubtitles,
+  onUpdateVideoOrder,
 }: Props) {
   // ── Video playback state ──────────────────────────────────────────────────
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [clipDurations, setClipDurations] = useState<number[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Local video order mirrors prop; updated during trim drag without persisting each pixel
+  const [localVideoOrder, setLocalVideoOrder] = useState<VideoOrderItem[]>(videoOrder);
+  useEffect(() => { setLocalVideoOrder(videoOrder); }, [videoOrder]);
+
   // clipOffsets[i] = sum of durations 0..i-1 in ms
   const clipOffsets = useRef<number[]>([]);
   useEffect(() => {
     const offsets: number[] = [];
     let acc = 0;
-    for (const d of clipDurations) {
+    for (let i = 0; i < clipDurations.length; i++) {
       offsets.push(acc);
-      acc += d;
+      const item = localVideoOrder[i];
+      const trimStart = item?.trimStart ?? 0;
+      const trimEnd = item?.trimEnd ?? clipDurations[i];
+      acc += Math.max(0, trimEnd - trimStart);
     }
     clipOffsets.current = offsets;
-  }, [clipDurations]);
+  }, [clipDurations, localVideoOrder]);
 
-  const totalMs = clipDurations.reduce((a, b) => a + b, 0);
+  const totalMs = clipDurations.reduce((sum, dur, i) => {
+    const item = localVideoOrder[i];
+    const trimStart = item?.trimStart ?? 0;
+    const trimEnd = item?.trimEnd ?? dur;
+    return sum + Math.max(0, trimEnd - trimStart);
+  }, 0);
 
   const [currentMs, setCurrentMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
