@@ -30,6 +30,10 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       mode: 'chat' | 'extract-prompt';
     };
 
+    if (!Array.isArray(messages) || !messages.length) {
+      return res.status(400).json({ error: '请提供对话历史' });
+    }
+
     const apiKey = process.env.IMAGE_API_KEY;
     if (!apiKey) return res.status(500).json({ error: '服务端未配置 IMAGE_API_KEY' });
 
@@ -58,7 +62,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const data = await upstream.json() as { choices: { message: { content: string } }[] };
-    const reply = data.choices?.[0]?.message?.content ?? '';
+    const reply = data.choices?.[0]?.message?.content?.trim() ?? '';
     res.json({ reply });
   } catch (err) {
     next(err);
