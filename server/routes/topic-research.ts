@@ -28,6 +28,13 @@ router.post('/', async (req: Request, res: Response) => {
   const selectedPlatforms = (platforms ?? ['bilibili', 'xiaohongshu', 'douyin'])
     .filter((p): p is string => typeof p === 'string');
 
+  const ALLOWED_PLATFORMS = new Set(['bilibili', 'xiaohongshu', 'douyin']);
+  const validPlatforms = selectedPlatforms.filter(p => ALLOWED_PLATFORMS.has(p));
+  if (validPlatforms.length === 0) {
+    return res.status(400).json({ error: '请选择至少一个有效平台' });
+  }
+  const safeKeyword = keyword.trim().slice(0, 100);
+
   const apiKey = process.env.IMAGE_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: '服务端未配置 IMAGE_API_KEY' });
@@ -41,12 +48,12 @@ router.post('/', async (req: Request, res: Response) => {
   res.flushHeaders();
 
   try {
-    const platformDesc = selectedPlatforms
+    const platformDesc = validPlatforms
       .map(p => PLATFORM_NAMES[p] ?? p)
       .join('、');
 
     // ── Pass 1: Web search for video data ───────────────────
-    const searchPrompt = `你是内容研究助手。请搜索"${keyword}"这个题材在${platformDesc}上的热门视频内容。
+    const searchPrompt = `你是内容研究助手。请搜索"${safeKeyword}"这个题材在${platformDesc}上的热门视频内容。
 
 分析搜索结果，选取 8-12 条最有代表性的视频（优先选播放量、点赞量高的），以纯 JSON 格式返回，不要有任何多余文字、注释或 markdown 代码块，直接返回 JSON：
 
@@ -141,7 +148,7 @@ router.post('/', async (req: Request, res: Response) => {
       )
       .join('\n\n');
 
-    const insightPrompt = `根据以下关于"${keyword}"题材的视频研究数据，请完成两个任务：
+    const insightPrompt = `根据以下关于"${safeKeyword}"题材的视频研究数据，请完成两个任务：
 
 【视频研究数据】
 ${videosText}
@@ -190,13 +197,16 @@ ${videosText}
     const decoder = new TextDecoder();
     let fullText = '';
     let jsonSent = false;
+    let sseBuffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
+      sseBuffer += chunk;
+      const lines = sseBuffer.split('\n');
+      sseBuffer = lines.pop() ?? '';
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
