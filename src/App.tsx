@@ -1024,6 +1024,13 @@ export default function App() {
     setView('canvas');
   };
 
+  const handleRenameProject = (id: string, name: string) => {
+    const proj = projects.find(p => p.id === id);
+    if (!proj) return;
+    const updated = { ...proj, name, updatedAt: Date.now() };
+    wsSaveProject(updated);
+  };
+
   const handleOpenProject = (project: Project) => {
     setCurrentProject(project);
     setCanvasInitialNodes(project.nodes);
@@ -1098,6 +1105,7 @@ export default function App() {
           onNewProject={handleNewProject}
           onOpenProject={handleOpenProject}
           onDeleteProject={wsDeleteProject}
+          onRenameProject={handleRenameProject}
           onGoToSkills={handleGoToSkills}
         />
       ) : view === 'skills' ? (

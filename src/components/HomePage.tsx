@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Sparkles, Clock, Folder, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Sparkles, Clock, Folder, Trash2, MoreHorizontal, Pencil } from 'lucide-react';
 import { type Project } from '../lib/storage';
 
 function timeAgo(ts: number): string {
@@ -15,6 +15,7 @@ interface Props {
   onNewProject: (initialScript?: string) => void;
   onOpenProject: (project: Project) => void;
   onDeleteProject: (id: string) => void;
+  onRenameProject?: (id: string, name: string) => void;
   onGoToSkills?: () => void;
 }
 
@@ -22,13 +23,54 @@ function ProjectCard({
   project,
   onOpen,
   onDelete,
+  onRename,
 }: {
   project: Project;
   onOpen: () => void;
   onDelete: () => void;
+  onRename: (name: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState(project.name);
+  const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startEditing = () => {
+    setNameInput(project.name);
+    setEditing(true);
+    setTimeout(() => {
+      inputRef.current?.select();
+    }, 0);
+  };
+
+  const handleNameClick = () => {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      startEditing();
+    } else {
+      clickTimer.current = setTimeout(() => {
+        clickTimer.current = null;
+        onOpen();
+      }, 220);
+    }
+  };
+
+  const commitEdit = () => {
+    const trimmed = nameInput.trim();
+    if (trimmed && trimmed !== project.name) {
+      onRename(trimmed);
+    }
+    setEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setNameInput(project.name);
+    setEditing(false);
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -60,13 +102,33 @@ function ProjectCard({
 
       {/* Info */}
       <div className="px-3.5 py-3 flex items-start justify-between gap-2">
-        <button onClick={onOpen} className="flex-1 text-left min-w-0">
-          <p className="text-white text-xs font-medium truncate">{project.name}</p>
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+                if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+              }}
+              className="w-full bg-white/10 text-white text-xs font-medium rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-white/30"
+              onClick={e => e.stopPropagation()}
+            />
+          ) : (
+            <p
+              className="text-white text-xs font-medium truncate cursor-pointer select-none"
+              onClick={handleNameClick}
+            >
+              {project.name}
+            </p>
+          )}
           <p className="text-gray-600 text-[11px] mt-0.5 flex items-center gap-1">
             <Clock size={9} />
             编辑于 {timeAgo(project.updatedAt)}
           </p>
-        </button>
+        </div>
 
         {/* Context menu */}
         <div className="relative" ref={menuRef}>
@@ -78,6 +140,13 @@ function ProjectCard({
           </button>
           {menuOpen && (
             <div className="absolute right-0 bottom-7 bg-[#242424] border border-white/10 rounded-xl py-1 shadow-xl z-10 min-w-[100px]">
+              <button
+                onClick={() => { setMenuOpen(false); startEditing(); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-gray-300 hover:bg-white/5 text-xs transition-colors"
+              >
+                <Pencil size={12} />
+                重命名
+              </button>
               <button
                 onClick={() => { setMenuOpen(false); onDelete(); }}
                 className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors"
@@ -93,7 +162,7 @@ function ProjectCard({
   );
 }
 
-export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onGoToSkills }: Props) {
+export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onGoToSkills }: Props) {
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -219,6 +288,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
                   project={project}
                   onOpen={() => onOpenProject(project)}
                   onDelete={() => handleDelete(project.id)}
+                  onRename={(name) => onRenameProject?.(project.id, name)}
                 />
               ))}
             </div>
