@@ -13,6 +13,7 @@ import subtitleGenerateRouter from './routes/subtitle-generate.js';
 import exportVideoRouter from './routes/export-video.js';
 import matchAssetsRouter from './routes/match-assets.js';
 import optimizePromptRouter from './routes/optimize-prompt.js';
+import topicResearchRouter from './routes/topic-research.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 
@@ -44,6 +45,7 @@ app.use('/api/subtitle-generate', subtitleGenerateRouter);
 app.use('/api/export-video', exportVideoRouter);
 app.use('/api/match-assets', matchAssetsRouter);
 app.use('/api/optimize-prompt', optimizePromptRouter);
+app.use('/api/topic-research', topicResearchRouter);
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.resolve(__dirname, '../dist');
