@@ -36,12 +36,27 @@ function ProjectCard({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const startEditing = () => {
     setNameInput(project.name);
     setEditing(true);
     setTimeout(() => {
       inputRef.current?.select();
     }, 0);
+  };
+
+  const handleNameClick = () => {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      startEditing();
+    } else {
+      clickTimer.current = setTimeout(() => {
+        clickTimer.current = null;
+        onOpen();
+      }, 220);
+    }
   };
 
   const commitEdit = () => {
@@ -102,14 +117,12 @@ function ProjectCard({
               onClick={e => e.stopPropagation()}
             />
           ) : (
-            <button onClick={onOpen} className="w-full text-left min-w-0">
-              <p
-                className="text-white text-xs font-medium truncate cursor-text"
-                onDoubleClick={e => { e.stopPropagation(); startEditing(); }}
-              >
-                {project.name}
-              </p>
-            </button>
+            <p
+              className="text-white text-xs font-medium truncate cursor-pointer select-none"
+              onClick={handleNameClick}
+            >
+              {project.name}
+            </p>
           )}
           <p className="text-gray-600 text-[11px] mt-0.5 flex items-center gap-1">
             <Clock size={9} />
