@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Sparkles, Clock, Folder, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Sparkles, Clock, Folder, Trash2, MoreHorizontal, Pencil } from 'lucide-react';
 import { type Project } from '../lib/storage';
 
 function timeAgo(ts: number): string {
@@ -15,6 +15,7 @@ interface Props {
   onNewProject: (initialScript?: string) => void;
   onOpenProject: (project: Project) => void;
   onDeleteProject: (id: string) => void;
+  onRenameProject?: (id: string, name: string) => void;
   onGoToSkills?: () => void;
 }
 
@@ -127,6 +128,13 @@ function ProjectCard({
           {menuOpen && (
             <div className="absolute right-0 bottom-7 bg-[#242424] border border-white/10 rounded-xl py-1 shadow-xl z-10 min-w-[100px]">
               <button
+                onClick={() => { setMenuOpen(false); startEditing(); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-gray-300 hover:bg-white/5 text-xs transition-colors"
+              >
+                <Pencil size={12} />
+                重命名
+              </button>
+              <button
                 onClick={() => { setMenuOpen(false); onDelete(); }}
                 className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors"
               >
@@ -141,7 +149,7 @@ function ProjectCard({
   );
 }
 
-export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onGoToSkills }: Props) {
+export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onGoToSkills }: Props) {
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -267,6 +275,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
                   project={project}
                   onOpen={() => onOpenProject(project)}
                   onDelete={() => handleDelete(project.id)}
+                  onRename={(name) => onRenameProject?.(project.id, name)}
                 />
               ))}
             </div>
