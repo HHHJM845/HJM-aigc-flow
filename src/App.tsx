@@ -47,6 +47,7 @@ import {
 } from './lib/storage';
 import VideoView from './components/VideoView';
 import SubtitleView from './components/SubtitleView';
+import TopicView from './components/TopicView';
 import { useSync } from './hooks/useSync';
 import { FileText } from 'lucide-react';
 
@@ -110,6 +111,8 @@ function Flow({
   externalEdges,
   externalHistory,
   connected = true,
+  initialTopicDraft,
+  onSaveTopicDraft,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -132,10 +135,14 @@ function Flow({
   externalEdges?: Edge[] | null;
   externalHistory?: HistoryItem[] | null;
   connected?: boolean;
+  initialTopicDraft: string;
+  onSaveTopicDraft: (draft: string) => void;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
   const [activeView, setActiveView] = useState<ActiveView>('canvas');
+  const [topicDraft, setTopicDraft] = useState(initialTopicDraft);
+  const [breakdownInitText, setBreakdownInitText] = useState('');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
   const [videoOrder, setVideoOrder] = useState<VideoOrderItem[]>(initialVideoOrder);
   const [subtitles, setSubtitles] = useState<SubtitleEntry[]>(initialSubtitles);
@@ -887,6 +894,7 @@ function Flow({
         <BreakdownView
           initialRows={storyboardRows}
           onImport={handleImportFromBreakdown}
+          externalInitText={breakdownInitText}
         />
       </div>
 
@@ -960,6 +968,29 @@ function Flow({
         />
       </div>
 
+      {/* Topic inspiration view */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: activeView === 'topic' ? 1 : 0,
+          transform: activeView === 'topic' ? 'translateY(0)' : 'translateY(8px)',
+          transition: 'opacity 300ms ease-out, transform 300ms ease-out',
+          pointerEvents: activeView === 'topic' ? 'auto' : 'none',
+        }}
+      >
+        <TopicView
+          initialDraft={topicDraft}
+          onSaveDraft={(text) => {
+            setTopicDraft(text);
+            onSaveTopicDraft(text);
+          }}
+          onImportToBreakdown={(text) => {
+            setBreakdownInitText(text);
+            setActiveView('breakdown');
+          }}
+        />
+      </div>
+
       {/* Bottom tab bar — always on top */}
       <BottomTabBar activeView={activeView} onViewChange={setActiveView} onGoHome={onGoHome} />
 
@@ -978,6 +1009,7 @@ export default function App() {
   const [canvasInitialStoryboardOrder, setCanvasInitialStoryboardOrder] = useState<string[]>([]);
   const [canvasInitialVideoOrder, setCanvasInitialVideoOrder] = useState<VideoOrderItem[]>([]);
   const [canvasInitialSubtitles, setCanvasInitialSubtitles] = useState<SubtitleEntry[]>([]);
+  const [canvasInitialTopicDraft, setCanvasInitialTopicDraft] = useState('');
 
   // External canvas update: when a remote client saves the currently-open project,
   // push updated nodes/edges into the live Flow canvas.
@@ -1021,6 +1053,7 @@ export default function App() {
     setCanvasInitialStoryboardOrder([]);
     setCanvasInitialVideoOrder([]);
     setCanvasInitialSubtitles([]);
+    setCanvasInitialTopicDraft('');
     setView('canvas');
   };
 
@@ -1041,6 +1074,7 @@ export default function App() {
     setCanvasInitialStoryboardOrder(project.storyboardOrder || []);
     setCanvasInitialVideoOrder(project.videoOrder || []);
     setCanvasInitialSubtitles(project.subtitles || []);
+    setCanvasInitialTopicDraft(project.topicDraft ?? '');
     setView('canvas');
   };
 
@@ -1090,6 +1124,13 @@ export default function App() {
     wsSaveProject(updated);
   };
 
+  const handleTopicDraftSave = (draft: string) => {
+    if (!currentProject) return;
+    const updated = { ...currentProject, topicDraft: draft, updatedAt: Date.now() };
+    setCurrentProject(updated);
+    wsSaveProject(updated);
+  };
+
   const handleVideoOrderSave = (order: VideoOrderItem[]) => {
     if (!currentProject) return;
     const updated = { ...currentProject, videoOrder: order, updatedAt: Date.now() };
@@ -1133,6 +1174,8 @@ export default function App() {
           externalEdges={externalCanvasUpdate?.edges ?? null}
           externalHistory={externalCanvasUpdate?.history ?? null}
           connected={connected}
+          initialTopicDraft={canvasInitialTopicDraft}
+          onSaveTopicDraft={handleTopicDraftSave}
         />
       )}
     </ReactFlowProvider>
