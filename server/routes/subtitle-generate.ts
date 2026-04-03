@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 const router = Router();
 const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
-const VISION_MODEL = 'doubao-vision-pro-32k';
+const VISION_MODEL = 'doubao-1.5-vision-pro-250328';
 
 router.post('/', async (req, res, next) => {
   try {

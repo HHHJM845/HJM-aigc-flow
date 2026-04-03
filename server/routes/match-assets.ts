@@ -3,7 +3,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 const router = Router();
 const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
-const TEXT_MODEL = 'doubao-pro-32k';
+const TEXT_MODEL = 'doubao-1-5-pro-32k-250115';
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
