@@ -325,15 +325,15 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
             </table>
 
             {/* 可滚动 tbody */}
-            <div className="overflow-y-auto flex-1">
-              <table className="w-full table-fixed">
-                <colgroup>
-                  <col style={{ width: '56px' }} />
-                  <col style={{ width: '90px' }} />
-                  <col />
-                  <col style={{ width: '36px' }} />
-                </colgroup>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col style={{ width: '56px' }} />
+                    <col style={{ width: '90px' }} />
+                    <col />
+                    <col style={{ width: '36px' }} />
+                  </colgroup>
                   <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
                     <tbody>
                       {rows.map(row => (
@@ -347,9 +347,9 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
                       ))}
                     </tbody>
                   </SortableContext>
-                </DndContext>
-              </table>
-            </div>
+                </table>
+              </div>
+            </DndContext>
 
             {/* Footer */}
             <div className="flex items-center justify-between px-4 pt-3 pb-[72px] border-t border-white/[0.06] flex-shrink-0">

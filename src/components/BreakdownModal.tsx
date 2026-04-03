@@ -216,15 +216,15 @@ export default function BreakdownModal({ initialRows, onClose, onImport, fullPag
               </thead>
             </table>
             {/* Scrollable tbody */}
-            <div className="overflow-y-auto flex-1" style={{ maxHeight: '320px' }}>
-              <table className="w-full table-fixed">
-                <colgroup>
-                  <col style={{ width: '56px' }} />
-                  <col style={{ width: '90px' }} />
-                  <col />
-                  <col style={{ width: '36px' }} />
-                </colgroup>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <div className="overflow-y-auto flex-1" style={{ maxHeight: '320px' }}>
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col style={{ width: '56px' }} />
+                    <col style={{ width: '90px' }} />
+                    <col />
+                    <col style={{ width: '36px' }} />
+                  </colgroup>
                   <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
                     <tbody>
                       {rows.map(row => (
@@ -232,9 +232,9 @@ export default function BreakdownModal({ initialRows, onClose, onImport, fullPag
                       ))}
                     </tbody>
                   </SortableContext>
-                </DndContext>
-              </table>
-            </div>
+                </table>
+              </div>
+            </DndContext>
           </div>
 
           {/* Footer actions */}
