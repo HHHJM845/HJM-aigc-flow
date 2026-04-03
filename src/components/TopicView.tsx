@@ -140,7 +140,7 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#0c0c0c] overflow-hidden pb-[72px]">
+    <div className="absolute inset-0 flex flex-col bg-[#0c0c0c] overflow-hidden pb-[88px]">
 
       {/* ── 顶部：输入区 ── */}
       <div className="flex-shrink-0 flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.06]">

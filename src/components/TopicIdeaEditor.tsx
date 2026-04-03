@@ -36,7 +36,7 @@ export default function TopicIdeaEditor({ value, onChange, onSave, onImportToBre
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder="在此输入或从右侧点击「采用」填入选题想法，再导入剧本拆解流程…"
-        className="w-full h-24 bg-transparent text-gray-200 text-sm leading-relaxed px-5 py-3 focus:outline-none resize-none"
+        className="w-full h-32 bg-transparent text-gray-200 text-sm leading-relaxed px-5 py-3 focus:outline-none resize-none"
         style={{ fontFamily: 'inherit' }}
       />
     </div>
