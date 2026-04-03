@@ -89,10 +89,11 @@ function SortableRow({
 interface Props {
   initialRows?: StoryboardRow[];
   onImport: (rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => void;
+  externalInitText?: string;   // ← new: text injected from TopicView's "导入拆本"
 }
 
 // ── Main Component ────────────────────────────────────
-export default function BreakdownView({ initialRows, onImport }: Props) {
+export default function BreakdownView({ initialRows, onImport, externalInitText }: Props) {
   const [scriptText, setScriptText] = useState('');
   const [committedScript, setCommittedScript] = useState('');
   const [rows, setRows] = useState<StoryboardRow[]>(initialRows ?? []);
@@ -105,6 +106,13 @@ export default function BreakdownView({ initialRows, onImport }: Props) {
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Sync text injected from TopicView
+  useEffect(() => {
+    if (externalInitText) {
+      setScriptText(externalInitText);
+    }
+  }, [externalInitText]);
 
   // Compute diff whenever scriptText changes and rows exist
   useEffect(() => {

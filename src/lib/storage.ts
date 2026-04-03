@@ -48,6 +48,7 @@ export interface Project {
   storyboardOrder: string[];
   videoOrder: VideoOrderItem[];
   subtitles: SubtitleEntry[];
+  topicDraft?: string;
 }
 
 const STORAGE_KEY = 'hjm_aigc_projects';
