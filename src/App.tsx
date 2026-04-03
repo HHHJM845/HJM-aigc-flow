@@ -985,8 +985,11 @@ function Flow({
             onSaveTopicDraft(text);
           }}
           onImportToBreakdown={(text) => {
-            setBreakdownInitText(text);
-            setActiveView('breakdown');
+            setBreakdownInitText('');
+            setTimeout(() => {
+              setBreakdownInitText(text);
+              setActiveView('breakdown');
+            }, 0);
           }}
         />
       </div>

@@ -26,7 +26,7 @@ function fmt(n: number): string {
   return n.toLocaleString();
 }
 
-interface Props {
+export interface Props {
   video: VideoItem;
 }
 
