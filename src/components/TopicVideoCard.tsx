@@ -97,8 +97,8 @@ export default function TopicVideoCard({ video }: Props) {
               <p className="text-[11px] text-gray-500 font-medium mb-1">代表评论</p>
               <ul className="space-y-1">
                 {video.topComments.map((c, i) => (
-                  <li key={i} className="text-xs text-gray-400 leading-relaxed before:content-['"'] after:content-['"']">
-                    {c}
+                  <li key={i} className="text-xs text-gray-400 leading-relaxed">
+                    &ldquo;{c}&rdquo;
                   </li>
                 ))}
               </ul>

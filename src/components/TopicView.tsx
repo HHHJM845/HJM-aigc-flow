@@ -150,7 +150,7 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAnalyze()}
-            placeholder="输入题材关键词，如"职场穿搭"、"独居生活"…"
+            placeholder={'输入题材关键词，如\u201c职场穿搭\u201d、\u201c独居生活\u201d\u2026'}
             className="flex-1 bg-transparent text-gray-200 text-sm focus:outline-none placeholder:text-gray-600"
           />
         </div>
