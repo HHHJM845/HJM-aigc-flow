@@ -33,7 +33,7 @@ import CommentNode from './components/CommentNode';
 import AssetPanel from './components/AssetPanel';
 import AssetManagerView from './components/AssetManagerView';
 import HistoryPanel from './components/HistoryPanel';
-import BottomTabBar from './components/BottomTabBar';
+import BottomTabBar, { type ActiveView } from './components/BottomTabBar';
 import StoryboardView from './components/StoryboardView';
 import { type StoryboardRow, generateVideoPrompt } from './lib/api';
 import {
@@ -135,7 +135,7 @@ function Flow({
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
-  const [activeView, setActiveView] = useState<'canvas' | 'assets' | 'storyboard' | 'breakdown' | 'video' | 'subtitle'>('canvas');
+  const [activeView, setActiveView] = useState<ActiveView>('canvas');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
   const [videoOrder, setVideoOrder] = useState<VideoOrderItem[]>(initialVideoOrder);
   const [subtitles, setSubtitles] = useState<SubtitleEntry[]>(initialSubtitles);

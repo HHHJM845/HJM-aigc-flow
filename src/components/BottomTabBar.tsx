@@ -1,7 +1,7 @@
 // src/components/BottomTabBar.tsx
 import React from 'react';
 
-type ActiveView = 'canvas' | 'assets' | 'storyboard' | 'breakdown' | 'video' | 'subtitle';
+export type ActiveView = 'topic' | 'canvas' | 'assets' | 'storyboard' | 'breakdown' | 'video' | 'subtitle';
 
 interface Props {
   activeView: ActiveView;
@@ -11,12 +11,13 @@ interface Props {
 
 export default function BottomTabBar({ activeView, onViewChange, onGoHome }: Props) {
   const tabs: { key: ActiveView; label: string }[] = [
-    { key: 'assets', label: '资产管理' },
-    { key: 'breakdown', label: '剧本拆解' },
-    { key: 'canvas', label: '无限画布' },
+    { key: 'topic',      label: '✦ 选题' },
+    { key: 'assets',     label: '资产管理' },
+    { key: 'breakdown',  label: '剧本拆解' },
+    { key: 'canvas',     label: '无限画布' },
     { key: 'storyboard', label: '分镜管理' },
-    { key: 'video', label: '视频管理' },
-    { key: 'subtitle', label: '字幕编辑' },
+    { key: 'video',      label: '视频管理' },
+    { key: 'subtitle',   label: '字幕编辑' },
   ];
 
   return (
