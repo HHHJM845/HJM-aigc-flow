@@ -22,13 +22,39 @@ function ProjectCard({
   project,
   onOpen,
   onDelete,
+  onRename,
 }: {
   project: Project;
   onOpen: () => void;
   onDelete: () => void;
+  onRename: (name: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState(project.name);
+  const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const startEditing = () => {
+    setNameInput(project.name);
+    setEditing(true);
+    setTimeout(() => {
+      inputRef.current?.select();
+    }, 0);
+  };
+
+  const commitEdit = () => {
+    const trimmed = nameInput.trim();
+    if (trimmed && trimmed !== project.name) {
+      onRename(trimmed);
+    }
+    setEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setNameInput(project.name);
+    setEditing(false);
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -60,13 +86,35 @@ function ProjectCard({
 
       {/* Info */}
       <div className="px-3.5 py-3 flex items-start justify-between gap-2">
-        <button onClick={onOpen} className="flex-1 text-left min-w-0">
-          <p className="text-white text-xs font-medium truncate">{project.name}</p>
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+                if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+              }}
+              className="w-full bg-white/10 text-white text-xs font-medium rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-white/30"
+              onClick={e => e.stopPropagation()}
+            />
+          ) : (
+            <button onClick={onOpen} className="w-full text-left min-w-0">
+              <p
+                className="text-white text-xs font-medium truncate cursor-text"
+                onDoubleClick={e => { e.stopPropagation(); startEditing(); }}
+              >
+                {project.name}
+              </p>
+            </button>
+          )}
           <p className="text-gray-600 text-[11px] mt-0.5 flex items-center gap-1">
             <Clock size={9} />
             编辑于 {timeAgo(project.updatedAt)}
           </p>
-        </button>
+        </div>
 
         {/* Context menu */}
         <div className="relative" ref={menuRef}>
