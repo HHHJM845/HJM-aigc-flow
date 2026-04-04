@@ -113,7 +113,8 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
   const [newlyUpdatedIds, setNewlyUpdatedIds] = useState<Set<string>>(new Set());
   const [cardRatio, setCardRatio] = useState('16:9');
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
-  // 右侧面板状态
+  // 右侧面板状态（视觉占位，后续接入 API 时通过 onImport 或新 prop 传递）
+  // TODO: pass selectedLens and promptText to onImport when backend supports them
   const [selectedLens, setSelectedLens] = useState(LENS_OPTIONS[0]);
   const [promptText, setPromptText] = useState('');
 
@@ -160,16 +161,14 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
     setIsBreaking(true); setError('');
     try {
       const newRows = await breakdownScript(changedSegments.join('\n\n'));
-      setRows(prev => {
-        const merged = mergeRows(prev, newRows, changedSegments);
-        setNewlyUpdatedIds(new Set(newRows.map(r => r.id)));
-        return merged;
-      });
+      const merged = mergeRows(rows, newRows, changedSegments);
+      setRows(merged);
+      setNewlyUpdatedIds(new Set(newRows.map(r => r.id)));
       setCommittedScript(scriptText); setChangedSegments([]);
     } catch (err: any) {
       setError(err.message || '拆解失败，请重试');
     } finally { setIsBreaking(false); }
-  }, [changedSegments, isBreaking, scriptText]);
+  }, [changedSegments, isBreaking, scriptText, rows]);
 
   const handleUpdateRow = (id: string, field: keyof StoryboardRow, value: string) =>
     setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
@@ -311,7 +310,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
                 <col />
                 <col style={{ width: '48px' }} />
               </colgroup>
-              <thead className="sticky top-0 bg-[#0e0e0e] z-10">
+              <thead>
                 <tr className="border-b border-[#484848]/10 text-[10px] text-[#acabaa] uppercase tracking-widest font-label">
                   <th className="py-4 px-6 font-medium text-left">ID</th>
                   <th className="py-4 px-2 font-medium text-left">景别</th>
