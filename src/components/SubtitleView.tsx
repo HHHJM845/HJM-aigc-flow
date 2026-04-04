@@ -817,7 +817,7 @@ export default function SubtitleView({
       </div>
 
       {/* Spacer so the floating BottomTabBar doesn't cover the timeline */}
-      <div className="h-[72px] shrink-0" />
+      <div className="h-[120px] shrink-0" />
 
     </div>
   );

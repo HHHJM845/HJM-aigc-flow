@@ -34,3 +34,121 @@
 .react-flow__node:has(.valid):not(:has(.connecting)) .target-glow {
   opacity: 1 !important;
 }
+
+/* ── Obsidian Atelier Design Tokens ── */
+@theme {
+  /* 背景 / 表面层级 */
+  --color-background: #0e0e0e;
+  --color-surface: #0e0e0e;
+  --color-surface-dim: #0e0e0e;
+  --color-surface-bright: #2c2c2c;
+  --color-surface-container-lowest: #000000;
+  --color-surface-container-low: #131313;
+  --color-surface-container: #191a1a;
+  --color-surface-container-high: #1f2020;
+  --color-surface-container-highest: #252626;
+  --color-surface-variant: #252626;
+  --color-surface-tint: #c6c6c7;
+
+  /* 文字 */
+  --color-on-background: #e7e5e4;
+  --color-on-surface: #e7e5e4;
+  --color-on-surface-variant: #acabaa;
+
+  /* Primary */
+  --color-primary: #c6c6c7;
+  --color-primary-dim: #b8b9b9;
+  --color-primary-fixed: #e2e2e2;
+  --color-primary-fixed-dim: #d4d4d4;
+  --color-on-primary: #3f4041;
+  --color-on-primary-fixed: #3e4040;
+  --color-on-primary-fixed-variant: #5a5c5c;
+  --color-primary-container: #454747;
+  --color-on-primary-container: #d0d0d0;
+  --color-inverse-primary: #5e5f60;
+
+  /* Secondary */
+  --color-secondary: #9f9d9d;
+  --color-secondary-dim: #9f9d9d;
+  --color-secondary-fixed: #e4e2e1;
+  --color-secondary-fixed-dim: #d6d4d3;
+  --color-on-secondary: #202020;
+  --color-on-secondary-fixed: #3f3f3f;
+  --color-on-secondary-fixed-variant: #5c5b5b;
+  --color-secondary-container: #3b3b3b;
+  --color-on-secondary-container: #c1bfbe;
+
+  /* Tertiary（最亮白色调） */
+  --color-tertiary: #fbf9f8;
+  --color-tertiary-dim: #edeaea;
+  --color-tertiary-fixed: #f5f3f3;
+  --color-tertiary-fixed-dim: #e7e5e4;
+  --color-on-tertiary: #5f5f5f;
+  --color-on-tertiary-fixed: #4a4949;
+  --color-on-tertiary-fixed-variant: #666666;
+  --color-tertiary-container: #edeaea;
+  --color-on-tertiary-container: #575757;
+
+  /* 边框 */
+  --color-outline: #767575;
+  --color-outline-variant: #484848;
+
+  /* 错误 */
+  --color-error: #ee7d77;
+  --color-error-dim: #bb5551;
+  --color-error-container: #7f2927;
+  --color-on-error: #490106;
+  --color-on-error-container: #ff9993;
+
+  /* 反转 */
+  --color-inverse-surface: #fcf9f8;
+  --color-inverse-on-surface: #565555;
+
+  /* 字体 */
+  --font-headline: "Manrope", sans-serif;
+  --font-body: "Manrope", sans-serif;
+  --font-label: "Inter", sans-serif;
+
+  /* 圆角 */
+  --radius: 1rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-full: 9999px;
+}
+
+/* ── Material Symbols 基础配置 ── */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  font-size: 20px;
+  line-height: 1;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+/* ── 自定义滚动条 ── */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #484848 #0e0e0e;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0e0e0e;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #484848;
+  border-radius: 10px;
+}
+
+/* ── 发光按钮 ── */
+.glow-button {
+  box-shadow: 0 0 15px rgba(198, 198, 199, 0.2);
+}
+
+/* ── 分镜列表激活行 ── */
+.active-row {
+  background: linear-gradient(90deg, rgba(198, 198, 199, 0.05) 0%, rgba(198, 198, 199, 0) 100%);
+  border-left: 2px solid #c6c6c7;
+}
