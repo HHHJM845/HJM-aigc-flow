@@ -59,7 +59,7 @@ export default function StoryboardView({ storyboardOrder, nodes, onReorder, onTo
   };
 
   return (
-    <div className="w-full h-full bg-[#0f0f0f] flex flex-col overflow-hidden">
+    <div className="w-full h-full bg-black flex flex-col overflow-hidden">
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/6 shrink-0">
         <span className="text-[15px] font-semibold text-white">分镜管理</span>
