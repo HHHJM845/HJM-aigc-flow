@@ -1,5 +1,5 @@
 // src/components/TopicView.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import TopicVideoCard, { type VideoItem } from './TopicVideoCard';
 import TopicIdeaEditor from './TopicIdeaEditor';
@@ -40,12 +40,13 @@ function fmt(n: number): string {
 
 interface Props {
   initialDraft?: string;
+  initialKeyword?: string;
   onSaveDraft: (text: string) => void;
   onImportToBreakdown: (text: string) => void;
 }
 
-export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBreakdown }: Props) {
-  const [keyword, setKeyword] = useState('');
+export default function TopicView({ initialDraft = '', initialKeyword = '', onSaveDraft, onImportToBreakdown }: Props) {
+  const [keyword, setKeyword] = useState(initialKeyword);
   const [platforms, setPlatforms] = useState<Platform[]>(['bilibili', 'xiaohongshu', 'douyin']);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
@@ -53,6 +54,18 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
   const [error, setError] = useState('');
   const [draft, setDraft] = useState(initialDraft);
   const abortRef = useRef<AbortController | null>(null);
+  const autoTriggered = useRef(false);
+
+  // Auto-trigger search when navigated from homepage with a keyword
+  useEffect(() => {
+    if (initialKeyword && !autoTriggered.current) {
+      autoTriggered.current = true;
+      setKeyword(initialKeyword);
+      // Small delay to let keyword state settle before fetching
+      setTimeout(() => handleAnalyze(), 100);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialKeyword]);
 
   const togglePlatform = (p: Platform) => {
     setPlatforms(prev =>

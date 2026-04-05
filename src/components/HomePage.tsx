@@ -19,6 +19,7 @@ interface Props {
   onDeleteProject: (id: string) => void;
   onRenameProject?: (id: string, name: string) => void;
   onGoToSkills?: () => void;
+  onGoToTopic?: (keyword: string) => void;
 }
 
 function ProjectCard({
@@ -169,11 +170,16 @@ function ProjectCard({
   );
 }
 
-export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onGoToSkills }: Props) {
+export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onGoToSkills, onGoToTopic }: Props) {
   const [inputText, setInputText] = useState('');
 
   const handleSubmit = () => {
-    onNewProject(inputText.trim() || undefined);
+    const kw = inputText.trim();
+    if (kw && onGoToTopic) {
+      onGoToTopic(kw);
+    } else {
+      onNewProject(kw || undefined);
+    }
     setInputText('');
   };
 

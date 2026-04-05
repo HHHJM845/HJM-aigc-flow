@@ -115,6 +115,7 @@ function Flow({
   connected = true,
   initialTopicDraft,
   onSaveTopicDraft,
+  initialTopicKeyword,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -139,10 +140,11 @@ function Flow({
   connected?: boolean;
   initialTopicDraft: string;
   onSaveTopicDraft: (draft: string) => void;
+  initialTopicKeyword?: string;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
-  const [activeView, setActiveView] = useState<ActiveView>('canvas');
+  const [activeView, setActiveView] = useState<ActiveView>(initialTopicKeyword ? 'topic' : 'canvas');
   const [topicDraft, setTopicDraft] = useState(initialTopicDraft);
   const [breakdownInitText, setBreakdownInitText] = useState('');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
@@ -982,6 +984,7 @@ function Flow({
       >
         <TopicView
           initialDraft={topicDraft}
+          initialKeyword={initialTopicKeyword}
           onSaveDraft={(text) => {
             setTopicDraft(text);
             onSaveTopicDraft(text);
@@ -1017,6 +1020,7 @@ export default function App() {
   const [canvasInitialVideoOrder, setCanvasInitialVideoOrder] = useState<VideoOrderItem[]>([]);
   const [canvasInitialSubtitles, setCanvasInitialSubtitles] = useState<SubtitleEntry[]>([]);
   const [canvasInitialTopicDraft, setCanvasInitialTopicDraft] = useState('');
+  const [canvasInitialTopicKeyword, setCanvasInitialTopicKeyword] = useState('');
 
   // External canvas update: when a remote client saves the currently-open project,
   // push updated nodes/edges into the live Flow canvas.
@@ -1087,6 +1091,23 @@ export default function App() {
 
   const handleGoHome = () => setView('home');
   const handleGoToSkills = () => setView('skills');
+
+  const handleGoToTopic = (keyword: string) => {
+    const proj = createProject();
+    wsSaveProject(proj);
+    setCurrentProject(proj);
+    setCanvasInitialNodes([]);
+    setCanvasInitialEdges([]);
+    setCanvasInitialRows([]);
+    setCanvasInitialAssets([]);
+    setCanvasInitialHistory([]);
+    setCanvasInitialStoryboardOrder([]);
+    setCanvasInitialVideoOrder([]);
+    setCanvasInitialSubtitles([]);
+    setCanvasInitialTopicDraft('');
+    setCanvasInitialTopicKeyword(keyword);
+    setView('canvas');
+  };
 
   const handleCanvasSave = (nodes: Node[], edges: Edge[]) => {
     if (!currentProject) return;
@@ -1175,6 +1196,7 @@ export default function App() {
           onDeleteProject={wsDeleteProject}
           onRenameProject={handleRenameProject}
           onGoToSkills={handleGoToSkills}
+          onGoToTopic={handleGoToTopic}
         />
       ) : view === 'skills' ? (
         <SkillCommunity onBack={handleGoHome} />
@@ -1203,6 +1225,7 @@ export default function App() {
           connected={connected}
           initialTopicDraft={canvasInitialTopicDraft}
           onSaveTopicDraft={handleTopicDraftSave}
+          initialTopicKeyword={canvasInitialTopicKeyword}
         />
       )}
     </ReactFlowProvider>
