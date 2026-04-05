@@ -47,17 +47,17 @@ function SortableRow({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b border-[#484848]/10 hover:bg-[#131313] transition-colors group cursor-pointer font-label ${
+      className={`border-b border-white/[0.06] hover:bg-[#0f0f0f] transition-colors group cursor-pointer font-label ${
         isNew ? 'active-row' : ''
       }`}
     >
       {/* ID */}
-      <td className="py-4 px-6 text-[#acabaa] font-light text-sm">
+      <td className="py-4 px-6 text-white/40 font-light text-sm">
         <div className="flex items-center gap-2">
           <button
             {...attributes}
             {...listeners}
-            className="text-[#484848] hover:text-[#acabaa] cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+            className="text-white/20 hover:text-white/40 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <GripVertical size={13} />
           </button>
@@ -69,7 +69,7 @@ function SortableRow({
         <input
           value={row.shotType}
           onChange={e => onUpdate(row.id, 'shotType', e.target.value)}
-          className="px-2 py-0.5 rounded-sm bg-[#252626] text-[10px] text-[#e7e5e4] focus:outline-none w-16"
+          className="px-2 py-0.5 rounded-sm bg-[#1a1a1a] text-[10px] text-[#e0e0e0] focus:outline-none w-16"
           placeholder="景别"
         />
       </td>
@@ -78,7 +78,7 @@ function SortableRow({
         <textarea
           value={row.description}
           onChange={e => onUpdate(row.id, 'description', e.target.value)}
-          className="w-full bg-transparent text-[#e7e5e4] text-sm focus:outline-none resize-none leading-relaxed"
+          className="w-full bg-transparent text-[#e0e0e0] text-sm focus:outline-none resize-none leading-relaxed"
           rows={2}
         />
       </td>
@@ -86,7 +86,7 @@ function SortableRow({
       <td className="py-4 px-4 text-right">
         <button
           onClick={() => onDelete(row.id)}
-          className="text-[#484848] hover:text-[#ee7d77] transition-colors opacity-0 group-hover:opacity-100"
+          className="text-white/20 hover:text-[#ee7d77] transition-colors opacity-0 group-hover:opacity-100"
         >
           <X size={12} />
         </button>
@@ -201,15 +201,15 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
     <div className="w-full h-full flex bg-[#0e0e0e] overflow-hidden font-body">
 
       {/* ══ 左栏：脚本正文 30% ══ */}
-      <section className="w-[30%] h-full bg-[#131313] flex flex-col border-r border-[#484848]/15">
+      <section className="w-[30%] h-full bg-[#0f0f0f] flex flex-col border-r border-white/[0.06]">
         <div className="p-6 flex flex-col h-full">
           {/* 头部 */}
           <div className="flex justify-between items-center mb-6 flex-shrink-0">
-            <h2 className="font-headline font-extrabold text-[#fbf9f8] tracking-tight text-base">脚本正文</h2>
+            <h2 className="font-headline font-extrabold text-[#e0e0e0] tracking-tight text-base">脚本正文</h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 bg-[#252626] px-4 py-2 rounded-full text-xs font-semibold text-[#e7e5e4] hover:bg-[#2c2c2c] transition-all active:scale-95 font-label"
+                className="flex items-center gap-2 bg-[#1a1a1a] px-4 py-2 rounded-full text-xs font-semibold text-[#e0e0e0] hover:bg-[#1a1a1a] transition-all active:scale-95 font-label"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>upload_file</span>
                 导入剧本
@@ -224,7 +224,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
               <button
                 onClick={handleFirstBreakdown}
                 disabled={!scriptText.trim() || isBreaking}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-[#c6c6c7] text-[#1a1a1a] rounded-full text-xs font-semibold hover:bg-[#e2e2e2] transition-all disabled:opacity-40 disabled:cursor-not-allowed glow-button font-label"
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-[#e0e0e0] text-[#0a0a0a] rounded-full text-xs font-semibold hover:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed glow-button font-label"
               >
                 {isBreaking ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                 {isBreaking ? 'AI 拆解中...' : '✨ AI 拆解'}
@@ -233,7 +233,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
             <button
               onClick={() => setShowOptimizeModal(true)}
               disabled={!scriptText.trim()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#252626] hover:bg-[#2c2c2c] text-[#acabaa] hover:text-[#fbf9f8] rounded-full text-xs transition-colors border border-[#484848]/30 disabled:opacity-40 font-label"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#1a1a1a] text-white/40 hover:text-white rounded-full text-xs transition-colors border border-white/[0.08] disabled:opacity-40 font-label"
             >
               <Wand2 size={12} />
               AI 优化
@@ -267,7 +267,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
               value={scriptText}
               onChange={e => setScriptText(e.target.value)}
               placeholder="在此粘贴剧本内容..."
-              className="w-full h-full min-h-full bg-transparent text-[#e7e5e4] text-sm leading-loose focus:outline-none resize-none font-light"
+              className="w-full h-full min-h-full bg-transparent text-[#e0e0e0] text-sm leading-loose focus:outline-none resize-none font-light"
             />
           </div>
         </div>
@@ -276,11 +276,11 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
       {/* ══ 中栏：分镜列表 45% ══ */}
       <section className="w-[45%] h-full bg-[#0e0e0e] flex flex-col">
         {/* 头部 */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-[#484848]/10 flex-shrink-0">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
           <div className="flex items-center gap-4">
-            <h2 className="font-headline font-bold text-[#fbf9f8] text-base">分镜列表</h2>
+            <h2 className="font-headline font-bold text-[#e0e0e0] text-base">分镜列表</h2>
             {rows.length > 0 && (
-              <span className="text-[10px] px-2 py-0.5 rounded bg-[#252626] text-[#acabaa] font-label uppercase tracking-wide">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-[#1a1a1a] text-white/40 font-label uppercase tracking-wide">
                 {rows.length} SHOTS
               </span>
             )}
@@ -288,7 +288,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
           <div className="flex items-center gap-2">
             <button
               onClick={handleAddRow}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-[#acabaa] hover:text-[#fbf9f8] hover:bg-[#252626] transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-[#1a1a1a] transition-all"
               title="添加分镜"
             >
               <Plus size={14} />
@@ -298,7 +298,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
 
         {rows.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-[#acabaa] text-sm font-label">完成 AI 拆解后，分镜将显示在这里</p>
+            <p className="text-white/40 text-sm font-label">完成 AI 拆解后，分镜将显示在这里</p>
           </div>
         ) : (
           <div className="flex flex-col flex-1 min-h-0">
@@ -311,7 +311,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
                 <col style={{ width: '48px' }} />
               </colgroup>
               <thead>
-                <tr className="border-b border-[#484848]/10 text-[10px] text-[#acabaa] uppercase tracking-widest font-label">
+                <tr className="border-b border-white/[0.06] text-[10px] text-white/40 uppercase tracking-widest font-label">
                   <th className="py-4 px-6 font-medium text-left">ID</th>
                   <th className="py-4 px-2 font-medium text-left">景别</th>
                   <th className="py-4 px-6 font-medium text-left">分镜内容描述</th>
@@ -351,13 +351,13 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
       </section>
 
       {/* ══ 右栏：属性调整 25% ══ */}
-      <section className="w-[25%] h-full bg-[#191a1a] flex flex-col border-l border-[#484848]/15">
+      <section className="w-[25%] h-full bg-[#111] flex flex-col border-l border-white/[0.06]">
         <div className="p-6 flex flex-col h-full overflow-y-auto custom-scrollbar pb-32">
-          <h2 className="font-headline font-bold text-[#fbf9f8] mb-8 text-base">属性调整</h2>
+          <h2 className="font-headline font-bold text-[#e0e0e0] mb-8 text-base">属性调整</h2>
 
           {/* 画面比例 */}
           <div className="mb-8">
-            <label className="text-[10px] text-[#acabaa] uppercase tracking-widest block mb-3 font-label">画面比例</label>
+            <label className="text-[10px] text-white/40 uppercase tracking-widest block mb-3 font-label">画面比例</label>
             <div className="grid grid-cols-2 gap-3">
               {['16:9', '9:16'].map(ratio => (
                 <button
@@ -365,15 +365,15 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
                   onClick={() => setCardRatio(ratio)}
                   className={`rounded-xl p-4 flex flex-col items-center justify-center transition-all border ${
                     cardRatio === ratio
-                      ? 'bg-[#252626] border-[#c6c6c7]/20'
-                      : 'bg-[#0e0e0e] border-[#484848]/30 hover:bg-[#252626]'
+                      ? 'bg-[#1a1a1a] border-white/20'
+                      : 'bg-[#0e0e0e] border-white/[0.08] hover:bg-[#1a1a1a]'
                   }`}
                 >
                   <div
-                    className={`border rounded-sm mb-2 ${cardRatio === ratio ? 'border-[#c6c6c7]/40' : 'border-[#484848]/40'}`}
+                    className={`border rounded-sm mb-2 ${cardRatio === ratio ? 'border-white/40' : 'border-white/[0.10]'}`}
                     style={ratio === '16:9' ? { width: '28px', height: '16px' } : { width: '12px', height: '20px' }}
                   />
-                  <span className={`text-xs font-semibold font-label ${cardRatio === ratio ? 'text-[#e7e5e4]' : 'text-[#acabaa]'}`}>
+                  <span className={`text-xs font-semibold font-label ${cardRatio === ratio ? 'text-[#e0e0e0]' : 'text-white/40'}`}>
                     {ratio}
                   </span>
                 </button>
@@ -383,7 +383,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
             <select
               value={cardRatio}
               onChange={e => setCardRatio(e.target.value)}
-              className="mt-3 w-full bg-[#0e0e0e] border border-[#484848]/30 rounded-xl px-4 py-2.5 text-sm text-[#e7e5e4] focus:ring-1 focus:ring-[#c6c6c7]/40 outline-none font-label appearance-none"
+              className="mt-3 w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none font-label appearance-none"
             >
               {CARD_RATIOS.map(({ label, ratio }) => (
                 <option key={ratio} value={ratio}>{label}</option>
@@ -393,11 +393,11 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
 
           {/* 镜头模组 */}
           <div className="mb-8">
-            <label className="text-[10px] text-[#acabaa] uppercase tracking-widest block mb-3 font-label">镜头模组</label>
+            <label className="text-[10px] text-white/40 uppercase tracking-widest block mb-3 font-label">镜头模组</label>
             <select
               value={selectedLens}
               onChange={e => setSelectedLens(e.target.value)}
-              className="w-full bg-[#0e0e0e] border border-[#484848]/30 rounded-xl px-4 py-3 text-sm text-[#e7e5e4] focus:ring-1 focus:ring-[#c6c6c7]/40 outline-none font-label appearance-none"
+              className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none font-label appearance-none"
             >
               {LENS_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
@@ -407,24 +407,24 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
 
           {/* 视觉提示词 */}
           <div className="mb-8">
-            <label className="text-[10px] text-[#acabaa] uppercase tracking-widest block mb-3 font-label">视觉提示词</label>
+            <label className="text-[10px] text-white/40 uppercase tracking-widest block mb-3 font-label">视觉提示词</label>
             <textarea
               value={promptText}
               onChange={e => setPromptText(e.target.value)}
               placeholder="描述场景的视觉细节..."
-              className="w-full bg-[#0e0e0e] border border-[#484848]/30 rounded-xl px-4 py-3 text-sm text-[#e7e5e4] focus:ring-1 focus:ring-[#c6c6c7]/40 outline-none h-32 resize-none leading-relaxed font-label placeholder-[#484848]"
+              className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none h-32 resize-none leading-relaxed font-label placeholder-white/20"
             />
           </div>
 
           {/* 核心模型 */}
           <div className="mb-8">
-            <label className="text-[10px] text-[#acabaa] uppercase tracking-widest block mb-3 font-label">核心模型</label>
-            <div className="flex items-center justify-between p-3 bg-[#252626] rounded-xl">
+            <label className="text-[10px] text-white/40 uppercase tracking-widest block mb-3 font-label">核心模型</label>
+            <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-xl">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#c6c6c7]" style={{ fontSize: '18px' }}>auto_awesome</span>
-                <span className="text-xs font-medium text-[#e7e5e4] font-label">Visionary-V2 (Pro)</span>
+                <span className="material-symbols-outlined text-[#e0e0e0]" style={{ fontSize: '18px' }}>auto_awesome</span>
+                <span className="text-xs font-medium text-[#e0e0e0] font-label">Visionary-V2 (Pro)</span>
               </div>
-              <span className="material-symbols-outlined text-[#c6c6c7]" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              <span className="material-symbols-outlined text-[#e0e0e0]" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
             </div>
           </div>
 
@@ -433,7 +433,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
             <button
               onClick={handleImport}
               disabled={rows.length === 0}
-              className="w-full py-4 rounded-xl bg-[#c6c6c7] text-[#1a1a1a] font-bold tracking-tight glow-button flex items-center justify-center gap-2 hover:bg-[#e2e2e2] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed font-label"
+              className="w-full py-4 rounded-xl bg-[#e0e0e0] text-[#0a0a0a] font-bold tracking-tight glow-button flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed font-label"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_fix_high</span>
               导入画布并生成节点
