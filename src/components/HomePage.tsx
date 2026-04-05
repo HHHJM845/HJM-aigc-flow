@@ -185,7 +185,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
   ];
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between items-center py-12 bg-black overflow-x-hidden">
+    <div className="relative min-h-screen flex flex-col items-center pt-16 pb-8 bg-black overflow-x-hidden">
 
       {/* Video background */}
       <video
@@ -199,9 +199,9 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/70 pointer-events-none" />
 
       {/* Hero */}
-      <section className="relative z-10 flex-grow w-full max-w-screen-2xl px-12 flex flex-col items-center justify-center text-center">
+      <section className="relative z-10 w-full max-w-screen-2xl px-12 flex flex-col items-center text-center pb-6">
         <h1
-          className="text-6xl md:text-7xl font-extrabold tracking-tighter text-[#fbf9f8] mb-16"
+          className="text-6xl md:text-7xl font-extrabold tracking-tighter text-[#fbf9f8] mb-10"
           style={{ fontFamily: 'Manrope' }}
         >
           灵感从这里开始！
