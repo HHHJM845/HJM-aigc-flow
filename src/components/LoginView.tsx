@@ -3,7 +3,7 @@ import { Instagram, Facebook, Twitter } from 'lucide-react';
 import loginBg from '../assets/login-bg.jpg';
 
 interface Props {
-  onLogin: () => void;
+  onLogin: (username: string) => void;
 }
 
 export default function LoginView({ onLogin }: Props) {
@@ -18,7 +18,7 @@ export default function LoginView({ onLogin }: Props) {
       return;
     }
     // Simple gate — any non-empty credentials pass
-    onLogin();
+    onLogin(username.trim());
   };
 
   return (
