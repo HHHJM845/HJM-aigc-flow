@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import loginBgVideo from '../assets/login-bg.mp4';
+import React, { useState, useRef, useCallback } from 'react';
+import loginBgVideo1 from '../assets/login-bg.mp4';
+import loginBgVideo2 from '../assets/login-bg2.mp4';
+
+const VIDEOS = [loginBgVideo1, loginBgVideo2];
 
 interface Props {
   onLogin: (username: string) => void;
@@ -10,6 +13,10 @@ export default function LoginView({ onLogin }: Props) {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
+  const [videoIndex, setVideoIndex] = useState(0);
+  const handleVideoEnd = useCallback(() => {
+    setVideoIndex(i => (i + 1) % VIDEOS.length);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,15 +30,16 @@ export default function LoginView({ onLogin }: Props) {
   return (
     <div className="flex min-h-screen w-full overflow-hidden bg-black">
 
-      {/* 左侧 — 全幅视频 */}
+      {/* 左侧 — 全幅视频（轮播） */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
         <video
+          key={videoIndex}
           autoPlay
-          loop
           muted
           playsInline
+          onEnded={handleVideoEnd}
           className="absolute inset-0 h-full w-full object-cover"
-          src={loginBgVideo}
+          src={VIDEOS[videoIndex]}
         />
       </div>
 
@@ -39,12 +47,12 @@ export default function LoginView({ onLogin }: Props) {
       <div className="relative flex w-full lg:w-1/2 items-center justify-center overflow-hidden">
         {/* 背景：同一段视频但模糊压暗 */}
         <video
+          key={`blur-${videoIndex}`}
           autoPlay
-          loop
           muted
           playsInline
           className="absolute inset-0 h-full w-full object-cover opacity-30 blur-2xl scale-110"
-          src={loginBgVideo}
+          src={VIDEOS[videoIndex]}
         />
         <div className="absolute inset-0 bg-black/[0.08]" />
 
