@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Trash2, Pencil, MoreHorizontal } from 'lucide-react';
 import { type Project } from '../lib/storage';
+import homeBgVideo from '../assets/home-bg.mp4';
 
 function timeAgo(ts: number): string {
   const d = Date.now() - ts;
@@ -186,8 +187,19 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
   return (
     <div className="relative min-h-screen flex flex-col justify-between items-center py-12 bg-black overflow-x-hidden">
 
+      {/* Video background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover opacity-40 pointer-events-none"
+        src={homeBgVideo}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/70 pointer-events-none" />
+
       {/* Hero */}
-      <section className="flex-grow w-full max-w-screen-2xl px-12 flex flex-col items-center justify-center text-center">
+      <section className="relative z-10 flex-grow w-full max-w-screen-2xl px-12 flex flex-col items-center justify-center text-center">
         <h1
           className="text-6xl md:text-7xl font-extrabold tracking-tighter text-[#fbf9f8] mb-16"
           style={{ fontFamily: 'Manrope' }}
@@ -233,7 +245,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
       </section>
 
       {/* Recent Projects */}
-      <section className="w-full max-w-[1600px] px-12 mt-12 mb-6">
+      <section className="relative z-10 w-full max-w-[1600px] px-12 mt-12 mb-6">
         <div className="flex justify-between items-end mb-8">
           <div>
             <h2 className="text-2xl font-bold text-[#e8e7e7] tracking-tight" style={{ fontFamily: 'Manrope' }}>最近项目</h2>
@@ -287,7 +299,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
       </section>
 
       {/* Footer */}
-      <footer className="text-center mt-4">
+      <footer className="relative z-10 text-center mt-4">
         <p className="text-[#acabaa]/30 text-[11px]" style={{ fontFamily: 'Inter' }}>知识产权及用户合规声明</p>
         <p className="text-[#acabaa]/30 text-[11px] mt-0.5" style={{ fontFamily: 'Inter' }}>特别鸣谢</p>
       </footer>
