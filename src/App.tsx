@@ -51,6 +51,7 @@ import SubtitleView from './components/SubtitleView';
 import TopicView from './components/TopicView';
 import { useSync } from './hooks/useSync';
 import { FileText } from 'lucide-react';
+import UserMenu from './components/UserMenu';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -1004,6 +1005,7 @@ function Flow({
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem('loggedIn') === '1');
+  const [username, setUsername] = useState(() => sessionStorage.getItem('username') || 'user');
   const [view, setView] = useState<'home' | 'canvas' | 'skills'>('home');
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [canvasInitialNodes, setCanvasInitialNodes] = useState<Node[]>([]);
@@ -1144,10 +1146,26 @@ export default function App() {
   };
 
   if (!isLoggedIn) {
-    return <LoginView onLogin={() => { sessionStorage.setItem('loggedIn', '1'); setIsLoggedIn(true); }} />;
+    return (
+      <LoginView
+        onLogin={(name) => {
+          sessionStorage.setItem('loggedIn', '1');
+          sessionStorage.setItem('username', name);
+          setUsername(name);
+          setIsLoggedIn(true);
+        }}
+      />
+    );
   }
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setView('home');
+  };
+
   return (
+    <>
+    <UserMenu username={username} onLogout={handleLogout} />
     <ReactFlowProvider>
       {view === 'home' ? (
         <HomePage
@@ -1188,5 +1206,6 @@ export default function App() {
         />
       )}
     </ReactFlowProvider>
+    </>
   );
 }
