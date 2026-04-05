@@ -50,12 +50,12 @@ function VideoCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative bg-[#1a1a1a] border rounded-[10px] overflow-hidden ${
+      className={`relative bg-[#0d0d0d] border rounded-[10px] overflow-hidden ${
         isDragging ? 'border-white/30 shadow-2xl scale-[1.02]' : 'border-white/[0.08]'
       }`}
     >
       {/* Video area 16:9 */}
-      <div className="relative w-full" style={{ aspectRatio: '16/9', background: '#111' }}>
+      <div className="relative w-full" style={{ aspectRatio: '16/9', background: '#080808' }}>
         {item.url ? (
           <video
             src={item.url}
@@ -64,7 +64,7 @@ function VideoCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-gray-700 text-sm">▶</span>
+            <span className="text-white/20 text-sm">▶</span>
           </div>
         )}
 
@@ -85,7 +85,7 @@ function VideoCard({
         {/* Remove button — top right */}
         <button
           onClick={() => onRemove(item.id)}
-          className="absolute top-1.5 right-1.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-200 transition-colors"
+          className="absolute top-1.5 right-1.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 transition-colors"
           title="从视频管理中移除"
         >
           <X size={10} />
@@ -94,10 +94,10 @@ function VideoCard({
 
       {/* Bottom row */}
       <div className="flex items-center justify-between px-2 py-1.5 gap-2">
-        <span className="text-[#aaa] text-[10px] truncate flex-1">{item.label || `视频 ${padded}`}</span>
+        <span className="text-white/40 text-[10px] truncate flex-1">{item.label || `视频 ${padded}`}</span>
         <button
           onClick={() => onDownload(item.url, index)}
-          className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/[0.08] rounded text-[9px] text-gray-500 hover:text-gray-300 transition-colors"
+          className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/[0.08] rounded text-[9px] text-white/30 hover:text-white/60 transition-colors"
         >
           <Download size={9} />
           下载
@@ -134,17 +134,17 @@ export default function VideoView({ videoOrder, onReorder, onRemove }: Props) {
   };
 
   return (
-    <div className="absolute inset-0 bg-[#0c0c0c] flex flex-col overflow-hidden">
+    <div className="absolute inset-0 bg-black flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <span className="text-white font-medium text-[14px]">视频管理</span>
-          <span className="text-gray-600 text-xs">已选 {videoOrder.length} 个视频</span>
+          <span className="text-white/30 text-xs">已选 {videoOrder.length} 个视频</span>
         </div>
         {videoOrder.length > 0 && (
           <button
             onClick={handleDownloadAll}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 rounded-lg text-gray-300 text-xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 rounded-lg text-white/60 text-xs transition-colors"
           >
             <Download size={12} />
             全部下载（{videoOrder.length}个）
@@ -155,7 +155,7 @@ export default function VideoView({ videoOrder, onReorder, onRemove }: Props) {
       {/* Grid or empty state */}
       {videoOrder.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-600 text-sm text-center leading-relaxed">
+          <p className="text-white/25 text-sm text-center leading-relaxed">
             在画布中点击视频节点右上角的勾选按钮<br />即可加入视频管理
           </p>
         </div>

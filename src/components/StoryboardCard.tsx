@@ -32,7 +32,7 @@ export default function StoryboardCard({ id, index, imageSrc, onRemove }: Props)
       style={style}
       {...attributes}
       {...listeners}
-      className={`group bg-[#1a1a1a] rounded-xl overflow-hidden border cursor-grab active:cursor-grabbing select-none transition-shadow duration-150 ${
+      className={`group bg-[#0d0d0d] rounded-xl overflow-hidden border cursor-grab active:cursor-grabbing select-none transition-shadow duration-150 ${
         isDragging
           ? 'border-white/30 shadow-2xl scale-[1.04]'
           : 'border-white/8 hover:border-white/15'
@@ -62,7 +62,7 @@ export default function StoryboardCard({ id, index, imageSrc, onRemove }: Props)
               className="w-full h-full object-cover pointer-events-none"
             />
           ) : (
-            <div className="w-full h-full bg-[#242424] flex items-center justify-center text-white/10 text-sm">
+            <div className="w-full h-full bg-[#080808] flex items-center justify-center text-white/10 text-sm">
               未生成
             </div>
           )}
