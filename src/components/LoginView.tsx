@@ -41,7 +41,7 @@ export default function LoginView({ onLogin }: Props) {
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-30 blur-2xl scale-110"
         />
-        <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute inset-0 bg-black/[0.08]" />
 
         {/* 表单内容 */}
         <div className="relative z-10 w-full max-w-sm px-8 py-12">
