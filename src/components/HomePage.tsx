@@ -77,12 +77,12 @@ function ProjectCard({
 
   return (
     <div
-      className="group relative aspect-[4/5] bg-[#111] rounded-2xl overflow-hidden flex flex-col transition-all duration-500 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-black/60 border border-white/[0.05]"
+      className="group relative aspect-[4/5] bg-black/40 backdrop-blur-sm rounded-2xl overflow-hidden flex flex-col transition-all duration-500 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-black/60 border border-white/15"
     >
       {/* Thumbnail — top 62% */}
       <button
         onClick={onOpen}
-        className="relative h-[62%] w-full bg-[#111] overflow-hidden flex-shrink-0"
+        className="relative h-[62%] w-full bg-black/30 overflow-hidden flex-shrink-0"
       >
         {project.thumbnail ? (
           <img
@@ -92,13 +92,13 @@ function ProjectCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#222] text-5xl">movie_creation</span>
+            <span className="material-symbols-outlined text-white/20 text-5xl">movie_creation</span>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
         <div className="absolute bottom-3 left-4 flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[#3a3a3a] text-[12px]">folder</span>
-          <span className="text-[9px] uppercase tracking-[0.18em] text-[#4a4a4a] font-bold" style={{ fontFamily: 'Inter' }}>
+          <span className="material-symbols-outlined text-white/30 text-[12px]">folder</span>
+          <span className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-bold" style={{ fontFamily: 'Inter' }}>
             {project.name.slice(0, 14).replace(/\s+/g, '_').toUpperCase() || 'PROJECT'}
           </span>
         </div>
@@ -130,13 +130,13 @@ function ProjectCard({
               {project.name}
             </h3>
           )}
-          <p className="text-[#3d3d3d] text-xs mt-1.5" style={{ fontFamily: 'Inter' }}>
+          <p className="text-white/35 text-xs mt-1.5" style={{ fontFamily: 'Inter' }}>
             {timeAgo(project.updatedAt)}编辑
           </p>
         </div>
 
         <div className="flex justify-between items-center mt-4">
-          <div className="w-6 h-6 rounded-full border border-[#222] bg-[#181818]" />
+          <div className="w-6 h-6 rounded-full border border-white/20 bg-white/10" />
           <div className="relative" ref={menuRef}>
             <button
               onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
@@ -209,14 +209,14 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
 
         {/* Input */}
         <div className="relative w-full max-w-4xl mb-10">
-          <div className="flex items-center bg-[#141414] rounded-full px-8 py-5 border border-[#2a2a2a] focus-within:border-[#3a3a3a] transition-colors duration-300">
-            <span className="material-symbols-outlined text-[#3a3a3a] mr-4 text-xl">auto_awesome</span>
+          <div className="flex items-center bg-black/40 backdrop-blur-md rounded-full px-8 py-5 border border-white/20 focus-within:border-white/40 transition-colors duration-300">
+            <span className="material-symbols-outlined text-white/40 mr-4 text-xl">auto_awesome</span>
             <input
               value={inputText}
               onChange={e => setInputText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
               placeholder="输入你想创作的场景或关键词..."
-              className="bg-transparent border-none focus:ring-0 text-xl w-full text-[#e0dfdf] placeholder:text-[#333] font-medium focus:outline-none"
+              className="bg-transparent border-none focus:ring-0 text-xl w-full text-white placeholder:text-white/30 font-medium focus:outline-none"
               style={{ fontFamily: 'Manrope' }}
             />
             <button
@@ -235,7 +235,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
             <button
               key={label}
               onClick={onClick}
-              className="px-6 py-2.5 rounded-full bg-[#141414] text-sm font-medium text-[#555] hover:text-[#aaa] hover:bg-[#1a1a1a] transition-all border border-[#222]"
+              className="px-6 py-2.5 rounded-full bg-black/30 backdrop-blur-sm text-sm font-medium text-white/50 hover:text-white/80 hover:bg-black/50 transition-all border border-white/15"
               style={{ fontFamily: 'Manrope' }}
             >
               {label}
@@ -249,11 +249,11 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
         <div className="flex justify-between items-end mb-8">
           <div>
             <h2 className="text-2xl font-bold text-[#e8e7e7] tracking-tight" style={{ fontFamily: 'Manrope' }}>最近项目</h2>
-            <p className="text-[#333] text-sm mt-1" style={{ fontFamily: 'Inter' }}>继续你的创意旅程</p>
+            <p className="text-white/40 text-sm mt-1" style={{ fontFamily: 'Inter' }}>继续你的创意旅程</p>
           </div>
           {projects.length > 4 && (
             <button
-              className="group text-[#333] text-sm font-medium flex items-center gap-1.5 hover:text-[#666] transition-colors"
+              className="group text-white/40 text-sm font-medium flex items-center gap-1.5 hover:text-white/70 transition-colors"
               style={{ fontFamily: 'Inter' }}
             >
               查看全部
@@ -266,15 +266,15 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
           {/* New project card */}
           <button
             onClick={() => onNewProject()}
-            className="group relative aspect-[4/5] bg-[#0d0d0d] rounded-2xl border border-dashed border-[#222] hover:border-[#333] flex flex-col items-center justify-center transition-all duration-500"
+            className="group relative aspect-[4/5] bg-black/30 backdrop-blur-sm rounded-2xl border border-dashed border-white/20 hover:border-white/40 flex flex-col items-center justify-center transition-all duration-500"
           >
-            <div className="w-14 h-14 rounded-full bg-[#171717] border border-[#222] flex items-center justify-center mb-5 group-hover:scale-105 group-hover:border-[#333] transition-all duration-500">
-              <span className="material-symbols-outlined text-[#333] text-2xl group-hover:text-[#555] transition-colors">add</span>
+            <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-5 group-hover:scale-105 group-hover:border-white/40 transition-all duration-500">
+              <span className="material-symbols-outlined text-white/50 text-2xl group-hover:text-white/80 transition-colors">add</span>
             </div>
-            <span className="text-base font-bold text-[#333] group-hover:text-[#666] transition-colors" style={{ fontFamily: 'Manrope' }}>
+            <span className="text-base font-bold text-white/50 group-hover:text-white/80 transition-colors" style={{ fontFamily: 'Manrope' }}>
               新建项目
             </span>
-            <span className="text-[#252525] text-xs mt-1.5 font-medium group-hover:text-[#3a3a3a] transition-colors" style={{ fontFamily: 'Inter' }}>
+            <span className="text-white/30 text-xs mt-1.5 font-medium group-hover:text-white/50 transition-colors" style={{ fontFamily: 'Inter' }}>
               从空白画布开始
             </span>
           </button>
