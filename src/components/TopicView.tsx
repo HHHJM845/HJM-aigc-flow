@@ -56,13 +56,18 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
   const abortRef = useRef<AbortController | null>(null);
   const autoTriggered = useRef(false);
 
+  // Reset auto-trigger guard when keyword prop changes so each new navigation triggers fresh analysis
+  useEffect(() => {
+    autoTriggered.current = false;
+  }, [initialKeyword]);
+
   // Auto-trigger search when navigated from homepage with a keyword
   useEffect(() => {
     if (initialKeyword && !autoTriggered.current) {
       autoTriggered.current = true;
       setKeyword(initialKeyword);
-      // Small delay to let keyword state settle before fetching
-      setTimeout(() => handleAnalyze(), 100);
+      // Pass keyword directly to avoid stale closure (state update is async)
+      setTimeout(() => handleAnalyze(initialKeyword), 100);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialKeyword]);
@@ -73,8 +78,9 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
     );
   };
 
-  const handleAnalyze = async () => {
-    if (!keyword.trim() || loading) return;
+  const handleAnalyze = async (kwOverride?: string) => {
+    const kw = (kwOverride ?? keyword).trim();
+    if (!kw || loading) return;
     if (platforms.length === 0) { setError('请至少选择一个平台'); return; }
 
     abortRef.current?.abort();
@@ -90,7 +96,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
       const res = await fetch('/api/topic-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: keyword.trim(), platforms }),
+        body: JSON.stringify({ keyword: kw, platforms }),
         signal: ctrl.signal,
       });
 
