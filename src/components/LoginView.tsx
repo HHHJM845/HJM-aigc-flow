@@ -51,7 +51,7 @@ export default function LoginView({ onLogin }: Props) {
           autoPlay
           muted
           playsInline
-          className="absolute inset-0 h-full w-full object-cover opacity-30 blur-2xl scale-110"
+          className="absolute inset-0 h-full w-full object-cover opacity-60 blur-2xl scale-110"
           src={VIDEOS[videoIndex]}
         />
         <div className="absolute inset-0 bg-black/[0.03]" />
