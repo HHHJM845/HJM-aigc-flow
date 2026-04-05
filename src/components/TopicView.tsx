@@ -137,12 +137,12 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
   const hasResults = results !== null;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#0e0e0e] overflow-hidden">
+    <div className="absolute inset-0 flex flex-col bg-black overflow-hidden">
 
       {/* Search section */}
       <div className="flex-shrink-0 flex flex-col items-center gap-4 px-8 pt-6 pb-5 border-b border-white/[0.06]">
         {/* Platform toggles */}
-        <div className="flex bg-[#111] p-1 rounded-full border border-white/[0.06]">
+        <div className="flex bg-[#0d0d0d] p-1 rounded-full border border-white/[0.06]">
           {PLATFORMS.map(({ key, label }) => (
             <button
               key={key}
@@ -167,7 +167,7 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
             onChange={e => setKeyword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAnalyze()}
             placeholder="输入关键词、博主名或话题趋势..."
-            className="w-full bg-[#111] border-none rounded-xl py-4 pl-14 pr-32 text-base focus:ring-1 focus:ring-white focus:outline-none placeholder:text-white/20 text-[#e0e0e0] transition-all"
+            className="w-full bg-[#0d0d0d] border-none rounded-xl py-4 pl-14 pr-32 text-base focus:ring-1 focus:ring-white focus:outline-none placeholder:text-white/20 text-[#e0e0e0] transition-all"
             style={{ fontFamily: 'Manrope' }}
           />
           <button
@@ -189,14 +189,14 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
         {/* Left: stats + video list */}
         <aside className="col-span-3 flex flex-col gap-4 overflow-hidden">
           {/* Stats */}
-          <div className="flex-shrink-0 rounded-xl p-5 space-y-4" style={{ background: 'rgba(25,26,26,0.6)', backdropFilter: 'blur(24px)', border: '1px solid rgba(198,198,199,0.05)' }}>
+          <div className="flex-shrink-0 rounded-xl p-5 space-y-4" style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}>
             <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>核心数据指标</h3>
             {[
               { label: '平均播放', value: results?.summary ? fmt(results.summary.avgViews) : '—', up: !!results },
               { label: '平均点赞', value: results?.summary ? fmt(results.summary.avgLikes) : '—', up: !!results },
               { label: '平均收藏', value: results?.summary ? fmt(results.summary.avgFavorites) : '—', up: false },
             ].map(({ label, value, up }) => (
-              <div key={label} className="p-3 bg-[#0f0f0f] rounded-lg border border-white/[0.06]">
+              <div key={label} className="p-3 bg-[#080808] rounded-lg border border-white/[0.06]">
                 <p className="text-[10px] text-white/40 mb-1" style={{ fontFamily: 'Inter' }}>{label}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>{value}</span>
@@ -207,7 +207,7 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
           </div>
 
           {/* Video list */}
-          <div className="flex-1 rounded-xl flex flex-col overflow-hidden min-h-0" style={{ background: 'rgba(25,26,26,0.6)', backdropFilter: 'blur(24px)', border: '1px solid rgba(198,198,199,0.05)' }}>
+          <div className="flex-1 rounded-xl flex flex-col overflow-hidden min-h-0" style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="flex-shrink-0 px-5 pt-5 pb-2 flex justify-between items-center">
               <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>热门视频列表</h3>
               <span className="material-symbols-outlined text-white/20 text-[18px]">filter_list</span>
@@ -236,7 +236,7 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
         {/* Center: AI report + suggestions */}
         <section className="col-span-6 flex flex-col gap-4 overflow-y-auto">
           {/* Recipe / insight */}
-          <div className="flex-shrink-0 rounded-xl p-7" style={{ background: 'rgba(25,26,26,0.6)', backdropFilter: 'blur(24px)', border: '1px solid rgba(198,198,199,0.05)' }}>
+          <div className="flex-shrink-0 rounded-xl p-7" style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="flex items-center gap-3 mb-5">
               <span className="material-symbols-outlined text-[#e0e0e0]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
               <h2 className="text-base font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>
@@ -281,7 +281,7 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
                 <div
                   key={i}
                   className="rounded-xl p-5 flex flex-col justify-between group hover:border-[#e0e0e0]/20 transition-all border border-transparent"
-                  style={{ background: 'rgba(25,26,26,0.6)', backdropFilter: 'blur(24px)', border: '1px solid rgba(198,198,199,0.05)' }}
+                  style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
@@ -316,7 +316,7 @@ export default function TopicView({ initialDraft = '', onSaveDraft, onImportToBr
                 <div
                   key={title}
                   className="rounded-xl p-5 flex flex-col justify-between opacity-40"
-                  style={{ background: 'rgba(25,26,26,0.6)', backdropFilter: 'blur(24px)', border: '1px solid rgba(198,198,199,0.05)' }}
+                  style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
