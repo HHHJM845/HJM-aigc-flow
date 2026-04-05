@@ -245,7 +245,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
       </section>
 
       {/* Recent Projects */}
-      <section className="relative z-10 w-full max-w-[1600px] px-12 mt-12 mb-6">
+      <section className="relative z-10 w-full max-w-[1600px] px-12 mt-2 mb-6">
         <div className="flex justify-between items-end mb-8">
           <div>
             <h2 className="text-2xl font-bold text-[#e8e7e7] tracking-tight" style={{ fontFamily: 'Manrope' }}>最近项目</h2>
