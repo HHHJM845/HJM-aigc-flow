@@ -42,8 +42,8 @@ function typeBadge(asset: AssetItem): { label: string; cls: string } {
   if (asset.type === 'video')          return { label: 'Video',       cls: 'bg-[#8ab4f8]/90 text-[#1A1A1A]' };
   if (asset.category === 'character')  return { label: '3D Model',    cls: 'bg-[#8ab4f8]/90 text-[#1A1A1A]' };
   if (asset.category === 'scene')      return { label: 'Environment', cls: 'bg-[#9f9d9d] text-[#202020]' };
-  if (asset.category === 'other')      return { label: 'Prop',        cls: 'bg-[#252626] text-[#b8b9b9]' };
-  return { label: 'Image', cls: 'bg-white/10 text-[#fbf9f8]' };
+  if (asset.category === 'other')      return { label: 'Prop',        cls: 'bg-[#1a1a1a] text-[#b8b9b9]' };
+  return { label: 'Image', cls: 'bg-white/10 text-[#e0e0e0]' };
 }
 
 export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, onRenameAsset }: Props) {
@@ -117,14 +117,14 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-[#fbf9f8] mb-3" style={{ fontFamily: 'Manrope' }}>资产库</h1>
-            <p className="text-[#acabaa] text-base" style={{ fontFamily: 'Inter' }}>管理项目中的所有 3D 模型、媒体素材及剧本文档</p>
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#e0e0e0] mb-3" style={{ fontFamily: 'Manrope' }}>资产库</h1>
+            <p className="text-white/40 text-base" style={{ fontFamily: 'Inter' }}>管理项目中的所有 3D 模型、媒体素材及剧本文档</p>
           </div>
           <div className="flex gap-4">
             <button
               onClick={() => !uploading && fileInputRef.current?.click()}
               disabled={uploading}
-              className="bg-[#191a1a] text-[#fbf9f8] border border-[#484848]/20 px-6 py-3 rounded-full flex items-center gap-2 hover:bg-[#2c2c2c] transition-all text-sm disabled:opacity-50"
+              className="bg-[#111] text-[#e0e0e0] border border-white/[0.06] px-6 py-3 rounded-full flex items-center gap-2 hover:bg-[#1a1a1a] transition-all text-sm disabled:opacity-50"
               style={{ fontFamily: 'Inter' }}
             >
               <span className="material-symbols-outlined text-[18px]">upload</span>
@@ -132,7 +132,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
             </button>
             <button
               onClick={() => setShowGenerateDialog(true)}
-              className="bg-[#c6c6c7] text-[#3f4041] px-8 py-3 rounded-full flex items-center gap-2 hover:bg-[#fbf9f8] transition-all text-sm font-bold"
+              className="bg-[#e0e0e0] text-[#1a1a1a] px-8 py-3 rounded-full flex items-center gap-2 hover:bg-white transition-all text-sm font-bold"
               style={{ fontFamily: 'Inter' }}
             >
               <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
@@ -143,7 +143,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
         </header>
 
         {/* Pill Filters */}
-        <div className="flex flex-wrap gap-2.5 mb-10 items-center border-b border-[#484848]/10 pb-8">
+        <div className="flex flex-wrap gap-2.5 mb-10 items-center border-b border-white/[0.06] pb-8">
           {FILTERS.map(({ key, label }) => (
             <button
               key={key}
@@ -151,15 +151,15 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
               className={`px-6 py-2 rounded-full text-xs transition-all ${
                 activeFilter === key
                   ? 'bg-[#8ab4f8]/10 border border-[#8ab4f8]/20 text-[#8ab4f8] font-bold tracking-wide'
-                  : 'bg-[#131313] border border-[#484848]/10 text-[#acabaa] hover:border-[#484848]/40'
+                  : 'bg-[#0f0f0f] border border-white/[0.06] text-white/40 hover:border-white/[0.10]'
               }`}
               style={{ fontFamily: 'Inter' }}
             >
               {label}
             </button>
           ))}
-          <div className="h-5 w-px bg-[#484848]/20 mx-3" />
-          <button className="flex items-center gap-2 text-xs text-[#9f9d9d] hover:text-[#fbf9f8] transition-colors" style={{ fontFamily: 'Inter' }}>
+          <div className="h-5 w-px bg-white/[0.06] mx-3" />
+          <button className="flex items-center gap-2 text-xs text-white/30 hover:text-white transition-colors" style={{ fontFamily: 'Inter' }}>
             <span className="material-symbols-outlined text-[18px]">filter_list</span>
             更多筛选
           </button>
@@ -167,7 +167,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
 
         {/* Asset Grid */}
         {filteredAssets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-[#acabaa] text-sm gap-3">
+          <div className="flex flex-col items-center justify-center h-64 text-white/40 text-sm gap-3">
             <span className="material-symbols-outlined text-5xl opacity-20">inventory_2</span>
             <p>{activeFilter === 'all' ? '上传素材或生成新素材后将在这里显示' : '该分类暂无素材'}</p>
           </div>
@@ -179,7 +179,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
               return (
                 <div
                   key={asset.id}
-                  className="group relative bg-[#191a1a] rounded-2xl overflow-hidden border border-[#484848]/15 hover:border-[#8ab4f8]/30 transition-all duration-500 flex flex-col shadow-lg shadow-black/20"
+                  className="group relative bg-[#111] rounded-2xl overflow-hidden border border-white/[0.06] hover:border-[#8ab4f8]/30 transition-all duration-500 flex flex-col shadow-lg shadow-black/20"
                 >
                   {/* Thumbnail */}
                   <div className="aspect-video relative bg-black overflow-hidden">
@@ -191,8 +191,8 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#131313]">
-                        <span className="material-symbols-outlined text-5xl text-[#484848]">videocam</span>
+                      <div className="w-full h-full flex items-center justify-center bg-[#0f0f0f]">
+                        <span className="material-symbols-outlined text-5xl text-white/20">videocam</span>
                       </div>
                     )}
                     {/* Type badge */}
@@ -200,7 +200,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
                       {badge.label}
                     </div>
                     {/* ID badge */}
-                    <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-[#fbf9f8] text-[10px] px-2.5 py-1 rounded-lg border border-white/10 uppercase tracking-tighter" style={{ fontFamily: 'Inter' }}>
+                    <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-[#e0e0e0] text-[10px] px-2.5 py-1 rounded-lg border border-white/10 uppercase tracking-tighter" style={{ fontFamily: 'Inter' }}>
                       ID: {shortId}
                     </div>
                     {/* Delete on hover */}
@@ -224,13 +224,13 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
                           if (e.key === 'Enter') { onRenameAsset(asset.id, editingName.trim() || asset.name); setEditingId(null); }
                           if (e.key === 'Escape') setEditingId(null);
                         }}
-                        className="w-full bg-transparent text-sm text-[#fbf9f8] font-bold outline-none border-b border-[#8ab4f8]/50 leading-snug mb-1"
+                        className="w-full bg-transparent text-sm text-[#e0e0e0] font-bold outline-none border-b border-[#8ab4f8]/50 leading-snug mb-1"
                         style={{ fontFamily: 'Manrope' }}
                         onClick={e => e.stopPropagation()}
                       />
                     ) : (
                       <h4
-                        className="text-[#fbf9f8] font-bold text-sm mb-1 group-hover:text-[#8ab4f8] transition-colors cursor-pointer truncate"
+                        className="text-[#e0e0e0] font-bold text-sm mb-1 group-hover:text-[#8ab4f8] transition-colors cursor-pointer truncate"
                         style={{ fontFamily: 'Manrope' }}
                         title={`${asset.name} (点击重命名)`}
                         onClick={() => { setEditingId(asset.id); setEditingName(asset.name); }}
@@ -239,14 +239,14 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
                       </h4>
                     )}
                     <div className="flex justify-between items-center mt-4">
-                      <span className="text-[10px] text-[#acabaa]" style={{ fontFamily: 'Inter' }}>
+                      <span className="text-[10px] text-white/40" style={{ fontFamily: 'Inter' }}>
                         修改于 {relativeTime(asset.createdAt)}
                       </span>
                       <div className="flex gap-3">
-                        <span className="material-symbols-outlined text-[#acabaa] text-[18px] hover:text-[#8ab4f8] cursor-pointer transition-colors">
+                        <span className="material-symbols-outlined text-white/40 text-[18px] hover:text-[#8ab4f8] cursor-pointer transition-colors">
                           {asset.type === 'video' ? 'slow_motion_video' : 'download'}
                         </span>
-                        <span className="material-symbols-outlined text-[#acabaa] text-[18px] hover:text-[#8ab4f8] cursor-pointer transition-colors">
+                        <span className="material-symbols-outlined text-white/40 text-[18px] hover:text-[#8ab4f8] cursor-pointer transition-colors">
                           more_horiz
                         </span>
                       </div>
@@ -262,20 +262,20 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
       {/* Category selection overlay for upload */}
       {pendingFile && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#1c1c1c] border border-white/10 rounded-2xl p-6 shadow-2xl min-w-[200px]">
-            <p className="text-[#acabaa] text-xs mb-1 text-center" style={{ fontFamily: 'Inter' }}>选择分类</p>
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 shadow-2xl min-w-[200px]">
+            <p className="text-white/40 text-xs mb-1 text-center" style={{ fontFamily: 'Inter' }}>选择分类</p>
             <p className="text-[#767575] text-[10px] mb-4 text-center truncate max-w-[180px]">{pendingFile.name}</p>
             <div className="flex flex-col gap-2">
               <button onClick={() => handleSelectCategory('character')}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[#e7e5e4] transition-colors">
+                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[#e0e0e0] transition-colors">
                 <span className="material-symbols-outlined text-[18px]">person</span> 角色模型
               </button>
               <button onClick={() => handleSelectCategory('scene')}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[#e7e5e4] transition-colors">
+                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[#e0e0e0] transition-colors">
                 <span className="material-symbols-outlined text-[18px]">landscape</span> 环境场景
               </button>
               <button onClick={() => handleSelectCategory('other')}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[#e7e5e4] transition-colors">
+                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[#e0e0e0] transition-colors">
                 <span className="material-symbols-outlined text-[18px]">category</span> 道具资源
               </button>
             </div>

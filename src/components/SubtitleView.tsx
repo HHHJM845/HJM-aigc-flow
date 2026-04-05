@@ -539,7 +539,7 @@ export default function SubtitleView({
         {/* Project info */}
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[#9f9d9d] text-[16px]">movie</span>
-          <span className="text-[13px] font-semibold text-[#e7e5e4] truncate max-w-[180px]">{projectName}</span>
+          <span className="text-[13px] font-semibold text-[#e0e0e0] truncate max-w-[180px]">{projectName}</span>
           {localVideoOrder.length > 0 && (
             <span className="text-[11px] text-white/30 tabular-nums">
               {localVideoOrder.length} 段 · {msToDisplay(totalMs)}
@@ -569,7 +569,7 @@ export default function SubtitleView({
         <button
           onClick={handleExportVideo}
           disabled={exporting || localVideoOrder.length === 0 || totalMs === 0}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#fbf9f8] hover:bg-white text-black disabled:opacity-40 text-[12px] font-semibold transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e0e0e0] hover:bg-white text-black disabled:opacity-40 text-[12px] font-semibold transition-colors"
         >
           <span className="material-symbols-outlined text-[14px]">download</span>
           {exporting ? '导出中…' : '导出'}
