@@ -47,7 +47,7 @@ function SortableRow({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b border-white/[0.06] hover:bg-[#0f0f0f] transition-colors group cursor-pointer font-label ${
+      className={`border-b border-white/[0.06] hover:bg-[#0d0d0d] transition-colors group cursor-pointer font-label ${
         isNew ? 'active-row' : ''
       }`}
     >
@@ -198,10 +198,10 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
   const isFirstBreakdown = rows.length === 0;
 
   return (
-    <div className="w-full h-full flex bg-[#0e0e0e] overflow-hidden font-body">
+    <div className="w-full h-full flex bg-black overflow-hidden font-body">
 
       {/* ══ 左栏：脚本正文 30% ══ */}
-      <section className="w-[30%] h-full bg-[#0f0f0f] flex flex-col border-r border-white/[0.06]">
+      <section className="w-[30%] h-full bg-[#080808] flex flex-col border-r border-white/[0.06]">
         <div className="p-6 flex flex-col h-full">
           {/* 头部 */}
           <div className="flex justify-between items-center mb-6 flex-shrink-0">
@@ -274,7 +274,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
       </section>
 
       {/* ══ 中栏：分镜列表 45% ══ */}
-      <section className="w-[45%] h-full bg-[#0e0e0e] flex flex-col">
+      <section className="w-[45%] h-full bg-[#050505] flex flex-col">
         {/* 头部 */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
           <div className="flex items-center gap-4">
@@ -351,7 +351,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
       </section>
 
       {/* ══ 右栏：属性调整 25% ══ */}
-      <section className="w-[25%] h-full bg-[#111] flex flex-col border-l border-white/[0.06]">
+      <section className="w-[25%] h-full bg-[#0a0a0a] flex flex-col border-l border-white/[0.06]">
         <div className="p-6 flex flex-col h-full overflow-y-auto custom-scrollbar pb-32">
           <h2 className="font-headline font-bold text-[#e0e0e0] mb-8 text-base">属性调整</h2>
 
@@ -366,7 +366,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
                   className={`rounded-xl p-4 flex flex-col items-center justify-center transition-all border ${
                     cardRatio === ratio
                       ? 'bg-[#1a1a1a] border-white/20'
-                      : 'bg-[#0e0e0e] border-white/[0.08] hover:bg-[#1a1a1a]'
+                      : 'bg-[#080808] border-white/[0.08] hover:bg-[#1a1a1a]'
                   }`}
                 >
                   <div
@@ -383,7 +383,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
             <select
               value={cardRatio}
               onChange={e => setCardRatio(e.target.value)}
-              className="mt-3 w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none font-label appearance-none"
+              className="mt-3 w-full bg-[#080808] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none font-label appearance-none"
             >
               {CARD_RATIOS.map(({ label, ratio }) => (
                 <option key={ratio} value={ratio}>{label}</option>
@@ -397,7 +397,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
             <select
               value={selectedLens}
               onChange={e => setSelectedLens(e.target.value)}
-              className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none font-label appearance-none"
+              className="w-full bg-[#080808] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none font-label appearance-none"
             >
               {LENS_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
@@ -412,7 +412,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
               value={promptText}
               onChange={e => setPromptText(e.target.value)}
               placeholder="描述场景的视觉细节..."
-              className="w-full bg-[#0e0e0e] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none h-32 resize-none leading-relaxed font-label placeholder-white/20"
+              className="w-full bg-[#080808] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-[#e0e0e0] focus:ring-1 focus:ring-white/40 outline-none h-32 resize-none leading-relaxed font-label placeholder-white/20"
             />
           </div>
 

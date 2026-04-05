@@ -111,7 +111,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
   };
 
   return (
-    <div className="w-full h-full bg-[#0e0e0e] flex flex-col relative overflow-hidden">
+    <div className="w-full h-full bg-black flex flex-col relative overflow-hidden">
       <main className="flex-1 px-6 md:px-16 lg:px-24 py-12 overflow-y-auto pb-32">
 
         {/* Header */}
@@ -124,7 +124,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
             <button
               onClick={() => !uploading && fileInputRef.current?.click()}
               disabled={uploading}
-              className="bg-[#111] text-[#e0e0e0] border border-white/[0.06] px-6 py-3 rounded-full flex items-center gap-2 hover:bg-[#1a1a1a] transition-all text-sm disabled:opacity-50"
+              className="bg-[#0d0d0d] text-[#e0e0e0] border border-white/[0.08] px-6 py-3 rounded-full flex items-center gap-2 hover:bg-[#151515] transition-all text-sm disabled:opacity-50"
               style={{ fontFamily: 'Inter' }}
             >
               <span className="material-symbols-outlined text-[18px]">upload</span>
@@ -150,8 +150,8 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
               onClick={() => setActiveFilter(key)}
               className={`px-6 py-2 rounded-full text-xs transition-all ${
                 activeFilter === key
-                  ? 'bg-[#8ab4f8]/10 border border-[#8ab4f8]/20 text-[#8ab4f8] font-bold tracking-wide'
-                  : 'bg-[#0f0f0f] border border-white/[0.06] text-white/40 hover:border-white/[0.10]'
+                  ? 'bg-[#1a1a1a] border border-white/20 text-white font-bold tracking-wide'
+                  : 'bg-[#0a0a0a] border border-white/[0.06] text-white/40 hover:border-white/[0.10] hover:text-white/60'
               }`}
               style={{ fontFamily: 'Inter' }}
             >
@@ -179,7 +179,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
               return (
                 <div
                   key={asset.id}
-                  className="group relative bg-[#111] rounded-2xl overflow-hidden border border-white/[0.06] hover:border-[#8ab4f8]/30 transition-all duration-500 flex flex-col shadow-lg shadow-black/20"
+                  className="group relative bg-[#0d0d0d] rounded-2xl overflow-hidden border border-white/[0.05] hover:border-white/20 transition-all duration-500 flex flex-col shadow-lg shadow-black/40"
                 >
                   {/* Thumbnail */}
                   <div className="aspect-video relative bg-black overflow-hidden">
@@ -191,7 +191,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#0f0f0f]">
+                      <div className="w-full h-full flex items-center justify-center bg-[#080808]">
                         <span className="material-symbols-outlined text-5xl text-white/20">videocam</span>
                       </div>
                     )}
@@ -230,7 +230,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
                       />
                     ) : (
                       <h4
-                        className="text-[#e0e0e0] font-bold text-sm mb-1 group-hover:text-[#8ab4f8] transition-colors cursor-pointer truncate"
+                        className="text-[#e0e0e0] font-bold text-sm mb-1 group-hover:text-white transition-colors cursor-pointer truncate"
                         style={{ fontFamily: 'Manrope' }}
                         title={`${asset.name} (点击重命名)`}
                         onClick={() => { setEditingId(asset.id); setEditingName(asset.name); }}
@@ -243,10 +243,10 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
                         修改于 {relativeTime(asset.createdAt)}
                       </span>
                       <div className="flex gap-3">
-                        <span className="material-symbols-outlined text-white/40 text-[18px] hover:text-[#8ab4f8] cursor-pointer transition-colors">
+                        <span className="material-symbols-outlined text-white/40 text-[18px] hover:text-white cursor-pointer transition-colors">
                           {asset.type === 'video' ? 'slow_motion_video' : 'download'}
                         </span>
-                        <span className="material-symbols-outlined text-white/40 text-[18px] hover:text-[#8ab4f8] cursor-pointer transition-colors">
+                        <span className="material-symbols-outlined text-white/40 text-[18px] hover:text-white cursor-pointer transition-colors">
                           more_horiz
                         </span>
                       </div>
@@ -262,7 +262,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
       {/* Category selection overlay for upload */}
       {pendingFile && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 shadow-2xl min-w-[200px]">
+          <div className="bg-[#0d0d0d] border border-white/10 rounded-2xl p-6 shadow-2xl min-w-[200px]">
             <p className="text-white/40 text-xs mb-1 text-center" style={{ fontFamily: 'Inter' }}>选择分类</p>
             <p className="text-[#767575] text-[10px] mb-4 text-center truncate max-w-[180px]">{pendingFile.name}</p>
             <div className="flex flex-col gap-2">
