@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Instagram, Facebook, Twitter } from 'lucide-react';
 import loginBg from '../assets/login-bg.jpg';
 
 interface Props {
@@ -9,101 +8,125 @@ interface Props {
 export default function LoginView({ onLogin }: Props) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      setError('请输入用户名和密码');
+      setError('请输入账号和密码');
       return;
     }
-    // Simple gate — any non-empty credentials pass
     onLogin(username.trim());
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a]">
-      <img
-        src={loginBg}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover opacity-60"
-        style={{ animation: 'loginBgZoom 20s ease-in-out infinite alternate' }}
-      />
-      <div className="absolute inset-0 bg-black/40" />
+    <div className="flex min-h-screen w-full overflow-hidden bg-black">
 
-      <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-8 px-6 lg:flex-row lg:items-stretch lg:gap-12">
+      {/* 左侧 — 全幅大图 */}
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+        <img
+          src={loginBg}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ animation: 'loginBgZoom 20s ease-in-out infinite alternate' }}
+        />
+      </div>
 
-        {/* 左侧 - 欢迎 */}
-        <div className="flex flex-1 flex-col justify-center py-12">
-          <div className="mb-10">
-            <svg width="40" height="40" viewBox="0 0 40 40" className="text-white">
-              <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" strokeWidth="2" />
-              <path d="M12 20 C12 14, 20 10, 26 16 C30 20, 24 28, 18 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </div>
+      {/* 右侧 — 表单区 */}
+      <div className="relative flex w-full lg:w-1/2 items-center justify-center overflow-hidden">
+        {/* 背景：同一张图但模糊压暗 */}
+        <img
+          src={loginBg}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-30 blur-2xl scale-110"
+        />
+        <div className="absolute inset-0 bg-black/60" />
 
-          <h1 className="mb-4 text-6xl md:text-7xl tracking-wider text-white" style={{ fontFamily: '"Bebas Neue", sans-serif' }}>
-            欢迎 !
+        {/* 表单内容 */}
+        <div className="relative z-10 w-full max-w-sm px-8 py-12">
+          {/* 标题 */}
+          <h1
+            className="mb-2 text-4xl font-light tracking-wide text-white"
+            style={{ fontFamily: 'Manrope' }}
+          >
+            欢迎回来
           </h1>
-          <p className="mb-10 max-w-xs text-sm leading-relaxed text-white/60" style={{ fontFamily: 'Inter' }}>
-            加入我们，快速便捷地管理您的工作。
+          <p className="mb-10 text-sm text-white/50" style={{ fontFamily: 'Inter' }}>
+            请输入您的详细信息。
           </p>
 
-          <button className="w-fit rounded-full bg-white/20 px-8 py-3 text-sm font-medium text-white backdrop-blur-sm transition-all hover:bg-white/30" style={{ fontFamily: 'Inter' }}>
-            了解更多
-          </button>
-
-          <div className="mt-auto flex gap-6 pt-16">
-            <a href="#" className="text-white/40 transition-colors hover:text-white"><Instagram size={20} /></a>
-            <a href="#" className="text-white/40 transition-colors hover:text-white"><Facebook size={20} /></a>
-            <a href="#" className="text-white/40 transition-colors hover:text-white"><Twitter size={20} /></a>
-          </div>
-        </div>
-
-        {/* 右侧 - 登录表单 */}
-        <div className="w-full max-w-md rounded-2xl border border-white/10 p-10 backdrop-blur-xl" style={{ background: 'rgba(26,26,26,0.6)' }}>
-          <h2 className="mb-10 text-center text-3xl tracking-wide text-white" style={{ fontFamily: '"Bebas Neue", sans-serif' }}>
-            登录
-          </h2>
-
           <form onSubmit={handleSubmit} className="space-y-8">
+            {/* 用户名 */}
             <div>
-              <label className="mb-2 block text-xs text-white/50" style={{ fontFamily: 'Inter' }}>用户名</label>
+              <label className="mb-3 block text-sm text-white/80" style={{ fontFamily: 'Inter' }}>
+                用户名
+              </label>
               <input
                 type="text"
                 value={username}
                 onChange={e => { setUsername(e.target.value); setError(''); }}
-                className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none focus:ring-1 focus:ring-white/20"
-                placeholder="请输入用户名"
+                placeholder="请输入您的用户名"
+                className="w-full border-0 border-b border-white/25 bg-transparent pb-2 text-sm text-white placeholder:text-white/25 focus:border-white/60 focus:outline-none transition-colors"
                 style={{ fontFamily: 'Inter' }}
               />
             </div>
 
+            {/* 密码 */}
             <div>
-              <label className="mb-2 block text-xs text-white/50" style={{ fontFamily: 'Inter' }}>密码</label>
+              <label className="mb-3 block text-sm text-white/80" style={{ fontFamily: 'Inter' }}>
+                密码
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={e => { setPassword(e.target.value); setError(''); }}
-                className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none focus:ring-1 focus:ring-white/20"
-                placeholder="••••••••••••"
+                placeholder="••••••••"
+                className="w-full border-0 border-b border-white/25 bg-transparent pb-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none transition-colors"
                 style={{ fontFamily: 'Inter' }}
               />
             </div>
 
-            {error && (
-              <p className="text-center text-xs text-red-400" style={{ fontFamily: 'Inter' }}>{error}</p>
-            )}
-
-            <div className="pt-4 text-center">
+            {/* 记住我 + 忘记密码 */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={e => setRemember(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded-none border border-white/30 bg-transparent accent-white"
+                />
+                <span className="text-xs text-white/60" style={{ fontFamily: 'Inter' }}>记住我</span>
+              </label>
               <button
-                type="submit"
-                className="rounded-full border border-white/10 bg-white/10 px-10 py-3 text-sm font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                type="button"
+                className="text-xs text-white/60 hover:text-white transition-colors"
                 style={{ fontFamily: 'Inter' }}
               >
-                提交
+                忘记密码了？
               </button>
             </div>
+
+            {error && (
+              <p className="text-xs text-red-400" style={{ fontFamily: 'Inter' }}>{error}</p>
+            )}
+
+            {/* 登录按钮 */}
+            <button
+              type="submit"
+              className="w-full rounded-md bg-black py-3.5 text-sm font-semibold text-white hover:bg-black/80 active:scale-[0.98] transition-all border border-white/10"
+              style={{ fontFamily: 'Inter' }}
+            >
+              登录
+            </button>
+
+            {/* 注册提示 */}
+            <p className="text-center text-xs text-white/40" style={{ fontFamily: 'Inter' }}>
+              还没有账号？{' '}
+              <button type="button" className="font-semibold text-white/70 hover:text-white transition-colors">
+                在此注册
+              </button>
+            </p>
           </form>
         </div>
       </div>
