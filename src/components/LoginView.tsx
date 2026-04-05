@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import loginBg from '../assets/login-bg.jpg';
+import loginBgVideo from '../assets/login-bg.mp4';
 
 interface Props {
   onLogin: (username: string) => void;
@@ -23,23 +23,28 @@ export default function LoginView({ onLogin }: Props) {
   return (
     <div className="flex min-h-screen w-full overflow-hidden bg-black">
 
-      {/* 左侧 — 全幅大图 */}
+      {/* 左侧 — 全幅视频 */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
-        <img
-          src={loginBg}
-          alt=""
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
           className="absolute inset-0 h-full w-full object-cover"
-          style={{ animation: 'loginBgZoom 20s ease-in-out infinite alternate' }}
+          src={loginBgVideo}
         />
       </div>
 
       {/* 右侧 — 表单区 */}
       <div className="relative flex w-full lg:w-1/2 items-center justify-center overflow-hidden">
-        {/* 背景：同一张图但模糊压暗 */}
-        <img
-          src={loginBg}
-          alt=""
+        {/* 背景：同一段视频但模糊压暗 */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
           className="absolute inset-0 h-full w-full object-cover opacity-30 blur-2xl scale-110"
+          src={loginBgVideo}
         />
         <div className="absolute inset-0 bg-black/[0.08]" />
 
