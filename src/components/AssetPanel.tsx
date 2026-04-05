@@ -31,30 +31,22 @@ export default function AssetPanel({ assets, onUpload, onRemove, onRename }: Pro
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? new FileList()) as File[];
-    const pending: PendingFile[] = [];
-    let processed = 0;
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = ev => {
-        const src = ev.target?.result as string;
-        const type: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image';
-        pending.push({ src, name: file.name, type });
-        processed++;
-        if (processed === files.length) {
-          setPendingFiles(prev => [...prev, ...pending]);
-        }
-      };
-      reader.onerror = () => {
-        processed++;
-        if (processed === files.length) {
-          setPendingFiles(prev => [...prev, ...pending]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
     e.target.value = '';
+    const pending: PendingFile[] = [];
+    await Promise.all(files.map(async file => {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!resp.ok) return;
+        const data = await resp.json() as { url: string };
+        const type: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image';
+        pending.push({ src: data.url, name: file.name, type });
+      } catch { /* skip failed uploads */ }
+    }));
+    if (pending.length > 0) setPendingFiles(prev => [...prev, ...pending]);
   };
 
   const handleSelectCategory = (category: 'character' | 'scene' | 'other') => {

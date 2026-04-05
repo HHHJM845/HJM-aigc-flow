@@ -16,6 +16,17 @@ function msToDisplay(ms: number): string {
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
+function msToTimecode(ms: number): string {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const f = Math.floor((ms % 1000) / 33); // ~30fps
+  const pad = (n: number, l = 2) => String(n).padStart(l, '0');
+  return h > 0
+    ? `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`
+    : `${pad(m)}:${pad(s)}:${pad(f)}`;
+}
+
 function msToSRTTime(ms: number): string {
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
@@ -49,11 +60,11 @@ interface Props {
 
 // ── Timeline constants ────────────────────────────────────────────────────────
 
-const RULER_H = 28;
-const THUMB_TRACK_H = 90;
-const CLIP_BAR_H = 36;
-const SUB_TRACK_H = 48;
-const TIMELINE_H = RULER_H + THUMB_TRACK_H + CLIP_BAR_H + SUB_TRACK_H + 16; // ~218px
+const RULER_H = 24;
+const VIDEO_TRACK_H = 56;
+const SUB_TRACK_H = 36;
+const AUDIO_TRACK_H = 32;
+const TRACK_LABEL_W = 48;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -70,11 +81,9 @@ export default function SubtitleView({
   const [clipDurations, setClipDurations] = useState<number[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Local video order mirrors prop; updated during trim drag without persisting each pixel
   const [localVideoOrder, setLocalVideoOrder] = useState<VideoOrderItem[]>(videoOrder);
   useEffect(() => { setLocalVideoOrder(videoOrder); }, [videoOrder]);
 
-  // clipOffsets[i] = sum of durations 0..i-1 in ms
   const clipOffsets = useRef<number[]>([]);
   useEffect(() => {
     const offsets: number[] = [];
@@ -98,24 +107,23 @@ export default function SubtitleView({
 
   const [currentMs, setCurrentMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showControls, setShowControls] = useState(false);
 
   // ── Subtitle editing state ────────────────────────────────────────────────
   const [localSubs, setLocalSubs] = useState<SubtitleEntry[]>(subtitles);
   const [focusedSubId, setFocusedSubId] = useState<string | null>(null);
   const [isEditingOverlay, setIsEditingOverlay] = useState(false);
+  const [rightTab, setRightTab] = useState<'subtitles' | 'clips'>('subtitles');
+  const [sideTab, setSideTab] = useState<'media' | 'assets' | 'effects' | 'transitions' | 'text'>('media');
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Keep local in sync with prop when parent updates
-  useEffect(() => {
-    setLocalSubs(subtitles);
-  }, [subtitles]);
+  useEffect(() => { setLocalSubs(subtitles); }, [subtitles]);
 
   const save = useCallback((next: SubtitleEntry[]) => {
     setLocalSubs(next);
     onSaveSubtitles(next);
   }, [onSaveSubtitles]);
 
-  // ── Active subtitle at currentMs ──────────────────────────────────────────
   const activeSubtitle = localSubs.find(s => s.startMs <= currentMs && currentMs <= s.endMs) ?? null;
 
   // ── Video metadata & playback ─────────────────────────────────────────────
@@ -136,7 +144,6 @@ export default function SubtitleView({
     const item = localVideoOrder[currentClipIndex];
     const trimStartMs = item?.trimStart ?? 0;
     const trimEndSec = (item?.trimEnd ?? (clipDurations[currentClipIndex] ?? 0)) / 1000;
-    // Auto-advance when video passes trimEnd
     if (trimEndSec > 0 && vid.currentTime >= trimEndSec) {
       if (currentClipIndex < localVideoOrder.length - 1) {
         setCurrentClipIndex(i => i + 1);
@@ -158,7 +165,6 @@ export default function SubtitleView({
     }
   }, [currentClipIndex, localVideoOrder.length]);
 
-  // Reset video element when clip changes — seek to trimStart
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
@@ -174,7 +180,6 @@ export default function SubtitleView({
     else { vid.play().catch(() => {}); setIsPlaying(true); }
   };
 
-  // Seek to globalMs across clips
   const seekToMs = useCallback((ms: number) => {
     const offsets = clipOffsets.current;
     let targetClip = 0;
@@ -186,7 +191,7 @@ export default function SubtitleView({
     const actualTimeSec = (trimStart + localMs) / 1000;
     if (targetClip !== currentClipIndex) {
       setCurrentClipIndex(targetClip);
-      pendingSeek.current = localMs; // stored as local-ms; pending handler adds trimStart
+      pendingSeek.current = localMs;
     } else {
       const vid = videoRef.current;
       if (vid) vid.currentTime = actualTimeSec;
@@ -213,7 +218,6 @@ export default function SubtitleView({
     const next = [...localSubs, entry];
     save(next);
     setFocusedSubId(entry.id);
-    // Scroll list to new item
     setTimeout(() => {
       const el = listRef.current?.querySelector(`[data-sub-id="${entry.id}"]`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -242,7 +246,7 @@ export default function SubtitleView({
   useEffect(() => {
     if (!timelineRef.current) return;
     const ro = new ResizeObserver(entries => {
-      setTimelineWidth(entries[0].contentRect.width);
+      setTimelineWidth(entries[0].contentRect.width - TRACK_LABEL_W);
     });
     ro.observe(timelineRef.current);
     return () => ro.disconnect();
@@ -344,12 +348,7 @@ export default function SubtitleView({
       if (!dragState.current) return;
       const id = dragState.current.id;
       dragState.current = null;
-      // Persist final state
-      setLocalSubs(prev => {
-        onSaveSubtitles(prev);
-        return prev;
-      });
-      // suppress unused - needed for the closure
+      setLocalSubs(prev => { onSaveSubtitles(prev); return prev; });
       void id;
     };
     window.addEventListener('mousemove', onMove);
@@ -380,10 +379,7 @@ export default function SubtitleView({
     const onUp = () => {
       if (!clipTrimDrag.current) return;
       clipTrimDrag.current = null;
-      setLocalVideoOrder(prev => {
-        onUpdateVideoOrder(prev);
-        return prev;
-      });
+      setLocalVideoOrder(prev => { onUpdateVideoOrder(prev); return prev; });
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -422,9 +418,7 @@ export default function SubtitleView({
     const results: { clipIdx: number; time: number; dataUrl: string }[] = [];
     let done = 0;
 
-    const captureAt = (t: number) => {
-      vid.currentTime = t;
-    };
+    const captureAt = (t: number) => { vid.currentTime = t; };
 
     const onSeeked = () => {
       const canvas = document.createElement('canvas');
@@ -454,9 +448,7 @@ export default function SubtitleView({
   useEffect(() => {
     if (clipDurations.length === localVideoOrder.length && totalMs > 0) {
       localVideoOrder.forEach((item, i) => {
-        if (clipDurations[i] > 0) {
-          extractThumbsForClip(i, item.url, clipDurations[i]);
-        }
+        if (clipDurations[i] > 0) extractThumbsForClip(i, item.url, clipDurations[i]);
       });
     }
   }, [clipDurations, localVideoOrder, totalMs]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -469,38 +461,29 @@ export default function SubtitleView({
     if (localVideoOrder.length === 0) return;
     setAiLoading(true);
     try {
-      // Extract 2 frames per clip (25% and 75%)
       const frames: string[] = [];
       for (const item of localVideoOrder) {
         const framesForClip = await extractFrames(item.url, [0.25, 0.75]);
         frames.push(...framesForClip);
       }
-
       const storyboardText = storyboardRows
         .map(r => `[${r.index}] ${r.shotType || ''} ${r.description || ''}`.trim())
         .join('\n');
-
       const resp = await fetch('/api/subtitle-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ frames, storyboardText }),
       });
-
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'unknown' }));
         alert(`AI 生成失败：${err.error}`);
         return;
       }
-
       const data = await resp.json() as { subtitles: string[] };
       const newEntries: SubtitleEntry[] = data.subtitles.map(text => ({
-        id: genId(),
-        startMs: 0,
-        endMs: 3000,
-        text,
+        id: genId(), startMs: 0, endMs: 3000, text,
       }));
-      const next = [...localSubs, ...newEntries];
-      save(next);
+      save([...localSubs, ...newEntries]);
     } catch (err) {
       alert(`AI 生成出错：${String(err)}`);
     } finally {
@@ -515,11 +498,7 @@ export default function SubtitleView({
       const resp = await fetch('/api/export-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoOrder: localVideoOrder,
-          subtitles: localSubs,
-          totalMs,
-        }),
+        body: JSON.stringify({ videoOrder: localVideoOrder, subtitles: localSubs, totalMs }),
       });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'unknown' }));
@@ -544,280 +523,477 @@ export default function SubtitleView({
 
   const currentClip = localVideoOrder[currentClipIndex];
 
-  return (
-    <div className="w-full h-full flex flex-col bg-[#0a0a0a] text-white overflow-hidden">
+  const sidebarItems = [
+    { key: 'media', icon: 'video_library', label: '媒体' },
+    { key: 'assets', icon: 'photo_library', label: '资产' },
+    { key: 'effects', icon: 'auto_awesome', label: '特效' },
+    { key: 'transitions', icon: 'swap_horiz', label: '转场' },
+    { key: 'text', icon: 'title', label: '文字' },
+  ] as const;
 
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-white/8 shrink-0">
-        <span className="text-[15px] font-semibold">字幕编辑</span>
-        <span className="text-white/40 text-[13px]">{localVideoOrder.length} 个片段</span>
-        {totalMs > 0 && (
-          <span className="text-white/40 text-[13px]">总时长 {msToDisplay(totalMs)}</span>
-        )}
+  return (
+    <div className="w-full h-full flex flex-col bg-[#0d0d0d] text-white overflow-hidden select-none" style={{ fontFamily: 'Inter, sans-serif' }}>
+
+      {/* ── Top bar ───────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.06] bg-[#111] shrink-0">
+        {/* Project info */}
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[#9f9d9d] text-[16px]">movie</span>
+          <span className="text-[13px] font-semibold text-[#e7e5e4] truncate max-w-[180px]">{projectName}</span>
+          {localVideoOrder.length > 0 && (
+            <span className="text-[11px] text-white/30 tabular-nums">
+              {localVideoOrder.length} 段 · {msToDisplay(totalMs)}
+            </span>
+          )}
+        </div>
+
         <div className="flex-1" />
+
+        {/* Actions */}
         <button
           onClick={handleAIGenerate}
           disabled={aiLoading || localVideoOrder.length === 0}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-violet-600/80 hover:bg-violet-600 disabled:opacity-40 text-[13px] font-medium transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600/80 hover:bg-violet-600 disabled:opacity-40 text-[12px] font-medium transition-colors"
         >
-          {aiLoading ? '生成中…' : '✨ AI 生成字幕'}
+          <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+          {aiLoading ? '生成中…' : 'AI 字幕'}
         </button>
         <button
           onClick={() => exportSRT(localSubs, projectName)}
           disabled={localSubs.length === 0}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-white/8 hover:bg-white/12 disabled:opacity-40 text-[13px] font-medium border border-white/10 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/10 disabled:opacity-40 text-[12px] font-medium border border-white/8 transition-colors"
         >
-          导出 SRT
+          <span className="material-symbols-outlined text-[14px]">subtitles</span>
+          SRT
         </button>
         <button
           onClick={handleExportVideo}
           disabled={exporting || localVideoOrder.length === 0 || totalMs === 0}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-700 disabled:opacity-40 text-[13px] font-medium border border-white/10 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#fbf9f8] hover:bg-white text-black disabled:opacity-40 text-[12px] font-semibold transition-colors"
         >
-          {exporting ? '导出中…' : '导出视频'}
+          <span className="material-symbols-outlined text-[14px]">download</span>
+          {exporting ? '导出中…' : '导出'}
         </button>
       </div>
 
-      {/* Main area: video + list */}
+      {/* ── Middle row: sidebar + preview + right panel ───────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* Video player */}
-        <div className="flex-[1.5] flex flex-col bg-black relative min-w-0">
-          {currentClip ? (
-            <div className="relative flex-1 flex items-center justify-center">
-              <video
-                ref={videoRef}
-                key={currentClip.url}
-                src={currentClip.url}
-                className="max-w-full max-h-full"
-                style={{ aspectRatio: '16/9' }}
-                onLoadedMetadata={handleLoadedMetadata}
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={handleEnded}
-                playsInline
-              />
-              {/* Subtitle overlay */}
-              <div className="absolute bottom-[4%] left-1/2 -translate-x-1/2 w-[90%] text-center z-10">
-                {activeSubtitle && (
-                  isEditingOverlay ? (
-                    <textarea
-                      autoFocus
-                      className="bg-black/85 text-white px-5 py-2 rounded text-[17px] font-medium text-center w-full resize-none outline-none"
-                      value={activeSubtitle.text}
-                      onChange={e => updateSubtitleText(activeSubtitle.id, e.target.value)}
-                      onBlur={() => setIsEditingOverlay(false)}
-                      rows={2}
-                    />
-                  ) : (
-                    <span
-                      className="inline-block bg-black/85 text-white px-5 py-2 rounded text-[17px] font-medium cursor-text"
-                      onClick={() => setIsEditingOverlay(true)}
-                    >
-                      {activeSubtitle.text}
-                    </span>
-                  )
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-white/20 text-[13px]">
-              暂无视频片段
-            </div>
-          )}
-
-          {/* Playback controls */}
-          <div className="flex items-center gap-3 px-4 py-2 border-t border-white/8 shrink-0">
+        {/* Left sidebar */}
+        <div className="w-[64px] flex flex-col items-center py-3 gap-1 bg-[#0d0d0d] border-r border-white/[0.06] shrink-0">
+          {sidebarItems.map(item => (
             <button
-              onClick={togglePlay}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/15 text-[15px]"
+              key={item.key}
+              onClick={() => setSideTab(item.key)}
+              className={`w-12 flex flex-col items-center gap-1 py-2.5 rounded-xl transition-colors ${sideTab === item.key ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
             >
-              {isPlaying ? '⏸' : '▶'}
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              <span className="text-[9px] font-medium tracking-wide">{item.label}</span>
             </button>
-            <span className="text-[12px] text-white/50 tabular-nums">
-              {msToDisplay(currentMs)} / {msToDisplay(totalMs)}
-            </span>
-          </div>
+          ))}
         </div>
 
-        {/* Subtitle list */}
-        <div className="w-[270px] flex flex-col border-l border-white/8 shrink-0">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8 shrink-0">
-            <span className="text-[13px] font-medium">字幕列表</span>
-            <span className="text-white/40 text-[12px]">{localSubs.length} 条</span>
-            <button
-              onClick={() => addSubtitleAt(currentMs)}
-              className="ml-2 w-6 h-6 flex items-center justify-center rounded-md bg-white/8 hover:bg-white/15 text-[15px] leading-none"
-              title="在当前时间添加字幕"
-            >
-              ＋
-            </button>
+        {/* Center: video preview */}
+        <div
+          className="flex-1 flex flex-col bg-black relative min-w-0"
+          onMouseEnter={() => setShowControls(true)}
+          onMouseLeave={() => setShowControls(false)}
+        >
+          {/* Video area */}
+          <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+            {currentClip ? (
+              <>
+                <video
+                  ref={videoRef}
+                  key={currentClip.url}
+                  src={currentClip.url}
+                  className="max-w-full max-h-full"
+                  style={{ aspectRatio: '16/9' }}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onTimeUpdate={handleTimeUpdate}
+                  onEnded={handleEnded}
+                  onClick={togglePlay}
+                  playsInline
+                />
+
+                {/* Subtitle overlay */}
+                <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 w-[88%] text-center pointer-events-none z-10">
+                  {activeSubtitle && (
+                    isEditingOverlay ? (
+                      <textarea
+                        autoFocus
+                        className="pointer-events-auto bg-black/85 text-white px-5 py-2 rounded-lg text-[16px] font-medium text-center w-full resize-none outline-none"
+                        value={activeSubtitle.text}
+                        onChange={e => updateSubtitleText(activeSubtitle.id, e.target.value)}
+                        onBlur={() => setIsEditingOverlay(false)}
+                        rows={2}
+                      />
+                    ) : (
+                      <span
+                        className="pointer-events-auto inline-block bg-black/85 text-white px-5 py-2 rounded-lg text-[16px] font-medium cursor-text shadow-lg"
+                        onClick={() => setIsEditingOverlay(true)}
+                      >
+                        {activeSubtitle.text}
+                      </span>
+                    )
+                  )}
+                </div>
+
+                {/* Play button overlay (center) */}
+                {!isPlaying && (
+                  <button
+                    onClick={togglePlay}
+                    className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+                  >
+                    <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                      <span className="material-symbols-outlined text-white text-[32px] ml-1">play_arrow</span>
+                    </div>
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 text-white/20">
+                <span className="material-symbols-outlined text-[48px]">video_library</span>
+                <span className="text-[13px]">请先在视频管理中添加片段</span>
+              </div>
+            )}
           </div>
 
-          <div ref={listRef} className="flex-1 overflow-y-auto">
-            {localSubs.length === 0 ? (
-              <div className="text-center text-white/20 text-[12px] mt-8">
-                点击时间线或 ＋ 添加字幕
-              </div>
-            ) : (
-              [...localSubs]
-                .sort((a, b) => a.startMs - b.startMs)
-                .map(sub => (
-                  <SubtitleListItem
-                    key={sub.id}
-                    sub={sub}
-                    focused={focusedSubId === sub.id}
-                    onFocus={() => {
-                      setFocusedSubId(sub.id);
-                      seekToMs(sub.startMs);
-                    }}
-                    onChange={text => updateSubtitleText(sub.id, text)}
-                    onRemove={() => removeSubtitle(sub.id)}
-                  />
-                ))
+          {/* Transport bar */}
+          <div
+            className={`absolute bottom-0 left-0 right-0 flex items-center gap-3 px-5 py-3 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-200 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'}`}
+          >
+            <button
+              onClick={() => seekToMs(Math.max(0, currentMs - 5000))}
+              className="text-white/60 hover:text-white transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">skip_previous</span>
+            </button>
+            <button
+              onClick={togglePlay}
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">{isPlaying ? 'pause' : 'play_arrow'}</span>
+            </button>
+            <button
+              onClick={() => seekToMs(Math.min(totalMs, currentMs + 5000))}
+              className="text-white/60 hover:text-white transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">skip_next</span>
+            </button>
+            <span className="text-[12px] text-white/50 tabular-nums ml-1">
+              {msToTimecode(currentMs)}<span className="text-white/20 mx-1">/</span>{msToTimecode(totalMs)}
+            </span>
+            <div className="flex-1" />
+            {/* Clip info */}
+            {currentClip && (
+              <span className="text-[11px] text-white/30 truncate max-w-[140px]">
+                {currentClip.label || `片段 ${currentClipIndex + 1}`}
+              </span>
             )}
           </div>
         </div>
 
+        {/* Right panel */}
+        <div className="w-[280px] flex flex-col border-l border-white/[0.06] bg-[#0f0f0f] shrink-0">
+          {/* Panel tabs */}
+          <div className="flex border-b border-white/[0.06] shrink-0">
+            {(['subtitles', 'clips'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setRightTab(tab)}
+                className={`flex-1 py-2.5 text-[12px] font-medium transition-colors ${rightTab === tab ? 'text-white border-b-2 border-white/60' : 'text-white/30 hover:text-white/60'}`}
+              >
+                {tab === 'subtitles' ? '字幕' : '片段'}
+              </button>
+            ))}
+          </div>
+
+          {rightTab === 'subtitles' ? (
+            <>
+              {/* Add subtitle button */}
+              <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] shrink-0">
+                <span className="text-[11px] text-white/30">{localSubs.length} 条字幕</span>
+                <button
+                  onClick={() => addSubtitleAt(currentMs)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/10 text-[11px] text-white/70 hover:text-white transition-colors border border-white/[0.06]"
+                >
+                  <span className="material-symbols-outlined text-[13px]">add</span>
+                  添加
+                </button>
+              </div>
+              <div ref={listRef} className="flex-1 overflow-y-auto">
+                {localSubs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-2 text-white/20">
+                    <span className="material-symbols-outlined text-[32px]">subtitles</span>
+                    <span className="text-[12px]">双击时间轴添加字幕</span>
+                  </div>
+                ) : (
+                  [...localSubs]
+                    .sort((a, b) => a.startMs - b.startMs)
+                    .map(sub => (
+                      <SubtitleListItem
+                        key={sub.id}
+                        sub={sub}
+                        focused={focusedSubId === sub.id}
+                        onFocus={() => { setFocusedSubId(sub.id); seekToMs(sub.startMs); }}
+                        onChange={text => updateSubtitleText(sub.id, text)}
+                        onRemove={() => removeSubtitle(sub.id)}
+                      />
+                    ))
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+              {localVideoOrder.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-2 text-white/20">
+                  <span className="material-symbols-outlined text-[32px]">video_library</span>
+                  <span className="text-[12px]">暂无视频片段</span>
+                </div>
+              ) : (
+                localVideoOrder.map((item, i) => {
+                  const dur = clipDurations[i] ?? 0;
+                  const thumb = thumbs.find(t => t.clipIdx === i);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setCurrentClipIndex(i); }}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors text-left ${i === currentClipIndex ? 'bg-white/10 border-white/20' : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'}`}
+                    >
+                      <div className="w-14 h-9 rounded-lg bg-[#1a1a1a] overflow-hidden flex-shrink-0">
+                        {thumb ? (
+                          <img src={thumb.dataUrl} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="material-symbols-outlined text-white/20 text-[16px]">movie</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] text-white/80 truncate font-medium">{item.label || `片段 ${i + 1}`}</p>
+                        <p className="text-[10px] text-white/30 tabular-nums mt-0.5">{dur > 0 ? msToDisplay(dur) : '加载中…'}</p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
       </div>
 
-      {/* Timeline */}
-      <div
-        ref={timelineRef}
-        className="shrink-0 border-t border-white/8 bg-[#111] select-none"
-        style={{ height: TIMELINE_H }}
-      >
-        {totalMs > 0 ? (
-          <div
-            ref={scrollRef}
-            className="relative w-full h-full overflow-x-auto"
-            style={{ scrollbarWidth: 'none' } as React.CSSProperties}
-            onWheel={handleTimelineWheel}
-          >
-          <div className="relative h-full" style={{ width: contentWidth }}>
-            {/* Ruler */}
-            <div
-              className="absolute left-0 right-0 top-0 flex items-end cursor-pointer"
-              style={{ height: RULER_H, background: 'rgba(0,0,0,0.4)' }}
-              onClick={handleRulerClick}
-            >
-              <RulerTicks totalMs={totalMs} widthPx={contentWidth} />
-            </div>
+      {/* ── Timeline ─────────────────────────────────────────────────────────── */}
+      <div className="shrink-0 border-t border-white/[0.06] bg-[#0d0d0d]" style={{ height: 180 }}>
+        {/* Toolbar row */}
+        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.04]">
+          <button onClick={() => seekToMs(0)} className="text-white/30 hover:text-white/70 transition-colors">
+            <span className="material-symbols-outlined text-[16px]">first_page</span>
+          </button>
+          <button onClick={togglePlay} className="text-white/30 hover:text-white/70 transition-colors">
+            <span className="material-symbols-outlined text-[16px]">{isPlaying ? 'pause' : 'play_arrow'}</span>
+          </button>
+          <span className="text-[11px] text-white/30 tabular-nums w-[90px]">
+            {msToTimecode(currentMs)}
+          </span>
+          <div className="flex-1" />
+          {/* Zoom */}
+          <span className="material-symbols-outlined text-[14px] text-white/20">zoom_out</span>
+          <input
+            type="range"
+            min={0.25}
+            max={8}
+            step={0.05}
+            value={zoom}
+            onChange={e => setZoom(parseFloat(e.target.value))}
+            className="w-20 accent-white/40 cursor-pointer"
+          />
+          <span className="material-symbols-outlined text-[14px] text-white/20">zoom_in</span>
+          <span className="text-[10px] text-white/20 w-8 text-right">{zoom.toFixed(1)}x</span>
+        </div>
 
-            {/* Thumbnail track */}
-            <div
-              className="absolute left-0 right-0 overflow-hidden"
-              style={{ top: RULER_H, height: THUMB_TRACK_H, background: '#1a1a1a' }}
-            >
-              {thumbs.map((t, i) => {
-                const clipOffset = clipOffsets.current[t.clipIdx] ?? 0;
-                const left = pxFromMs(clipOffset + t.time * 1000);
-                return (
-                  <img
-                    key={i}
-                    src={t.dataUrl}
-                    className="absolute top-0 object-cover"
-                    style={{ left, width: 80, height: THUMB_TRACK_H }}
-                    alt=""
-                  />
-                );
-              })}
+        {/* Track area */}
+        <div
+          ref={timelineRef}
+          className="flex w-full overflow-hidden"
+          style={{ height: 180 - 33 }}
+          onWheel={handleTimelineWheel}
+        >
+          {/* Track labels column */}
+          <div className="flex flex-col shrink-0 border-r border-white/[0.06]" style={{ width: TRACK_LABEL_W }}>
+            {/* Ruler spacer */}
+            <div style={{ height: RULER_H }} className="border-b border-white/[0.04]" />
+            {/* V1 label */}
+            <div className="flex items-center justify-center border-b border-white/[0.04] text-[9px] text-white/25 font-bold tracking-wider" style={{ height: VIDEO_TRACK_H }}>
+              V1
             </div>
-
-            {/* Clip bar */}
-            <div
-              className="absolute left-0 right-0 overflow-hidden"
-              style={{ top: RULER_H + THUMB_TRACK_H, height: CLIP_BAR_H, background: '#0d0d0d' }}
-            >
-              {localVideoOrder.map((item, i) => {
-                const fullDuration = clipDurations[i] ?? 0;
-                if (fullDuration === 0) return null;
-                const trimStart = item.trimStart ?? 0;
-                const trimEnd = item.trimEnd ?? fullDuration;
-                const trimmedMs = Math.max(0, trimEnd - trimStart);
-                const left = pxFromMs(clipOffsets.current[i] ?? 0);
-                const width = pxFromMs(trimmedMs);
-                const bg = i % 2 === 0 ? '#1e3a5f' : '#1a3350';
-                return (
-                  <div
-                    key={item.id}
-                    className="absolute top-1 bottom-1 rounded flex items-center overflow-hidden"
-                    style={{ left, width, background: bg, borderRight: '1px solid rgba(255,255,255,0.06)' }}
-                  >
-                    {/* Left trim handle */}
-                    <div
-                      className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 z-10"
-                      onMouseDown={e => handleClipTrimMouseDown(e, item, 'left', i)}
-                    />
-                    {width > 30 && (
-                      <span className="text-[10px] text-white/70 px-2 truncate select-none pointer-events-none">
-                        {item.label || `片段 ${i + 1}`}
-                      </span>
-                    )}
-                    {/* Right trim handle */}
-                    <div
-                      className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 z-10"
-                      onMouseDown={e => handleClipTrimMouseDown(e, item, 'right', i)}
-                    />
-                  </div>
-                );
-              })}
+            {/* T1 label */}
+            <div className="flex items-center justify-center border-b border-white/[0.04] text-[9px] text-white/25 font-bold tracking-wider" style={{ height: SUB_TRACK_H }}>
+              T1
             </div>
-
-            {/* Subtitle track */}
-            <div
-              className="absolute left-0 right-0 cursor-crosshair"
-              style={{ top: RULER_H + THUMB_TRACK_H + CLIP_BAR_H, height: SUB_TRACK_H, background: '#161616' }}
-              onDoubleClick={handleTimelineSubtrackClick}
-            >
-              {localSubs.map(sub => {
-                const left = pxFromMs(sub.startMs);
-                const width = Math.max(4, pxFromMs(sub.endMs) - left);
-                const isFocused = focusedSubId === sub.id;
-                return (
-                  <div
-                    key={sub.id}
-                    className={`absolute top-1 bottom-1 rounded flex items-center overflow-hidden text-[10px] text-white/90 ${isFocused ? 'bg-violet-600/80 ring-1 ring-violet-400' : 'bg-sky-700/70'}`}
-                    style={{ left, width }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      setFocusedSubId(sub.id);
-                      seekToMs(sub.startMs);
-                    }}
-                    onMouseDown={e => handleSubBlockMouseDown(e, sub, 'move')}
-                    title={sub.text}
-                  >
-                    {/* Left resize handle */}
-                    <div
-                      className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize hover:bg-white/20"
-                      onMouseDown={e => handleSubBlockMouseDown(e, sub, 'left')}
-                    />
-                    <span className="px-2 truncate pointer-events-none">{sub.text}</span>
-                    {/* Right resize handle */}
-                    <div
-                      className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize hover:bg-white/20"
-                      onMouseDown={e => handleSubBlockMouseDown(e, sub, 'right')}
-                    />
-                  </div>
-                );
-              })}
+            {/* A1 label */}
+            <div className="flex items-center justify-center text-[9px] text-white/25 font-bold tracking-wider" style={{ height: AUDIO_TRACK_H }}>
+              A1
             </div>
-
-            {/* Playhead */}
-            <div
-              className="absolute top-0 bottom-0 w-[2px] bg-red-500/80 pointer-events-none"
-              style={{ left: pxFromMs(currentMs) }}
-            />
           </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-white/20 text-[12px]">
-            {localVideoOrder.length === 0 ? '请先在视频管理中添加片段' : '加载视频时长中…'}
-          </div>
-        )}
+
+          {/* Scrollable track content */}
+          {totalMs > 0 ? (
+            <div
+              ref={scrollRef}
+              className="relative flex-1 overflow-x-auto"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' } as React.CSSProperties}
+            >
+              <div className="relative h-full" style={{ width: contentWidth }}>
+
+                {/* Ruler */}
+                <div
+                  className="absolute left-0 right-0 top-0 cursor-pointer border-b border-white/[0.04]"
+                  style={{ height: RULER_H, background: 'rgba(0,0,0,0.3)' }}
+                  onClick={handleRulerClick}
+                >
+                  <RulerTicks totalMs={totalMs} widthPx={contentWidth} />
+                </div>
+
+                {/* V1 — Video track (thumbnails + clip bars) */}
+                <div
+                  className="absolute left-0 right-0 border-b border-white/[0.04] overflow-hidden"
+                  style={{ top: RULER_H, height: VIDEO_TRACK_H, background: '#111' }}
+                >
+                  {/* Thumbnail strip */}
+                  {thumbs.map((t, i) => {
+                    const clipOffset = clipOffsets.current[t.clipIdx] ?? 0;
+                    const left = pxFromMs(clipOffset + t.time * 1000);
+                    return (
+                      <img
+                        key={i}
+                        src={t.dataUrl}
+                        className="absolute top-0 object-cover opacity-60"
+                        style={{ left, width: 80, height: VIDEO_TRACK_H }}
+                        alt=""
+                      />
+                    );
+                  })}
+                  {/* Clip bars overlay */}
+                  {localVideoOrder.map((item, i) => {
+                    const fullDuration = clipDurations[i] ?? 0;
+                    if (fullDuration === 0) return null;
+                    const trimStart = item.trimStart ?? 0;
+                    const trimEnd = item.trimEnd ?? fullDuration;
+                    const trimmedMs = Math.max(0, trimEnd - trimStart);
+                    const left = pxFromMs(clipOffsets.current[i] ?? 0);
+                    const width = pxFromMs(trimmedMs);
+                    return (
+                      <div
+                        key={item.id}
+                        className="absolute top-0 bottom-0 rounded overflow-hidden flex items-end pb-1"
+                        style={{ left, width, borderRight: '2px solid rgba(255,255,255,0.08)', borderLeft: i === currentClipIndex ? '2px solid rgba(255,255,255,0.5)' : '2px solid transparent' }}
+                      >
+                        {/* Left trim handle */}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 z-10"
+                          onMouseDown={e => handleClipTrimMouseDown(e, item, 'left', i)}
+                        />
+                        {width > 50 && (
+                          <span className="text-[9px] text-white/60 px-2 truncate select-none pointer-events-none bg-black/40 rounded mx-1">
+                            {item.label || `片段 ${i + 1}`}
+                          </span>
+                        )}
+                        {/* Right trim handle */}
+                        <div
+                          className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 z-10"
+                          onMouseDown={e => handleClipTrimMouseDown(e, item, 'right', i)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* T1 — Subtitle track */}
+                <div
+                  className="absolute left-0 right-0 border-b border-white/[0.04] cursor-crosshair"
+                  style={{ top: RULER_H + VIDEO_TRACK_H, height: SUB_TRACK_H, background: '#0d0d0d' }}
+                  onDoubleClick={handleTimelineSubtrackClick}
+                >
+                  {localSubs.map(sub => {
+                    const left = pxFromMs(sub.startMs);
+                    const width = Math.max(4, pxFromMs(sub.endMs) - left);
+                    const isFocused = focusedSubId === sub.id;
+                    return (
+                      <div
+                        key={sub.id}
+                        className={`absolute top-1 bottom-1 rounded flex items-center overflow-hidden text-[9px] text-white/90 ${isFocused ? 'bg-violet-600/70 ring-1 ring-violet-400/60' : 'bg-[#1a3a6b]/80'}`}
+                        style={{ left, width }}
+                        onClick={e => { e.stopPropagation(); setFocusedSubId(sub.id); seekToMs(sub.startMs); }}
+                        onMouseDown={e => handleSubBlockMouseDown(e, sub, 'move')}
+                        title={sub.text}
+                      >
+                        <div className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize hover:bg-white/20" onMouseDown={e => handleSubBlockMouseDown(e, sub, 'left')} />
+                        <span className="px-2 truncate pointer-events-none">{sub.text}</span>
+                        <div className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize hover:bg-white/20" onMouseDown={e => handleSubBlockMouseDown(e, sub, 'right')} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* A1 — Audio track (visual placeholder) */}
+                <div
+                  className="absolute left-0 right-0"
+                  style={{ top: RULER_H + VIDEO_TRACK_H + SUB_TRACK_H, height: AUDIO_TRACK_H, background: '#0a0a0a' }}
+                >
+                  {localVideoOrder.map((item, i) => {
+                    const fullDuration = clipDurations[i] ?? 0;
+                    if (fullDuration === 0) return null;
+                    const trimStart = item.trimStart ?? 0;
+                    const trimEnd = item.trimEnd ?? fullDuration;
+                    const left = pxFromMs(clipOffsets.current[i] ?? 0);
+                    const width = pxFromMs(Math.max(0, trimEnd - trimStart));
+                    return (
+                      <div
+                        key={item.id}
+                        className="absolute top-1 bottom-1 rounded overflow-hidden"
+                        style={{ left, width, background: 'rgba(34,197,94,0.15)', borderLeft: '2px solid rgba(34,197,94,0.3)' }}
+                      >
+                        {/* Waveform placeholder bars */}
+                        <div className="w-full h-full flex items-center gap-px px-1">
+                          {Array.from({ length: Math.max(1, Math.floor(width / 4)) }).map((_, k) => (
+                            <div
+                              key={k}
+                              className="flex-1 rounded-full bg-emerald-500/30"
+                              style={{ height: `${20 + Math.sin(k * 0.7) * 14}%` }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Playhead */}
+                <div
+                  className="absolute top-0 bottom-0 pointer-events-none z-20"
+                  style={{ left: pxFromMs(currentMs) }}
+                >
+                  {/* Triangle head */}
+                  <div className="absolute top-0 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#ef4444]" />
+                  <div className="absolute top-[7px] bottom-0 left-1/2 -translate-x-1/2 w-px bg-red-500/70" />
+                </div>
+
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-white/20 text-[12px]">
+                {localVideoOrder.length === 0 ? '请先在视频管理中添加片段' : '加载视频时长中…'}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Spacer so the floating BottomTabBar doesn't cover the timeline */}
-      <div className="h-[120px] shrink-0" />
+      {/* Bottom spacer for tab bar */}
+      <div className="h-[72px] shrink-0" />
 
     </div>
   );
@@ -841,22 +1017,22 @@ function SubtitleListItem({
   return (
     <div
       data-sub-id={sub.id}
-      className={`px-3 py-2.5 border-b border-white/6 cursor-pointer transition-colors ${focused ? 'bg-violet-900/25' : 'hover:bg-white/4'}`}
+      className={`px-4 py-3 border-b border-white/[0.04] cursor-pointer transition-colors ${focused ? 'bg-violet-900/20 border-l-2 border-l-violet-500' : 'hover:bg-white/[0.03]'}`}
       onClick={onFocus}
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[11px] text-white/40 tabular-nums">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] text-white/30 tabular-nums font-mono">
           {msToDisplay(sub.startMs)} → {msToDisplay(sub.endMs)}
         </span>
         <button
           onClick={e => { e.stopPropagation(); onRemove(); }}
-          className="text-white/20 hover:text-red-400 text-[13px] transition-colors"
+          className="text-white/15 hover:text-red-400 text-[14px] transition-colors w-5 h-5 flex items-center justify-center rounded"
         >
-          ×
+          <span className="material-symbols-outlined text-[14px]">close</span>
         </button>
       </div>
       <textarea
-        className="w-full bg-transparent text-[13px] text-white/90 resize-none outline-none focus:text-white"
+        className="w-full bg-transparent text-[12px] text-white/80 resize-none outline-none focus:text-white leading-relaxed"
         rows={2}
         value={sub.text}
         onChange={e => onChange(e.target.value)}
@@ -867,11 +1043,9 @@ function SubtitleListItem({
 }
 
 function RulerTicks({ totalMs, widthPx }: { totalMs: number; widthPx: number }) {
-  // Choose tick interval: 1s, 5s, 10s, 30s, 1m, 5m
   const INTERVALS = [1000, 5000, 10000, 30000, 60000, 300000];
-  const minTickPx = 40;
+  const minTickPx = 50;
   const interval = INTERVALS.find(iv => (iv / totalMs) * widthPx >= minTickPx) ?? INTERVALS[INTERVALS.length - 1];
-
   const ticks: number[] = [];
   for (let ms = 0; ms <= totalMs; ms += interval) ticks.push(ms);
 
@@ -880,9 +1054,9 @@ function RulerTicks({ totalMs, widthPx }: { totalMs: number; widthPx: number }) 
       {ticks.map(ms => {
         const left = (ms / totalMs) * widthPx;
         return (
-          <div key={ms} className="absolute bottom-0 flex flex-col items-center" style={{ left }}>
-            <span className="text-[9px] text-white/30 mb-0.5">{msToDisplay(ms)}</span>
-            <div className="w-px h-2 bg-white/20" />
+          <div key={ms} className="absolute top-0 bottom-0 flex flex-col justify-between" style={{ left }}>
+            <span className="text-[8px] text-white/20 mt-1 ml-1 tabular-nums">{msToDisplay(ms)}</span>
+            <div className="w-px h-3 bg-white/10" />
           </div>
         );
       })}

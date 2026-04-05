@@ -25,6 +25,7 @@ import ContextMenu from './components/ContextMenu';
 import CustomEdge from './components/CustomEdge';
 import BreakdownView from './components/BreakdownView';
 import HomePage from './components/HomePage';
+import LoginView from './components/LoginView';
 import AIPanel from './components/AIPanel';
 import SkillCommunity from './components/SkillCommunity';
 import LeftToolbar, { type ActiveTool } from './components/LeftToolbar';
@@ -1002,6 +1003,7 @@ function Flow({
 }
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem('loggedIn') === '1');
   const [view, setView] = useState<'home' | 'canvas' | 'skills'>('home');
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [canvasInitialNodes, setCanvasInitialNodes] = useState<Node[]>([]);
@@ -1140,6 +1142,10 @@ export default function App() {
     setCurrentProject(updated);
     wsSaveProject(updated);
   };
+
+  if (!isLoggedIn) {
+    return <LoginView onLogin={() => { sessionStorage.setItem('loggedIn', '1'); setIsLoggedIn(true); }} />;
+  }
 
   return (
     <ReactFlowProvider>
