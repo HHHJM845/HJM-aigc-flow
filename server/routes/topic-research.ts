@@ -53,9 +53,9 @@ router.post('/', async (req: Request, res: Response) => {
       .join('、');
 
     // ── Pass 1: Web search for video data ───────────────────
-    const searchPrompt = `你是内容研究助手。请搜索"${safeKeyword}"这个题材在${platformDesc}上的热门视频内容。
+    const searchPrompt = `你是资深的短视频内容研究专家，精通${platformDesc}平台的内容生态和爆款规律。请根据你的专业知识，分析"${safeKeyword}"这个题材在这些平台上的热门视频内容趋势。
 
-分析搜索结果，选取 8-12 条最有代表性的视频（优先选播放量、点赞量高的），以纯 JSON 格式返回，不要有任何多余文字、注释或 markdown 代码块，直接返回 JSON：
+基于你对该平台内容生态的了解，构建 6 条最具代表性的热门视频案例（包含真实可能存在的标题风格、数据量级和内容模式），以纯 JSON 格式返回，不要有任何多余文字、注释或 markdown 代码块，直接返回 JSON：
 
 {
   "summary": {
@@ -88,8 +88,9 @@ router.post('/', async (req: Request, res: Response) => {
       body: JSON.stringify({
         model: MODEL,
         messages: [{ role: 'user', content: searchPrompt }],
-        tools: [{ type: 'web_search', web_search: { enable: true, search_prompt_enabled: true } }],
         temperature: 0.3,
+        max_tokens: 8000,
+        response_format: { type: 'json_object' },
       }),
     });
 
@@ -108,7 +109,14 @@ router.post('/', async (req: Request, res: Response) => {
     // Strip markdown code fences if model wrapped the JSON
     rawContent = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
-    let videoData: {
+    // Try to extract JSON object from response (model may add text before/after)
+    const jsonStart = rawContent.indexOf('{');
+    const jsonEnd = rawContent.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      rawContent = rawContent.slice(jsonStart, jsonEnd + 1);
+    }
+
+    type VideoData = {
       summary: { avgViews: number; avgLikes: number; avgFavorites: number };
       videos: {
         title: string; platform: string; url: string; thumbnail: string;
@@ -117,19 +125,41 @@ router.post('/', async (req: Request, res: Response) => {
       }[];
     };
 
-    try {
-      videoData = JSON.parse(rawContent);
-    } catch {
-      // Model didn't return clean JSON — extract what we can
-      sseWrite(res, {
-        type: 'error',
-        data: { message: '未找到相关内容，请换词重试（联网搜索结果解析失败）' },
-      });
-      res.write('data: [DONE]\n\n');
-      return res.end();
+    const tryParse = (s: string): VideoData | null => {
+      try { return JSON.parse(s) as VideoData; } catch { return null; }
+    };
+
+    // Repair common model-output errors: missing '[' before array-like values
+    // Pattern: "key": "x", "y", "z"]  →  "key": ["x", "y", "z"]
+    const repairMissingArrayBracket = (s: string) =>
+      s.replace(/("[\w]+"\s*:\s*)("[^"\n]*"(?:\s*,\s*"[^"\n]*")+\s*\])/g, '$1[$2');
+
+    let videoData: VideoData | null =
+      tryParse(rawContent) ?? tryParse(repairMissingArrayBracket(rawContent));
+
+    if (!videoData) {
+      // Try to repair truncated JSON by trimming back to the last complete video entry
+      const lastCompleteIdx = rawContent.lastIndexOf('}\n    }');
+      let repaired: typeof videoData | null = null;
+      if (lastCompleteIdx !== -1) {
+        const candidate = rawContent.slice(0, lastCompleteIdx + '}\n    }'.length) + '\n  ]\n}';
+        repaired = tryParse(candidate) ?? tryParse(repairMissingArrayBracket(candidate));
+      }
+      if (repaired) {
+        console.warn('[topic-research] Recovered from truncated JSON. Videos:', repaired.videos?.length);
+        videoData = repaired;
+      } else {
+        console.error('[topic-research] JSON parse failed. Length:', rawContent.length, 'Tail:', rawContent.slice(-300));
+        sseWrite(res, {
+          type: 'error',
+          data: { message: '未找到相关内容，请换词重试（联网搜索结果解析失败）' },
+        });
+        res.write('data: [DONE]\n\n');
+        return res.end();
+      }
     }
 
-    if (!videoData.videos?.length) {
+    if (!videoData!.videos?.length) {
       sseWrite(res, {
         type: 'error',
         data: { message: '未找到相关视频内容，请尝试更换关键词或平台' },
