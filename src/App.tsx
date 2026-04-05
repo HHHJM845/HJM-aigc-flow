@@ -1065,6 +1065,7 @@ export default function App() {
     setCanvasInitialVideoOrder([]);
     setCanvasInitialSubtitles([]);
     setCanvasInitialTopicDraft('');
+    setCanvasInitialTopicKeyword('');
     setView('canvas');
   };
 
@@ -1086,6 +1087,7 @@ export default function App() {
     setCanvasInitialVideoOrder(project.videoOrder || []);
     setCanvasInitialSubtitles(project.subtitles || []);
     setCanvasInitialTopicDraft(project.topicDraft ?? '');
+    setCanvasInitialTopicKeyword('');
     setView('canvas');
   };
 
