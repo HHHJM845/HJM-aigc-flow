@@ -14,6 +14,7 @@ import exportVideoRouter from './routes/export-video.js';
 import matchAssetsRouter from './routes/match-assets.js';
 import optimizePromptRouter from './routes/optimize-prompt.js';
 import topicResearchRouter from './routes/topic-research.js';
+import uploadRouter from './routes/upload.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 
@@ -46,6 +47,15 @@ app.use('/api/export-video', exportVideoRouter);
 app.use('/api/match-assets', matchAssetsRouter);
 app.use('/api/optimize-prompt', optimizePromptRouter);
 app.use('/api/topic-research', topicResearchRouter);
+app.use('/api/upload', uploadRouter);
+
+// Serve uploaded files publicly
+import { fileURLToPath as fu } from 'url';
+const __dirname2 = path.dirname(fu(import.meta.url));
+const uploadsDir = path.resolve(__dirname2, '../uploads');
+import fs2 from 'fs';
+if (!fs2.existsSync(uploadsDir)) fs2.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir));
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.resolve(__dirname, '../dist');

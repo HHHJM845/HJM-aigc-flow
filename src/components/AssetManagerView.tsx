@@ -1,4 +1,4 @@
-// src/components/AssetManagerView.tsx
+// src/components/AssetManagerView.tsx — Phase 2: server upload
 import React, { useRef, useState } from 'react';
 import type { AssetItem } from '../lib/storage';
 import AssetGenerateDialog from './AssetGenerateDialog';
@@ -15,6 +15,7 @@ interface Props {
 interface PendingFile {
   src: string;
   name: string;
+  type: 'image' | 'video';
 }
 
 const FILTERS: { key: FilterKey; label: string }[] = [
@@ -52,6 +53,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
   const [editingName, setEditingName] = useState('');
   const [pendingFile, setPendingFile] = useState<PendingFile | null>(null);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const filteredAssets = assets.filter(a => {
     if (activeFilter === 'all')       return true;
@@ -59,22 +61,47 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
     return a.category === activeFilter;
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      setPendingFile({ src: ev.target?.result as string, name: file.name });
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    const isVideo = file.type.startsWith('video');
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: 'unknown' }));
+        alert(`上传失败：${err.error}`);
+        return;
+      }
+      const data = await resp.json() as { url: string; filename: string; type: string };
+      if (isVideo) {
+        // Videos don't need category selection — add directly
+        onAddAsset({
+          id: `asset_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          type: 'video',
+          src: data.url,
+          name: file.name,
+          createdAt: Date.now(),
+          category: 'other',
+        });
+      } else {
+        setPendingFile({ src: data.url, name: file.name, type: 'image' });
+      }
+    } catch (err) {
+      alert(`上传出错：${String(err)}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSelectCategory = (category: 'character' | 'scene' | 'other') => {
     if (!pendingFile) return;
     onAddAsset({
       id: `asset_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      type: 'image',
+      type: pendingFile.type,
       src: pendingFile.src,
       name: pendingFile.name,
       createdAt: Date.now(),
@@ -95,12 +122,13 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
           </div>
           <div className="flex gap-4">
             <button
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-[#191a1a] text-[#fbf9f8] border border-[#484848]/20 px-6 py-3 rounded-full flex items-center gap-2 hover:bg-[#2c2c2c] transition-all text-sm"
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              disabled={uploading}
+              className="bg-[#191a1a] text-[#fbf9f8] border border-[#484848]/20 px-6 py-3 rounded-full flex items-center gap-2 hover:bg-[#2c2c2c] transition-all text-sm disabled:opacity-50"
               style={{ fontFamily: 'Inter' }}
             >
               <span className="material-symbols-outlined text-[18px]">upload</span>
-              上传
+              {uploading ? '上传中…' : '上传'}
             </button>
             <button
               onClick={() => setShowGenerateDialog(true)}

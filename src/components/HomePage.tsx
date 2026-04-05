@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Sparkles, Clock, Folder, Trash2, MoreHorizontal, Pencil } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Trash2, Pencil, MoreHorizontal } from 'lucide-react';
 import { type Project } from '../lib/storage';
 
 function timeAgo(ts: number): string {
@@ -7,6 +7,7 @@ function timeAgo(ts: number): string {
   if (d < 60_000) return '刚刚';
   if (d < 3_600_000) return `${Math.floor(d / 60_000)} 分钟前`;
   if (d < 86_400_000) return `${Math.floor(d / 3_600_000)} 小时前`;
+  if (d < 86_400_000 * 2) return '昨日';
   return `${Math.floor(d / 86_400_000)} 天前`;
 }
 
@@ -35,15 +36,12 @@ function ProjectCard({
   const [nameInput, setNameInput] = useState(project.name);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startEditing = () => {
     setNameInput(project.name);
     setEditing(true);
-    setTimeout(() => {
-      inputRef.current?.select();
-    }, 0);
+    setTimeout(() => inputRef.current?.select(), 0);
   };
 
   const handleNameClick = () => {
@@ -61,48 +59,53 @@ function ProjectCard({
 
   const commitEdit = () => {
     const trimmed = nameInput.trim();
-    if (trimmed && trimmed !== project.name) {
-      onRename(trimmed);
-    }
+    if (trimmed && trimmed !== project.name) onRename(trimmed);
     setEditing(false);
   };
 
-  const cancelEdit = () => {
-    setNameInput(project.name);
-    setEditing(false);
-  };
+  const cancelEdit = () => { setNameInput(project.name); setEditing(false); };
 
   useEffect(() => {
     if (!menuOpen) return;
     const handle = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
   }, [menuOpen]);
 
   return (
-    <div className="flex flex-col rounded-2xl overflow-hidden border border-white/[0.07] hover:border-white/20 transition-all duration-300 group bg-[#181818] relative">
-      {/* Thumbnail */}
-      <button onClick={onOpen} className="block w-full aspect-[16/9] bg-[#111] overflow-hidden">
+    <div
+      className="group relative aspect-[4/5] bg-[#131313]/40 rounded-2xl overflow-hidden flex flex-col transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-white/5 border border-white/5"
+    >
+      {/* Thumbnail — top 62% */}
+      <button
+        onClick={onOpen}
+        className="relative h-[62%] w-full bg-[#1f2020] overflow-hidden flex-shrink-0"
+      >
         {project.thumbnail ? (
           <img
             src={project.thumbnail}
             alt={project.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Folder size={28} className="text-gray-700" />
+            <span className="material-symbols-outlined text-[#484848] text-4xl">folder_open</span>
           </div>
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#131313]/95 via-transparent to-transparent" />
+        <div className="absolute bottom-4 left-5 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[#c6c6c7] text-[16px]">folder_open</span>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-[#9f9d9d] font-bold" style={{ fontFamily: 'Inter' }}>
+            PROJECT
+          </span>
+        </div>
       </button>
 
-      {/* Info */}
-      <div className="px-3.5 py-3 flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
+      {/* Info — bottom */}
+      <div className="p-5 flex flex-col justify-between flex-grow">
+        <div>
           {editing ? (
             <input
               ref={inputRef}
@@ -113,49 +116,52 @@ function ProjectCard({
                 if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
                 if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
               }}
-              className="w-full bg-white/10 text-white text-xs font-medium rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-white/30"
+              className="w-full bg-white/10 text-[#fbf9f8] text-sm font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-white/30"
               onClick={e => e.stopPropagation()}
+              style={{ fontFamily: 'Manrope' }}
             />
           ) : (
-            <p
-              className="text-white text-xs font-medium truncate cursor-pointer select-none"
+            <h3
+              className="text-[#fbf9f8] font-bold truncate group-hover:text-[#c6c6c7] transition-colors text-base cursor-pointer select-none"
               onClick={handleNameClick}
+              style={{ fontFamily: 'Manrope' }}
             >
               {project.name}
-            </p>
+            </h3>
           )}
-          <p className="text-gray-600 text-[11px] mt-0.5 flex items-center gap-1">
-            <Clock size={9} />
-            编辑于 {timeAgo(project.updatedAt)}
+          <p className="text-[#acabaa]/60 text-xs mt-1.5" style={{ fontFamily: 'Inter' }}>
+            {timeAgo(project.updatedAt)}编辑
           </p>
         </div>
 
-        {/* Context menu */}
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
-            className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-300 transition-all rounded-md"
-          >
-            <MoreHorizontal size={14} />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 bottom-7 bg-[#242424] border border-white/10 rounded-xl py-1 shadow-xl z-10 min-w-[100px]">
-              <button
-                onClick={() => { setMenuOpen(false); startEditing(); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-gray-300 hover:bg-white/5 text-xs transition-colors"
-              >
-                <Pencil size={12} />
-                重命名
-              </button>
-              <button
-                onClick={() => { setMenuOpen(false); onDelete(); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors"
-              >
-                <Trash2 size={12} />
-                删除项目
-              </button>
-            </div>
-          )}
+        <div className="flex justify-between items-center mt-4">
+          <div className="w-7 h-7 rounded-full border-2 border-[#191a1a] bg-[#252626]" />
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <span className="material-symbols-outlined text-[#acabaa]/40 hover:text-[#fbf9f8] transition-colors text-[20px]">more_horiz</span>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 bottom-8 bg-[#242424] border border-white/10 rounded-xl py-1 shadow-xl z-20 min-w-[110px]">
+                <button
+                  onClick={() => { setMenuOpen(false); startEditing(); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors"
+                  style={{ fontFamily: 'Inter' }}
+                >
+                  <Pencil size={11} /> 重命名
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onDelete(); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors"
+                  style={{ fontFamily: 'Inter' }}
+                >
+                  <Trash2 size={11} /> 删除项目
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -164,149 +170,131 @@ function ProjectCard({
 
 export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onGoToSkills }: Props) {
   const [inputText, setInputText] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = () => {
-    const text = inputText.trim();
-    onNewProject(text || undefined);
+    onNewProject(inputText.trim() || undefined);
     setInputText('');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    onDeleteProject(id);
-  };
-
-  const quickTags = [
-    { label: '剧本拆解分镜', color: '#f59e0b' },
-    { label: '提示词全能优化', color: '#6366f1' },
-    { label: '批量统一分镜光影', color: '#10b981' },
-    { label: '技能社区', color: '#8b5cf6' },
+  const quickActions = [
+    { label: '剧本拆解分镜', onClick: () => onNewProject() },
+    { label: '提示词全能优化', onClick: () => onNewProject() },
+    { label: '批量统一分镜光影', onClick: () => onNewProject() },
+    { label: '技能社区', onClick: () => onGoToSkills?.() },
   ];
 
   return (
-    <div className="w-screen h-screen bg-[#0d0d0d] flex flex-col overflow-hidden">
-      {/* Navbar */}
-      <header className="flex items-center justify-between px-6 md:px-10 xl:px-14 pt-5 pb-3 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 via-pink-500 to-orange-400 flex items-center justify-center flex-shrink-0">
-            <Sparkles size={13} className="text-white" />
-          </div>
-          <span className="text-white font-semibold text-[16px] tracking-tight">AIGC Flow</span>
-        </div>
-        <div className="w-8 h-8 rounded-full bg-emerald-600/90 flex items-center justify-center text-white text-sm font-semibold">
-          M
-        </div>
-      </header>
+    <div className="relative min-h-screen flex flex-col justify-between items-center py-12 bg-black overflow-x-hidden">
 
-      {/* Scrollable content */}
-      <main className="flex-1 overflow-y-auto flex flex-col items-center px-6 md:px-10 xl:px-14">
-        {/* Flexible spacer — pushes hero into upper-center, matches reference proportions */}
-        <div className="w-full shrink-0 h-[12vh] min-h-[84px] max-h-[142px]" />
+      {/* Ambient blobs */}
+      <div className="fixed top-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full bg-[#c6c6c7]/5 blur-[180px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-15%] right-[-10%] w-[60%] h-[60%] rounded-full bg-white/5 blur-[150px] pointer-events-none z-0" />
 
-        <div className="w-full max-w-[1280px] flex flex-col items-center">
-          {/* Hero */}
-          <div className="w-full max-w-[800px] flex flex-col items-center gap-7 mb-14 xl:mb-16">
-            <h1 className="text-[42px] font-bold text-white tracking-tight leading-tight">灵感从这里开始！</h1>
+      {/* Hero */}
+      <section className="flex-grow w-full max-w-screen-2xl px-12 flex flex-col items-center justify-center text-center relative z-10">
+        <h1
+          className="text-6xl md:text-7xl font-extrabold tracking-tighter text-[#fbf9f8] mb-16"
+          style={{ fontFamily: 'Manrope' }}
+        >
+          灵感从这里开始！
+        </h1>
 
-            {/* Input area */}
-            <div className="w-full bg-[#1a1a1a] border border-white/[0.08] rounded-[28px] px-5 py-4.5 xl:px-6 xl:py-5 focus-within:border-white/20 transition-colors shadow-[0_0_0_1px_rgba(255,255,255,0.015)]">
-              <textarea
-                ref={textareaRef}
-                value={inputText}
-                onChange={e => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="在这里输入你的任何创意和想法，按 Enter 开始新项目..."
-                className="w-full bg-transparent text-gray-200 text-[15px] leading-relaxed resize-none focus:outline-none min-h-[96px] xl:min-h-[108px] placeholder:text-gray-600"
-              />
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-gray-700 text-[11px]">Enter 新建项目 · Shift+Enter 换行</span>
-                <button
-                  onClick={handleSubmit}
-                  className="w-8 h-8 bg-white/8 hover:bg-white/15 rounded-full flex items-center justify-center transition-colors"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-gray-400 -rotate-90">
-                    <path d="M12 5v14M5 12l7-7 7 7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Quick tags */}
-            <div className="flex items-center gap-2.5 flex-wrap justify-center">
-              {quickTags.map(tag => (
-                <button
-                  key={tag.label}
-                  onClick={() => tag.label === '技能社区' ? onGoToSkills?.() : onNewProject()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] rounded-full text-xs text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: tag.color }} />
-                  {tag.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent projects */}
-          <div className="w-full max-w-[1180px]">
-            <div className="flex items-center justify-between mb-3.5">
-              <h2 className="text-white font-medium text-[14px]">最近项目</h2>
-              {projects.length > 4 && (
-                <button className="text-gray-500 hover:text-gray-300 text-xs flex items-center gap-0.5 transition-colors">
-                  查看全部 <span className="text-base leading-none">›</span>
-                </button>
-              )}
-            </div>
-
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
-              {/* New project card — same height as project cards */}
-              <button
-                onClick={() => onNewProject()}
-                className="flex flex-col rounded-2xl overflow-hidden border border-dashed border-white/[0.08] hover:border-white/20 bg-[#181818] transition-all duration-300 group"
-              >
-                <div className="aspect-[16/9] flex flex-col items-center justify-center gap-2.5">
-                  <div className="w-10 h-10 rounded-full bg-white/[0.04] group-hover:bg-white/[0.08] flex items-center justify-center transition-colors">
-                    <Plus size={18} className="text-gray-500 group-hover:text-gray-300 transition-colors" />
-                  </div>
-                  <span className="text-gray-600 group-hover:text-gray-400 text-xs transition-colors">新建项目</span>
-                </div>
-                <div className="px-3.5 py-3 border-t border-white/[0.04]">
-                  <p className="text-gray-700 text-xs">空白项目</p>
-                </div>
-              </button>
-
-              {/* Existing projects */}
-              {projects.map(project => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onOpen={() => onOpenProject(project)}
-                  onDelete={() => handleDelete(project.id)}
-                  onRename={(name) => onRenameProject?.(project.id, name)}
-                />
-              ))}
-            </div>
-
-            {projects.length === 0 && (
-              <p className="text-gray-700 text-xs text-center mt-6">还没有项目，点击新建开始创作</p>
-            )}
+        {/* Input */}
+        <div className="relative w-full max-w-4xl mb-12 group">
+          <div className="absolute -inset-2 bg-gradient-to-r from-[#c6c6c7]/20 via-white/5 to-[#c6c6c7]/20 rounded-full blur-3xl opacity-20 group-focus-within:opacity-50 transition-opacity duration-1000" />
+          <div className="relative flex items-center bg-[#131313]/40 backdrop-blur-xl rounded-full px-10 py-6 outline outline-1 outline-[#484848]/15 focus-within:outline-[#c6c6c7]/40 transition-all duration-500">
+            <span className="material-symbols-outlined text-[#c6c6c7]/70 mr-5 text-2xl">auto_awesome</span>
+            <input
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+              placeholder="输入你想创作的场景或关键词..."
+              className="bg-transparent border-none focus:ring-0 text-2xl w-full text-[#e7e5e4] placeholder:text-[#acabaa]/40 font-medium focus:outline-none"
+              style={{ fontFamily: 'Manrope' }}
+            />
+            <button
+              onClick={handleSubmit}
+              className="bg-[#fbf9f8] text-black font-bold px-10 py-3.5 rounded-full text-base hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/5 flex-shrink-0 flex items-center gap-2"
+              style={{ fontFamily: 'Inter' }}
+            >
+              立即生成
+            </button>
           </div>
         </div>
 
-        {/* Bottom flexible spacer */}
-        <div className="w-full shrink-0 h-[16vh] min-h-[100px] max-h-[164px]" />
-      </main>
+        {/* Action pills */}
+        <div className="flex flex-wrap justify-center gap-5">
+          {quickActions.map(({ label, onClick }) => (
+            <button
+              key={label}
+              onClick={onClick}
+              className="px-8 py-3 rounded-full bg-[#1f2020]/30 text-sm font-semibold text-[#9f9d9d] hover:bg-[#2c2c2c] hover:text-[#fbf9f8] transition-all border border-[#484848]/5 backdrop-blur-md"
+              style={{ fontFamily: 'Manrope' }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Recent Projects */}
+      <section className="w-full max-w-[1600px] px-12 mt-12 mb-6 relative z-10">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-[#fbf9f8] tracking-tight" style={{ fontFamily: 'Manrope' }}>最近项目</h2>
+            <p className="text-[#acabaa]/70 text-sm mt-1" style={{ fontFamily: 'Inter' }}>继续你的创意旅程</p>
+          </div>
+          {projects.length > 4 && (
+            <button
+              className="group text-[#9f9d9d]/80 text-sm font-semibold flex items-center gap-1.5 hover:text-[#c6c6c7] transition-colors"
+              style={{ fontFamily: 'Inter' }}
+            >
+              查看全部
+              <span className="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          {/* New project card */}
+          <button
+            onClick={() => onNewProject()}
+            className="group relative aspect-[4/5] bg-black/20 rounded-2xl border-2 border-dashed border-[#484848]/10 hover:border-[#c6c6c7]/20 hover:bg-[#1f2020]/15 flex flex-col items-center justify-center transition-all duration-700"
+          >
+            <div className="w-16 h-16 rounded-full bg-[#1f2020]/50 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-[#c6c6c7] group-hover:text-black transition-all duration-700">
+              <span className="material-symbols-outlined text-3xl">add</span>
+            </div>
+            <span className="text-xl font-bold text-[#fbf9f8]/70 group-hover:text-[#fbf9f8] transition-colors" style={{ fontFamily: 'Manrope' }}>
+              新建项目
+            </span>
+            <span className="text-[#acabaa]/50 text-xs mt-2 font-medium" style={{ fontFamily: 'Inter' }}>
+              从空白画板开始
+            </span>
+          </button>
+
+          {/* Existing project cards */}
+          {projects.map(project => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onOpen={() => onOpenProject(project)}
+              onDelete={() => onDeleteProject(project.id)}
+              onRename={name => onRenameProject?.(project.id, name)}
+            />
+          ))}
+        </div>
+
+        {projects.length === 0 && (
+          <p className="text-[#acabaa]/40 text-xs text-center mt-8" style={{ fontFamily: 'Inter' }}>
+            还没有项目，点击新建开始创作
+          </p>
+        )}
+      </section>
 
       {/* Footer */}
-      <footer className="pb-5 pt-2 text-center flex-shrink-0">
-        <p className="text-gray-700 text-[11px]">知识产权及用户合规声明</p>
-        <p className="text-gray-700 text-[11px] mt-0.5">特别鸣谢</p>
+      <footer className="relative z-10 text-center mt-4">
+        <p className="text-[#acabaa]/30 text-[11px]" style={{ fontFamily: 'Inter' }}>知识产权及用户合规声明</p>
+        <p className="text-[#acabaa]/30 text-[11px] mt-0.5" style={{ fontFamily: 'Inter' }}>特别鸣谢</p>
       </footer>
     </div>
   );

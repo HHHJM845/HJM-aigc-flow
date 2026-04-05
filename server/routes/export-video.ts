@@ -4,12 +4,16 @@ import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { promises as fs, createWriteStream } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import os from 'os';
 import https from 'https';
 import http from 'http';
 import { randomUUID } from 'crypto';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
 interface VideoOrderItem {
   id: string;
@@ -40,7 +44,15 @@ function generateSRT(subtitles: SubtitleEntry[]): string {
   ).join('\n\n');
 }
 
-function downloadFile(url: string, dest: string): Promise<void> {
+async function resolveClipPath(url: string, dest: string): Promise<void> {
+  // Local /uploads/ path — copy directly from disk instead of HTTP
+  if (url.startsWith('/uploads/')) {
+    const filename = url.slice('/uploads/'.length);
+    const localPath = path.join(UPLOADS_DIR, filename);
+    await fs.copyFile(localPath, dest);
+    return;
+  }
+  // Remote URL — download via HTTP/HTTPS
   return new Promise((resolve, reject) => {
     const file = createWriteStream(dest);
     const client = url.startsWith('https') ? https : http;
@@ -140,8 +152,8 @@ router.post('/', async (req: Request, res: Response) => {
       const rawPath = path.join(tmpDir, `clip-${i}-raw.mp4`);
       const normalizedPath = path.join(tmpDir, `clip-${i}-norm.mp4`);
 
-      console.log(`[export] downloading clip ${i + 1}/${videoOrder.length}: ${item.url}`);
-      await downloadFile(item.url, rawPath);
+      console.log(`[export] resolving clip ${i + 1}/${videoOrder.length}: ${item.url}`);
+      await resolveClipPath(item.url, rawPath);
 
       const trimStart = item.trimStart ?? 0;
       const trimEnd = item.trimEnd;

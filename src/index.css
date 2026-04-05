@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --font-display: "Bebas Neue", sans-serif;
+  --color-glass: hsl(0 0% 10% / 0.6);
+  --color-glass-border: hsl(0 0% 22% / 0.3);
+}
+
+@keyframes loginBgZoom {
+  from { transform: scale(1) translate(0, 0); }
+  to   { transform: scale(1.12) translate(-2%, -1%); }
+}
+
 .target-glow-mask {
   padding: 2px;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
