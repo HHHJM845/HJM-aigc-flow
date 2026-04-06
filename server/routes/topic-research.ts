@@ -129,10 +129,16 @@ router.post('/', async (req: Request, res: Response) => {
       try { return JSON.parse(s) as VideoData; } catch { return null; }
     };
 
-    // Repair common model-output errors: missing '[' before array-like values
-    // Pattern: "key": "x", "y", "z"]  →  "key": ["x", "y", "z"]
+    // Repair common model-output errors:
+    // 1. Missing '[' only:  "key": "x", "y", "z"]  →  "key": ["x", "y", "z"]
+    // 2. Missing both brackets: "key": "x", "y", "z"\n  →  "key": ["x", "y", "z"]
     const repairMissingArrayBracket = (s: string) =>
-      s.replace(/("[\w]+"\s*:\s*)("[^"\n]*"(?:\s*,\s*"[^"\n]*")+\s*\])/g, '$1[$2');
+      s
+        // Fix missing '[' when ']' exists
+        .replace(/("[\w]+"\s*:\s*)("(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")+\s*\])/g, '$1[$2')
+        // Fix missing both '[' and ']': value is multiple quoted strings before newline/comma/}
+        .replace(/("[\w]+"\s*:\s*)("(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")+)(\s*[\n,}])/g,
+          (_, key, vals, trailing) => `${key}[${vals}]${trailing}`);
 
     let videoData: VideoData | null =
       tryParse(rawContent) ?? tryParse(repairMissingArrayBracket(rawContent));
