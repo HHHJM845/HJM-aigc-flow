@@ -39,22 +39,24 @@ export default function LoginView({ onLogin }: Props) {
           playsInline
           onEnded={handleVideoEnd}
           className="absolute inset-0 h-full w-full object-cover"
+          style={{ willChange: 'transform', transform: 'translateZ(0)' }}
           src={VIDEOS[videoIndex]}
         />
       </div>
 
       {/* 右侧 — 表单区 */}
       <div className="relative flex w-full lg:w-1/2 items-center justify-center overflow-hidden">
-        {/* 背景：同一段视频但模糊压暗 */}
+        {/* 背景：同一段视频模糊压暗，强制 GPU 独立图层渲染 */}
         <video
           key={`blur-${videoIndex}`}
           autoPlay
           muted
           playsInline
-          className="absolute inset-0 h-full w-full object-cover opacity-60 blur-2xl scale-110"
+          className="absolute inset-0 h-full w-full object-cover opacity-50 blur-xl"
+          style={{ willChange: 'transform', transform: 'translateZ(0)' }}
           src={VIDEOS[videoIndex]}
         />
-        <div className="absolute inset-0 bg-black/[0.03]" />
+        <div className="absolute inset-0 bg-black/20" />
 
         {/* 表单内容 */}
         <div className="relative z-10 w-full max-w-sm px-8 py-12">
