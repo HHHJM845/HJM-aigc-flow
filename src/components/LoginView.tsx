@@ -1,8 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import loginBgVideo1 from '../assets/login-bg.mp4';
-import loginBgVideo2 from '../assets/login-bg2.mp4';
-
-const VIDEOS = [loginBgVideo1, loginBgVideo2];
+import React, { useState } from 'react';
+import loginBgVideo from '../assets/login-bg.mp4';
 
 interface Props {
   onLogin: (username: string) => void;
@@ -13,10 +10,6 @@ export default function LoginView({ onLogin }: Props) {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
-  const [videoIndex, setVideoIndex] = useState(0);
-  const handleVideoEnd = useCallback(() => {
-    setVideoIndex(i => (i + 1) % VIDEOS.length);
-  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,31 +23,30 @@ export default function LoginView({ onLogin }: Props) {
   return (
     <div className="flex min-h-screen w-full overflow-hidden bg-black">
 
-      {/* 左侧 — 全幅视频（轮播） */}
+      {/* 左侧 — 全幅视频 */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
         <video
-          key={videoIndex}
           autoPlay
+          loop
           muted
           playsInline
-          onEnded={handleVideoEnd}
           className="absolute inset-0 h-full w-full object-cover"
           style={{ willChange: 'transform', transform: 'translateZ(0)' }}
-          src={VIDEOS[videoIndex]}
+          src={loginBgVideo}
         />
       </div>
 
       {/* 右侧 — 表单区 */}
       <div className="relative flex w-full lg:w-1/2 items-center justify-center overflow-hidden">
-        {/* 背景：同一段视频模糊压暗，强制 GPU 独立图层渲染 */}
+        {/* 背景：同一视频模糊压暗 */}
         <video
-          key={`blur-${videoIndex}`}
           autoPlay
+          loop
           muted
           playsInline
           className="absolute inset-0 h-full w-full object-cover opacity-50 blur-xl"
           style={{ willChange: 'transform', transform: 'translateZ(0)' }}
-          src={VIDEOS[videoIndex]}
+          src={loginBgVideo}
         />
         <div className="absolute inset-0 bg-black/20" />
 
