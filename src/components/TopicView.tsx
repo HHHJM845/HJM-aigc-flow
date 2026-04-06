@@ -190,7 +190,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
             style={{ fontFamily: 'Manrope' }}
           />
           <button
-            onClick={handleAnalyze}
+            onClick={() => handleAnalyze()}
             disabled={loading || !keyword.trim()}
             className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#e0e0e0] text-[#1a1a1a] px-5 py-2 rounded-lg text-sm font-bold hover:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
             style={{ fontFamily: 'Inter' }}
