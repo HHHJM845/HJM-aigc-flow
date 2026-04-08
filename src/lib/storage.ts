@@ -62,7 +62,8 @@ const STORAGE_KEY = 'hjm_aigc_projects';
 
 export function loadProjects(): Project[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const raw: Project[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    return raw.map(p => ({ members: [], tags: [], ...p }));
   } catch {
     return [];
   }

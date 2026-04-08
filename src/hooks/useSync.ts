@@ -55,7 +55,7 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
       }
 
       if (msg.type === 'init') {
-        const serverProjects = Array.isArray(msg.projects) ? (msg.projects as Project[]) : [];
+        const serverProjects = Array.isArray(msg.projects) ? (msg.projects as Project[]).map(p => ({ members: [], tags: [], ...p })) : [];
         const serverIds = new Set(serverProjects.map((p: Project) => p.id));
 
         // Migrate any local projects that the server doesn't have yet.
@@ -74,7 +74,7 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
       }
 
       if (msg.type === 'project_update') {
-        const updated = msg.project as Project;
+        const updated = { members: [], tags: [], ...(msg.project as Project) };
         setProjects(prev => {
           const idx = prev.findIndex(p => p.id === updated.id);
           const next =
