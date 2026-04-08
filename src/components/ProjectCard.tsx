@@ -43,6 +43,7 @@ export default function ProjectCard({
 }: ProjectCardProps) {
   // onUpdate: used by child menus (Tasks 4-6) for stage/member/tag changes
   const [menuOpen, setMenuOpen] = useState(false);
+  const [stageMenuOpen, setStageMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState(project.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -80,9 +81,12 @@ export default function ProjectCard({
   const cancelEdit = () => { setNameInput(project.name); setEditing(false); };
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen) { setStageMenuOpen(false); return; }
     const handle = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setStageMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
@@ -224,6 +228,61 @@ export default function ProjectCard({
                   <button onClick={() => { setMenuOpen(false); startEditing(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors" style={{ fontFamily: 'Inter' }}>
                     <Pencil size={11} /> 重命名
                   </button>
+
+                  {/* 调整阶段 */}
+                  <div className="relative">
+                    <button
+                      onClick={e => { e.stopPropagation(); setStageMenuOpen(v => !v); }}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors"
+                      style={{ fontFamily: 'Inter' }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[12px]">flag</span> 调整阶段
+                      </span>
+                      <span className="text-white/30">›</span>
+                    </button>
+                    {stageMenuOpen && (
+                      <div className="absolute right-full top-0 mr-1 bg-[#2a2a2a] border border-white/10 rounded-xl py-1 shadow-xl z-30 min-w-[120px]">
+                        <p className="px-3 py-1 text-[9px] text-white/30 uppercase tracking-wide" style={{ fontFamily: 'Inter' }}>手动指定</p>
+                        {STAGES.map((s, i) => {
+                          const isCurrent = currentStageIdx === i;
+                          const isDone = i <= currentStageIdx;
+                          return (
+                            <button
+                              key={s.key}
+                              onClick={() => {
+                                onUpdate({ stageOverride: s.key, updatedAt: Date.now() });
+                                setStageMenuOpen(false);
+                                setMenuOpen(false);
+                              }}
+                              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-white/5 ${isCurrent ? 'bg-white/6' : ''}`}
+                              style={{ color: isCurrent ? '#e8e6e4' : 'rgba(255,255,255,0.5)', fontFamily: 'Inter' }}
+                            >
+                              <div className="w-3 h-3 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: isDone ? 'rgba(200,190,220,0.7)' : 'rgba(255,255,255,0.08)', border: isDone ? 'none' : '1px solid rgba(255,255,255,0.15)' }}>
+                                {isDone && <span className="text-[6px] text-white/90">✓</span>}
+                              </div>
+                              {s.label}
+                              {isCurrent && <span className="ml-auto text-[9px] text-white/30">当前</span>}
+                            </button>
+                          );
+                        })}
+                        <div className="h-px bg-white/7 mx-2 my-1" />
+                        <button
+                          onClick={() => {
+                            onUpdate({ stageOverride: undefined, updatedAt: Date.now() });
+                            setStageMenuOpen(false);
+                            setMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] text-white/30 hover:text-white/50 hover:bg-white/5 transition-colors"
+                          style={{ fontFamily: 'Inter' }}
+                        >
+                          ↺ 恢复自动推断
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="h-px bg-white/7 mx-2 my-0.5" />
                   <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors" style={{ fontFamily: 'Inter' }}>
                     <Trash2 size={11} /> 删除项目
                   </button>
