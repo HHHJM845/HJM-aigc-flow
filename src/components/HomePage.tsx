@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { type Project } from '../lib/storage';
 import homeBgVideo from '../assets/home-bg.mp4';
 import ProjectCard from './ProjectCard';
