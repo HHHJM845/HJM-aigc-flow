@@ -82,7 +82,7 @@ tags: string[];                // 自定义标签
 5. **取消 / 创建** 按钮
 
 取消：关闭弹窗，不创建  
-创建：调用 `onNewProject()`，传入包含新字段的初始数据
+创建：`onNewProject` 的调用方需将 Props 签名从 `onNewProject: (initialScript?: string) => void` 扩展为接受初始项目元数据，或在弹窗内部先组装 `Partial<Project>` 再调用。推荐方案：`HomePage` 内部处理弹窗状态，弹窗确认后直接调用 `createProject()` 并传入额外字段，再回调 `onNewProject`。
 
 ---
 
@@ -95,6 +95,12 @@ tags: string[];                // 自定义标签
 | 编辑标签/类型 | 打开标签+类型编辑小弹窗 |
 | 管理成员 | 打开成员管理小弹窗 |
 | 调整阶段 | 展开子菜单（内联） |
+
+### 编辑标签/类型弹窗
+
+- 顶部：项目类型 pill 单选（同新建弹窗，当前选中高亮）
+- 下方：标签输入框（回车添加，显示已有标签 + × 删除）
+- "完成"按钮保存，变更立即写入 `project.projectType` 和 `project.tags`
 
 ### 管理成员弹窗
 
