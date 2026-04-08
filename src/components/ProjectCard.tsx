@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Trash2, Pencil } from 'lucide-react';
-import { type Project } from '../lib/storage';
+import { type Project, type ProjectStage, inferStage, stageIndex } from '../lib/storage';
 
 function timeAgo(ts: number): string {
   const d = Date.now() - ts;
@@ -11,11 +11,27 @@ function timeAgo(ts: number): string {
   return `${Math.floor(d / 86_400_000)} 天前`;
 }
 
+const AVATAR_COLORS = [
+  'rgba(160,145,130,0.45)',
+  'rgba(145,155,165,0.45)',
+  'rgba(130,150,135,0.45)',
+  'rgba(155,145,160,0.45)',
+  'rgba(150,160,145,0.45)',
+];
+
+const STAGES: { key: ProjectStage; label: string }[] = [
+  { key: 'script',      label: '剧本' },
+  { key: 'storyboard',  label: '分镜' },
+  { key: 'generation',  label: '生成' },
+  { key: 'review',      label: '审片' },
+];
+
 interface ProjectCardProps {
   project: Project;
   onOpen: () => void;
   onDelete: () => void;
   onRename: (name: string) => void;
+  onUpdate: (updates: Partial<Project>) => void;
 }
 
 export default function ProjectCard({
@@ -23,6 +39,7 @@ export default function ProjectCard({
   onOpen,
   onDelete,
   onRename,
+  onUpdate,
 }: ProjectCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -30,6 +47,9 @@ export default function ProjectCard({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const currentStage = inferStage(project);
+  const currentStageIdx = stageIndex(currentStage);
 
   const startEditing = () => {
     setNameInput(project.name);
@@ -88,6 +108,11 @@ export default function ProjectCard({
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
+        {project.projectType && (
+          <div className="absolute top-2 left-2 bg-white/7 border border-white/12 rounded-full px-2 py-0.5 text-[9px] text-white/45 leading-none">
+            {project.projectType}
+          </div>
+        )}
         <div className="absolute bottom-3 left-4 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-white/30 text-[12px]">folder</span>
           <span className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-bold" style={{ fontFamily: 'Inter' }}>
@@ -125,35 +150,85 @@ export default function ProjectCard({
           <p className="text-white/35 text-xs mt-1.5" style={{ fontFamily: 'Inter' }}>
             {timeAgo(project.updatedAt)}编辑
           </p>
+          <div className="flex flex-wrap gap-1 mt-2 min-h-[14px]">
+            {project.tags?.map(tag => (
+              <span
+                key={tag}
+                className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/6 text-white/35 leading-none"
+                style={{ fontFamily: 'Inter' }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
 
-        <div className="flex justify-between items-center mt-4">
-          <div className="w-6 h-6 rounded-full border border-white/20 bg-white/10" />
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <span className="material-symbols-outlined text-[#acabaa]/40 hover:text-[#fbf9f8] transition-colors text-[20px]">more_horiz</span>
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 bottom-8 bg-[#242424] border border-white/10 rounded-xl py-1 shadow-xl z-20 min-w-[110px]">
-                <button
-                  onClick={() => { setMenuOpen(false); startEditing(); }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors"
-                  style={{ fontFamily: 'Inter' }}
-                >
-                  <Pencil size={11} /> 重命名
-                </button>
-                <button
-                  onClick={() => { setMenuOpen(false); onDelete(); }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors"
-                  style={{ fontFamily: 'Inter' }}
-                >
-                  <Trash2 size={11} /> 删除项目
-                </button>
-              </div>
-            )}
+        <div className="mt-3">
+          {/* Stage step dots */}
+          <div className="flex items-center mb-3">
+            {STAGES.map((s, i) => {
+              const done = i <= currentStageIdx;
+              return (
+                <React.Fragment key={s.key}>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <div
+                      className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] text-white/90 flex-shrink-0"
+                      style={{ background: done ? 'rgba(200,190,220,0.7)' : 'rgba(255,255,255,0.07)', border: done ? 'none' : '1px solid rgba(255,255,255,0.15)' }}
+                    >
+                      {done && '✓'}
+                    </div>
+                    <span className="text-[6.5px] leading-none" style={{ color: done ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)', fontFamily: 'Inter' }}>
+                      {s.label}
+                    </span>
+                  </div>
+                  {i < STAGES.length - 1 && (
+                    <div className="flex-1 h-px mb-2.5" style={{ background: done && i < currentStageIdx ? 'rgba(200,190,220,0.35)' : 'rgba(255,255,255,0.1)' }} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+
+          {/* Avatars + menu */}
+          <div className="flex justify-between items-center">
+            <div className="flex">
+              {(project.members ?? []).length === 0 ? (
+                <div className="w-5 h-5 rounded-full border border-white/15 bg-white/5" />
+              ) : (
+                <>
+                  {(project.members ?? []).slice(0, 3).map((m, i) => (
+                    <div
+                      key={i}
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold border-[1.5px] border-[#111]"
+                      style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length], color: 'rgba(255,255,255,0.65)', marginLeft: i > 0 ? '-5px' : 0, zIndex: 3 - i }}
+                    >
+                      {m.slice(0, 1)}
+                    </div>
+                  ))}
+                  {(project.members ?? []).length > 3 && (
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold border-[1.5px] border-[#111] bg-white/10 text-white/50" style={{ marginLeft: '-5px' }}>
+                      +{project.members.length - 3}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="relative" ref={menuRef}>
+              <button onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="material-symbols-outlined text-[#acabaa]/40 hover:text-[#fbf9f8] transition-colors text-[20px]">more_horiz</span>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 bottom-8 bg-[#242424] border border-white/10 rounded-xl py-1 shadow-xl z-20 min-w-[130px]">
+                  <button onClick={() => { setMenuOpen(false); startEditing(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors" style={{ fontFamily: 'Inter' }}>
+                    <Pencil size={11} /> 重命名
+                  </button>
+                  <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors" style={{ fontFamily: 'Inter' }}>
+                    <Trash2 size={11} /> 删除项目
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -136,6 +136,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
               onOpen={() => onOpenProject(project)}
               onDelete={() => onDeleteProject(project.id)}
               onRename={name => onRenameProject?.(project.id, name)}
+              onUpdate={_updates => {}}
             />
           ))}
         </div>
