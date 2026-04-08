@@ -1,6 +1,9 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { StoryboardRow } from './api';
 
+export type ProjectStage = 'script' | 'storyboard' | 'generation' | 'review';
+export type ProjectType = '短片' | '广告' | 'MV' | '教程' | '其他';
+
 export interface SubtitleEntry {
   id: string;
   startMs: number;
@@ -49,6 +52,10 @@ export interface Project {
   videoOrder: VideoOrderItem[];
   subtitles: SubtitleEntry[];
   topicDraft?: string;
+  stageOverride?: ProjectStage;
+  members: string[];
+  projectType?: ProjectType;
+  tags: string[];
 }
 
 const STORAGE_KEY = 'hjm_aigc_projects';
@@ -105,6 +112,8 @@ export function createProject(name = '未命名项目'): Project {
     storyboardOrder: [],
     videoOrder: [],
     subtitles: [],
+    members: [],
+    tags: [],
   };
 }
 
@@ -117,4 +126,21 @@ export function extractThumbnail(nodes: Node[]): string | undefined {
     }
   }
   return undefined;
+}
+
+const STAGE_ORDER: ProjectStage[] = ['script', 'storyboard', 'generation', 'review'];
+
+export function stageIndex(stage: ProjectStage): number {
+  return STAGE_ORDER.indexOf(stage);
+}
+
+export function inferStage(project: Project): ProjectStage {
+  if (project.stageOverride) return project.stageOverride;
+  if (project.videoOrder.length > 0) return 'review';
+  const hasGeneratedImage = project.nodes.some(
+    n => n.type === 'imageNode' && n.data?.content
+  );
+  if (hasGeneratedImage) return 'generation';
+  if (project.storyboardRows.length > 0) return 'storyboard';
+  return 'script';
 }
