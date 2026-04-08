@@ -45,6 +45,9 @@ export default function ProjectCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [memberModalOpen, setMemberModalOpen] = useState(false);
+  const [memberInput, setMemberInput] = useState('');
+  const [memberList, setMemberList] = useState<string[]>([]);
   const [nameInput, setNameInput] = useState(project.name);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -284,6 +287,19 @@ export default function ProjectCard({
                     )}
                   </div>
 
+                  <button
+                    onClick={() => {
+                      setMemberList(project.members ?? []);
+                      setMemberInput('');
+                      setMemberModalOpen(true);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors"
+                    style={{ fontFamily: 'Inter' }}
+                  >
+                    <span className="material-symbols-outlined text-[12px]">group</span> 管理成员
+                  </button>
+
                   <div className="h-px bg-white/7 mx-2 my-0.5" />
                   <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors" style={{ fontFamily: 'Inter' }}>
                     <Trash2 size={11} /> 删除项目
@@ -294,6 +310,63 @@ export default function ProjectCard({
           </div>
         </div>
       </div>
+
+      {memberModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={e => { if (e.target === e.currentTarget) setMemberModalOpen(false); }}
+        >
+          <div className="bg-[#1e1e1e] border border-white/10 rounded-2xl p-5 w-72 shadow-2xl" style={{ fontFamily: 'Inter' }}>
+            <h3 className="text-sm font-bold text-[#e8e6e4] mb-4" style={{ fontFamily: 'Manrope' }}>管理成员</h3>
+
+            {/* Member list */}
+            <div className="flex flex-col gap-2 mb-3 max-h-40 overflow-y-auto">
+              {memberList.length === 0 && (
+                <p className="text-xs text-white/30 text-center py-2">暂无成员</p>
+              )}
+              {memberList.map((m, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white/65" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>
+                      {m.slice(0, 1)}
+                    </div>
+                    <span className="text-xs text-white/70">{m}</span>
+                  </div>
+                  <button onClick={() => setMemberList(prev => prev.filter((_, j) => j !== i))} className="text-white/25 hover:text-white/50 text-sm px-1 transition-colors">×</button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add input */}
+            <input
+              value={memberInput}
+              onChange={e => setMemberInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const v = memberInput.trim();
+                  if (v && !memberList.includes(v)) setMemberList(prev => [...prev, v]);
+                  setMemberInput('');
+                }
+              }}
+              placeholder="输入姓名后回车添加..."
+              className="w-full bg-black/30 border border-white/12 rounded-lg px-3 py-2 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-white/25 mb-4"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setMemberModalOpen(false)} className="px-3 py-1.5 text-xs text-white/40 hover:text-white/60 transition-colors">取消</button>
+              <button
+                onClick={() => {
+                  onUpdate({ members: memberList, updatedAt: Date.now() });
+                  setMemberModalOpen(false);
+                }}
+                className="px-4 py-1.5 text-xs font-bold bg-white/90 text-black rounded-lg hover:bg-white transition-colors"
+              >
+                完成
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
