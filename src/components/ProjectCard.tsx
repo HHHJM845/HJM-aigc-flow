@@ -41,6 +41,7 @@ export default function ProjectCard({
   onRename,
   onUpdate,
 }: ProjectCardProps) {
+  // onUpdate: used by child menus (Tasks 4-6) for stage/member/tag changes
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState(project.name);
@@ -198,7 +199,7 @@ export default function ProjectCard({
                 <>
                   {(project.members ?? []).slice(0, 3).map((m, i) => (
                     <div
-                      key={i}
+                      key={m}
                       className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold border-[1.5px] border-[#111]"
                       style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length], color: 'rgba(255,255,255,0.65)', marginLeft: i > 0 ? '-5px' : 0, zIndex: 3 - i }}
                     >
