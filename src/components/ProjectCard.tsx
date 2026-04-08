@@ -250,7 +250,8 @@ export default function ProjectCard({
                           return (
                             <button
                               key={s.key}
-                              onClick={() => {
+                              onClick={e => {
+                                e.stopPropagation();
                                 onUpdate({ stageOverride: s.key, updatedAt: Date.now() });
                                 setStageMenuOpen(false);
                                 setMenuOpen(false);
@@ -268,7 +269,8 @@ export default function ProjectCard({
                         })}
                         <div className="h-px bg-white/7 mx-2 my-1" />
                         <button
-                          onClick={() => {
+                          onClick={e => {
+                            e.stopPropagation();
                             onUpdate({ stageOverride: undefined, updatedAt: Date.now() });
                             setStageMenuOpen(false);
                             setMenuOpen(false);
