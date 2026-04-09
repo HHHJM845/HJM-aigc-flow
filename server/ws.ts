@@ -13,7 +13,7 @@ interface WSMessage {
 // Track all connected clients: clientId → WebSocket
 const clients = new Map<string, WebSocket>();
 
-function broadcast(data: object, excludeClientId?: string): void {
+export function broadcast(data: object, excludeClientId?: string): void {
   const msg = JSON.stringify(data);
   clients.forEach((ws, id) => {
     if (id !== excludeClientId && ws.readyState === WebSocket.OPEN) {
