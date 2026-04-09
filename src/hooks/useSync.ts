@@ -18,7 +18,18 @@ function getWsUrl(): string {
   return `${protocol}//${host}`;
 }
 
-export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
+export function useSync(
+  onRemoteProjectUpdate?: (project: Project) => void,
+  onAnnotationAdded?: (msg: {
+    projectId: string;
+    shareId: string;
+    rowIndex: number;
+    rowId: string;
+    status: string;
+    comment: string;
+    createdAt: number;
+  }) => void
+) {
   // Seed initial state from localStorage (offline fallback)
   const [projects, setProjects] = useState<Project[]>(() => loadProjects());
   const [connected, setConnected] = useState(false);
@@ -29,6 +40,8 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
   // Keep callback ref stable so connect() closure doesn't go stale
   const onRemoteRef = useRef(onRemoteProjectUpdate);
   onRemoteRef.current = onRemoteProjectUpdate;
+  const onAnnotationRef = useRef(onAnnotationAdded);
+  onAnnotationRef.current = onAnnotationAdded;
 
   const connect = useCallback(() => {
     // Don't create a duplicate connection (guard both CONNECTING and OPEN states)
@@ -91,6 +104,18 @@ export function useSync(onRemoteProjectUpdate?: (project: Project) => void) {
         const id = msg.id as string;
         setProjects(prev => prev.filter(p => p.id !== id));
         localDelete(id);
+      }
+
+      if (msg.type === 'annotation_added') {
+        onAnnotationRef.current?.({
+          projectId: msg.projectId as string,
+          shareId: msg.shareId as string,
+          rowIndex: msg.rowIndex as number,
+          rowId: msg.rowId as string,
+          status: msg.status as string,
+          comment: msg.comment as string,
+          createdAt: msg.createdAt as number,
+        });
       }
     };
 

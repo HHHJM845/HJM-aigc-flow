@@ -53,6 +53,8 @@ import TopicView from './components/TopicView';
 import { useSync } from './hooks/useSync';
 import { FileText } from 'lucide-react';
 import UserMenu from './components/UserMenu';
+import NotificationBell, { type NotificationItem } from './components/NotificationBell';
+import type { AnnotationData } from './components/AnnotationBubble';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -117,6 +119,8 @@ function Flow({
   initialTopicDraft,
   onSaveTopicDraft,
   initialTopicKeyword,
+  projectId,
+  annotations = [],
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -142,6 +146,8 @@ function Flow({
   initialTopicDraft: string;
   onSaveTopicDraft: (draft: string) => void;
   initialTopicKeyword?: string;
+  projectId?: string;
+  annotations?: AnnotationData[];
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
@@ -900,6 +906,9 @@ function Flow({
           initialRows={storyboardRows}
           onImport={handleImportFromBreakdown}
           externalInitText={breakdownInitText}
+          projectId={projectId}
+          projectName={projectName}
+          annotations={annotations}
         />
       </div>
 
@@ -1012,6 +1021,8 @@ export default function App() {
   const [username, setUsername] = useState(() => sessionStorage.getItem('username') || 'user');
   const [view, setView] = useState<'home' | 'canvas' | 'skills'>('home');
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [projectAnnotations, setProjectAnnotations] = useState<AnnotationData[]>([]);
   const [canvasInitialNodes, setCanvasInitialNodes] = useState<Node[]>([]);
   const [canvasInitialEdges, setCanvasInitialEdges] = useState<Edge[]>([]);
   const [canvasInitialRows, setCanvasInitialRows] = useState<StoryboardRow[]>([]);
@@ -1050,8 +1061,35 @@ export default function App() {
     }
   }, []);
 
+  const handleAnnotationAdded = (msg: {
+    projectId: string; shareId: string; rowIndex: number; rowId: string;
+    status: string; comment: string; createdAt: number;
+  }) => {
+    const newNotif: NotificationItem = {
+      id: `notif_${Date.now()}`,
+      projectId: msg.projectId,
+      shareId: msg.shareId,
+      rowIndex: msg.rowIndex,
+      rowId: msg.rowId,
+      status: msg.status,
+      comment: msg.comment,
+      createdAt: msg.createdAt,
+      read: 0,
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+    setProjectAnnotations(prev => {
+      const filtered = prev.filter(a => a.rowId !== msg.rowId);
+      return [...filtered, {
+        rowId: msg.rowId,
+        status: msg.status as 'approved' | 'revision',
+        comment: msg.comment,
+        createdAt: msg.createdAt,
+      }];
+    });
+  };
+
   const { projects, connected, saveProject: wsSaveProject, deleteProject: wsDeleteProject } =
-    useSync(handleRemoteProjectUpdate);
+    useSync(handleRemoteProjectUpdate, handleAnnotationAdded);
 
   const handleNewProject = (data?: NewProjectData) => {
     const proj: Project = {
@@ -1100,6 +1138,19 @@ export default function App() {
     setCanvasInitialSubtitles(project.subtitles || []);
     setCanvasInitialTopicDraft(project.topicDraft ?? '');
     setCanvasInitialTopicKeyword('');
+    // 拉取该项目的批注通知
+    fetch(`/api/projects/${project.id}/notifications`)
+      .then(r => r.ok ? r.json() : [])
+      .then((notifs: NotificationItem[]) => {
+        setNotifications(notifs);
+        setProjectAnnotations(notifs.map(n => ({
+          rowId: n.rowId,
+          status: n.status as 'approved' | 'revision' | 'pending',
+          comment: n.comment,
+          createdAt: n.createdAt,
+        })));
+      })
+      .catch(() => {});
     setView('canvas');
   };
 
@@ -1201,6 +1252,23 @@ export default function App() {
   return (
     <>
     <UserMenu username={username} onLogout={handleLogout} />
+    <div className="fixed top-3 right-16 z-50">
+      <NotificationBell
+        notifications={notifications}
+        onRead={id => {
+          fetch(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
+          setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: 1 } : n));
+        }}
+        onReadAll={projectId => {
+          fetch(`/api/projects/${projectId}/notifications/read-all`, { method: 'POST' }).catch(() => {});
+          setNotifications(prev => prev.map(n => n.projectId === projectId ? { ...n, read: 1 } : n));
+        }}
+        onNavigate={(projectId, _rowId) => {
+          const proj = projects.find(p => p.id === projectId);
+          if (proj) handleOpenProject(proj);
+        }}
+      />
+    </div>
     <ReactFlowProvider>
       {view === 'home' ? (
         <HomePage
@@ -1241,6 +1309,8 @@ export default function App() {
           initialTopicDraft={canvasInitialTopicDraft}
           onSaveTopicDraft={handleTopicDraftSave}
           initialTopicKeyword={canvasInitialTopicKeyword}
+          projectId={currentProject?.id}
+          annotations={projectAnnotations}
         />
       )}
     </ReactFlowProvider>
