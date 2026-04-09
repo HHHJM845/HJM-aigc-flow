@@ -16,6 +16,7 @@ import optimizePromptRouter from './routes/optimize-prompt.js';
 import topicResearchRouter from './routes/topic-research.js';
 import uploadRouter from './routes/upload.js';
 import reviewRouter from './routes/review.js';
+import templatesRouter from './routes/templates.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 
@@ -32,7 +33,7 @@ app.use((req, res, next) => {
   if (origin === allowed || allowed === '*') {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
@@ -49,6 +50,7 @@ app.use('/api/match-assets', matchAssetsRouter);
 app.use('/api/optimize-prompt', optimizePromptRouter);
 app.use('/api/topic-research', topicResearchRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/templates', templatesRouter);
 app.use('/api', reviewRouter);
 
 // Serve uploaded files publicly
