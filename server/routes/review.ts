@@ -3,8 +3,10 @@ import { Router } from 'express';
 import { randomBytes } from 'crypto';
 import {
   getAllProjects,
+  upsertProject,
   createSnapshot,
   getSnapshotById,
+  getSnapshotsByProjectId,
   createShare,
   getShareByToken,
   upsertAnnotation,
@@ -180,6 +182,48 @@ router.post('/notifications/:id/read', (req, res) => {
 router.post('/projects/:id/notifications/read-all', (req, res) => {
   markAllNotificationsRead(req.params.id);
   res.json({ ok: true });
+});
+
+// ── GET /api/projects/:id/snapshots ──────────────────────
+
+router.get('/projects/:id/snapshots', (req, res) => {
+  res.json(getSnapshotsByProjectId(req.params.id));
+});
+
+// ── POST /api/snapshots/:snapshotId/restore ───────────────
+
+router.post('/snapshots/:snapshotId/restore', (req, res) => {
+  const snapshot = getSnapshotById(req.params.snapshotId);
+  if (!snapshot) return res.status(404).json({ error: 'snapshot not found' });
+
+  const snapshotData: SnapshotData = JSON.parse(snapshot.data);
+  const projects = getAllProjects();
+  const project = projects.find(p => p.id === snapshot.project_id);
+  if (!project) return res.status(404).json({ error: 'project not found' });
+
+  const restoredNodeIds = new Set(snapshotData.storyboardOrder.map(id => `storyboard-${id}`));
+  const otherNodes = project.nodes.filter(n => !restoredNodeIds.has(n.id));
+  const restoredNodes = snapshotData.imageNodes
+    .filter(n => n.imageUrl !== null)
+    .map(n => {
+      const existing = project.nodes.find(node => node.id === `storyboard-${n.rowId}`);
+      if (!existing) return null;
+      return { ...existing, data: { ...existing.data as object, contents: [n.imageUrl!], content: n.imageUrl } };
+    })
+    .filter((n): n is NonNullable<typeof n> => n !== null);
+
+  const updatedProject = {
+    ...project,
+    storyboardRows: snapshotData.storyboardRows,
+    storyboardOrder: snapshotData.storyboardOrder,
+    nodes: [...otherNodes, ...restoredNodes],
+    updatedAt: Date.now(),
+  };
+
+  upsertProject(updatedProject);
+  broadcast({ type: 'project_update', project: updatedProject });
+
+  res.json({ ok: true, projectId: snapshot.project_id });
 });
 
 export default router;

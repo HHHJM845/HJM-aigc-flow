@@ -155,6 +155,12 @@ export function getSnapshotById(id: string): ProjectSnapshot | null {
   return (db.prepare('SELECT * FROM project_snapshots WHERE id = ?').get(id) as ProjectSnapshot) ?? null;
 }
 
+export function getSnapshotsByProjectId(projectId: string): Omit<ProjectSnapshot, 'data'>[] {
+  return db.prepare(
+    'SELECT id, project_id, label, auto, created_at FROM project_snapshots WHERE project_id = ? ORDER BY created_at DESC'
+  ).all(projectId) as Omit<ProjectSnapshot, 'data'>[];
+}
+
 // ── Share functions ──────────────────────────────────────
 
 export function createShare(
