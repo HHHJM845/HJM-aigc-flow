@@ -50,6 +50,7 @@ import {
 import VideoView from './components/VideoView';
 import SubtitleView from './components/SubtitleView';
 import TopicView from './components/TopicView';
+import TemplateLibraryView from './components/TemplateLibraryView';
 import { useSync } from './hooks/useSync';
 import { FileText } from 'lucide-react';
 import UserMenu from './components/UserMenu';
@@ -904,6 +905,7 @@ function Flow({
           }}
           onToggle={handleToggleStoryboard}
           onExportToCanvas={handleExportStoryboardToCanvas}
+          projectId={projectId}
         />
       </div>
 
@@ -998,6 +1000,8 @@ function Flow({
           }}
         />
       </div>
+
+      {activeView === 'templates' && <TemplateLibraryView />}
 
       {/* Topic inspiration view */}
       <div
