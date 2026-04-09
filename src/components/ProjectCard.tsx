@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Trash2, Pencil } from 'lucide-react';
-import { type Project, type ProjectStage, inferStage, stageIndex } from '../lib/storage';
+import { type Project, type ProjectStage, type ProjectType, inferStage, stageIndex } from '../lib/storage';
 
 function timeAgo(ts: number): string {
   const d = Date.now() - ts;
@@ -18,6 +18,8 @@ const AVATAR_COLORS = [
   'rgba(155,145,160,0.45)',
   'rgba(150,160,145,0.45)',
 ];
+
+const PROJECT_TYPES: ProjectType[] = ['短片', '广告', 'MV', '教程', '其他'];
 
 const STAGES: { key: ProjectStage; label: string }[] = [
   { key: 'script',      label: '剧本' },
@@ -48,6 +50,10 @@ export default function ProjectCard({
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [memberInput, setMemberInput] = useState('');
   const [memberList, setMemberList] = useState<string[]>([]);
+  const [metaModalOpen, setMetaModalOpen] = useState(false);
+  const [metaType, setMetaType] = useState<ProjectType | undefined>(undefined);
+  const [metaTags, setMetaTags] = useState<string[]>([]);
+  const [metaTagInput, setMetaTagInput] = useState('');
   const [nameInput, setNameInput] = useState(project.name);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -300,6 +306,20 @@ export default function ProjectCard({
                     <span className="material-symbols-outlined text-[12px]">group</span> 管理成员
                   </button>
 
+                  <button
+                    onClick={() => {
+                      setMetaType(project.projectType);
+                      setMetaTags(project.tags ?? []);
+                      setMetaTagInput('');
+                      setMetaModalOpen(true);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors"
+                    style={{ fontFamily: 'Inter' }}
+                  >
+                    <span className="material-symbols-outlined text-[12px]">label</span> 编辑标签/类型
+                  </button>
+
                   <div className="h-px bg-white/7 mx-2 my-0.5" />
                   <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors" style={{ fontFamily: 'Inter' }}>
                     <Trash2 size={11} /> 删除项目
@@ -358,6 +378,71 @@ export default function ProjectCard({
                 onClick={() => {
                   onUpdate({ members: memberList, updatedAt: Date.now() });
                   setMemberModalOpen(false);
+                }}
+                className="px-4 py-1.5 text-xs font-bold bg-white/90 text-black rounded-lg hover:bg-white transition-colors"
+              >
+                完成
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {metaModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={e => { if (e.target === e.currentTarget) setMetaModalOpen(false); }}
+        >
+          <div className="bg-[#1e1e1e] border border-white/10 rounded-2xl p-5 w-72 shadow-2xl" style={{ fontFamily: 'Inter' }}>
+            <h3 className="text-sm font-bold text-[#e8e6e4] mb-4" style={{ fontFamily: 'Manrope' }}>编辑标签/类型</h3>
+
+            <p className="text-[10px] text-white/35 uppercase tracking-wider mb-2">项目类型</p>
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {PROJECT_TYPES.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setMetaType(prev => prev === t ? undefined : t)}
+                  className="px-2.5 py-1 rounded-full text-[10px] transition-colors"
+                  style={{
+                    background: metaType === t ? 'rgba(200,190,220,0.18)' : 'rgba(255,255,255,0.05)',
+                    border: metaType === t ? '1px solid rgba(200,190,220,0.35)' : '1px solid rgba(255,255,255,0.12)',
+                    color: metaType === t ? 'rgba(220,210,240,0.8)' : 'rgba(255,255,255,0.35)',
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-white/35 uppercase tracking-wider mb-2">标签</p>
+            <div className="flex flex-wrap gap-1.5 mb-2 min-h-[20px]">
+              {metaTags.map((tag, i) => (
+                <span key={i} className="flex items-center gap-1 bg-white/6 rounded-full px-2 py-0.5 text-[10px] text-white/45">
+                  {tag}
+                  <button onClick={() => setMetaTags(prev => prev.filter((_, j) => j !== i))} className="text-white/25 hover:text-white/50 leading-none">×</button>
+                </span>
+              ))}
+            </div>
+            <input
+              value={metaTagInput}
+              onChange={e => setMetaTagInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const v = metaTagInput.trim();
+                  if (v && !metaTags.includes(v)) setMetaTags(prev => [...prev, v]);
+                  setMetaTagInput('');
+                }
+              }}
+              placeholder="输入标签后回车添加..."
+              className="w-full bg-black/30 border border-white/12 rounded-lg px-3 py-2 text-xs text-white/70 placeholder:text-white/25 focus:outline-none focus:border-white/25 mb-4"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setMetaModalOpen(false)} className="px-3 py-1.5 text-xs text-white/40 hover:text-white/60 transition-colors">取消</button>
+              <button
+                onClick={() => {
+                  onUpdate({ projectType: metaType, tags: metaTags, updatedAt: Date.now() });
+                  setMetaModalOpen(false);
                 }}
                 className="px-4 py-1.5 text-xs font-bold bg-white/90 text-black rounded-lg hover:bg-white transition-colors"
               >
