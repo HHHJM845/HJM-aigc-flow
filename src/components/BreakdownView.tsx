@@ -11,6 +11,7 @@ import { Loader2, Sparkles, Plus, X, GripVertical, Wand2 } from 'lucide-react';
 import { breakdownScript, type StoryboardRow } from '../lib/api';
 import { splitParagraphs, diffParagraphs, mergeRows } from '../lib/diff';
 import ScriptOptimizeModal from './ScriptOptimizeModal';
+import ShareDialog from './ShareDialog';
 
 // ── 比例选项 ─────────────────────────────────────────
 const CARD_RATIOS = [
@@ -100,10 +101,12 @@ interface Props {
   initialRows?: StoryboardRow[];
   onImport: (rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => void;
   externalInitText?: string;
+  projectId?: string;
+  projectName?: string;
 }
 
 // ── Main Component ────────────────────────────────────
-export default function BreakdownView({ initialRows, onImport, externalInitText }: Props) {
+export default function BreakdownView({ initialRows, onImport, externalInitText, projectId, projectName }: Props) {
   const [scriptText, setScriptText] = useState('');
   const [committedScript, setCommittedScript] = useState('');
   const [rows, setRows] = useState<StoryboardRow[]>(initialRows ?? []);
@@ -117,6 +120,11 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
   // TODO: pass selectedLens and promptText to onImport when backend supports them
   const [selectedLens, setSelectedLens] = useState(LENS_OPTIONS[0]);
   const [promptText, setPromptText] = useState('');
+  const [shareDialogData, setShareDialogData] = useState<{
+    shareUrl: string;
+    expiresAt: number;
+  } | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -194,6 +202,21 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
     onImport(rows, r.ratio, r.w, r.h);
   };
 
+  const handleShare = async () => {
+    if (!projectId || sharing) return;
+    setSharing(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/share`, { method: 'POST' });
+      if (!res.ok) throw new Error('share failed');
+      const { url, expiresAt } = await res.json() as { url: string; expiresAt: number };
+      setShareDialogData({ shareUrl: url, expiresAt });
+    } catch (e) {
+      console.error('[share]', e);
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const hasDiff = changedSegments.length > 0 && scriptText !== committedScript;
   const isFirstBreakdown = rows.length === 0;
 
@@ -238,6 +261,21 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
               <Wand2 size={12} />
               AI 优化
             </button>
+            {projectId && (
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-50"
+                style={{
+                  background: 'rgba(200,190,220,0.15)',
+                  color: 'rgba(200,190,220,0.85)',
+                  border: '1px solid rgba(200,190,220,0.3)',
+                }}
+              >
+                <span className="material-symbols-outlined text-[13px]">share</span>
+                {sharing ? '生成中...' : '提交审片'}
+              </button>
+            )}
           </div>
 
           {/* Diff 提示 */}
@@ -450,6 +488,14 @@ export default function BreakdownView({ initialRows, onImport, externalInitText 
           scriptText={scriptText}
           onApply={(optimized) => { setScriptText(optimized); setShowOptimizeModal(false); }}
           onClose={() => setShowOptimizeModal(false)}
+        />
+      )}
+      {shareDialogData && (
+        <ShareDialog
+          projectName={projectName ?? '未命名项目'}
+          shareUrl={shareDialogData.shareUrl}
+          expiresAt={shareDialogData.expiresAt}
+          onClose={() => setShareDialogData(null)}
         />
       )}
     </div>
