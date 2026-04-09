@@ -19,6 +19,47 @@ db.exec(`
     data      TEXT NOT NULL,
     updatedAt INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS project_snapshots (
+    id          TEXT PRIMARY KEY,
+    project_id  TEXT NOT NULL,
+    data        TEXT NOT NULL,
+    label       TEXT,
+    auto        INTEGER DEFAULT 0,
+    created_at  INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS project_shares (
+    id          TEXT PRIMARY KEY,
+    project_id  TEXT NOT NULL,
+    snapshot_id TEXT NOT NULL,
+    token       TEXT UNIQUE NOT NULL,
+    expires_at  INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS annotations (
+    id          TEXT PRIMARY KEY,
+    share_id    TEXT NOT NULL,
+    row_index   INTEGER NOT NULL,
+    row_id      TEXT NOT NULL,
+    status      TEXT NOT NULL,
+    comment     TEXT DEFAULT '',
+    created_at  INTEGER NOT NULL,
+    UNIQUE(share_id, row_index)
+  );
+
+  CREATE TABLE IF NOT EXISTS notifications (
+    id          TEXT PRIMARY KEY,
+    project_id  TEXT NOT NULL,
+    share_id    TEXT NOT NULL,
+    row_index   INTEGER NOT NULL,
+    row_id      TEXT NOT NULL,
+    status      TEXT NOT NULL,
+    comment     TEXT DEFAULT '',
+    created_at  INTEGER NOT NULL,
+    read        INTEGER DEFAULT 0
+  );
 `);
 
 export function getAllProjects(): Project[] {
@@ -37,4 +78,152 @@ export function upsertProject(project: Project): void {
 
 export function removeProject(id: string): void {
   db.prepare('DELETE FROM projects WHERE id = ?').run(id);
+}
+
+// ── Review collaboration types ──────────────────────────
+
+export interface SnapshotData {
+  storyboardOrder: string[];
+  storyboardRows: Array<{
+    id: string;
+    index: number;
+    shotType: string;
+    description: string;
+    sourceSegment?: string;
+  }>;
+  imageNodes: Array<{
+    rowId: string;
+    imageUrl: string | null;
+  }>;
+}
+
+export interface ProjectSnapshot {
+  id: string;
+  project_id: string;
+  data: string; // JSON string of SnapshotData
+  label: string | null;
+  auto: number;
+  created_at: number;
+}
+
+export interface ProjectShare {
+  id: string;
+  project_id: string;
+  snapshot_id: string;
+  token: string;
+  expires_at: number;
+  created_at: number;
+}
+
+export interface Annotation {
+  id: string;
+  share_id: string;
+  row_index: number;
+  row_id: string;
+  status: 'pending' | 'approved' | 'revision';
+  comment: string;
+  created_at: number;
+}
+
+export interface Notification {
+  id: string;
+  project_id: string;
+  share_id: string;
+  row_index: number;
+  row_id: string;
+  status: string;
+  comment: string;
+  created_at: number;
+  read: number;
+}
+
+// ── Snapshot functions ───────────────────────────────────
+
+export function createSnapshot(
+  id: string,
+  projectId: string,
+  data: SnapshotData,
+  label: string | null,
+  auto: boolean
+): void {
+  db.prepare(
+    'INSERT INTO project_snapshots (id, project_id, data, label, auto, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, projectId, JSON.stringify(data), label, auto ? 1 : 0, Date.now());
+}
+
+export function getSnapshotById(id: string): ProjectSnapshot | null {
+  return (db.prepare('SELECT * FROM project_snapshots WHERE id = ?').get(id) as ProjectSnapshot) ?? null;
+}
+
+// ── Share functions ──────────────────────────────────────
+
+export function createShare(
+  id: string,
+  projectId: string,
+  snapshotId: string,
+  token: string,
+  expiresAt: number
+): void {
+  db.prepare(
+    'INSERT INTO project_shares (id, project_id, snapshot_id, token, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, projectId, snapshotId, token, expiresAt, Date.now());
+}
+
+export function getShareByToken(token: string): ProjectShare | null {
+  return (db.prepare('SELECT * FROM project_shares WHERE token = ?').get(token) as ProjectShare) ?? null;
+}
+
+// ── Annotation functions ─────────────────────────────────
+
+export function upsertAnnotation(
+  id: string,
+  shareId: string,
+  rowIndex: number,
+  rowId: string,
+  status: string,
+  comment: string
+): void {
+  db.prepare(`
+    INSERT INTO annotations (id, share_id, row_index, row_id, status, comment, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(share_id, row_index) DO UPDATE SET
+      id = excluded.id,
+      status = excluded.status,
+      comment = excluded.comment,
+      created_at = excluded.created_at
+  `).run(id, shareId, rowIndex, rowId, status, comment, Date.now());
+}
+
+export function getAnnotationsByShareId(shareId: string): Annotation[] {
+  return db.prepare('SELECT * FROM annotations WHERE share_id = ? ORDER BY row_index').all(shareId) as Annotation[];
+}
+
+// ── Notification functions ───────────────────────────────
+
+export function createNotification(
+  id: string,
+  projectId: string,
+  shareId: string,
+  rowIndex: number,
+  rowId: string,
+  status: string,
+  comment: string
+): void {
+  db.prepare(
+    'INSERT INTO notifications (id, project_id, share_id, row_index, row_id, status, comment, created_at, read) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)'
+  ).run(id, projectId, shareId, rowIndex, rowId, status, comment, Date.now());
+}
+
+export function getNotificationsByProjectId(projectId: string): Notification[] {
+  return db.prepare(
+    'SELECT * FROM notifications WHERE project_id = ? ORDER BY created_at DESC'
+  ).all(projectId) as Notification[];
+}
+
+export function markNotificationRead(id: string): void {
+  db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(id);
+}
+
+export function markAllNotificationsRead(projectId: string): void {
+  db.prepare('UPDATE notifications SET read = 1 WHERE project_id = ?').run(projectId);
 }
