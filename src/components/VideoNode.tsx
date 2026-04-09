@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { generateVideo } from '../lib/api';
 import { Handle, Position, useStore, type ReactFlowState } from '@xyflow/react';
 import {
@@ -36,6 +36,11 @@ export default function VideoNode({ id, data, selected }: { id: string, data: an
   const [manualRefImage, setManualRefImage] = useState<string | null>(null);
   const [genError, setGenError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; promptPreset: string; cameraParams: string | null; durationHint: number | null }>>([]);
+  const [selectedTplId, setSelectedTplId] = useState<string | null>(null);
+  const [mergedPrompt, setMergedPrompt] = useState('');
+  const [userExtra, setUserExtra] = useState('');
+  const [merging, setMerging] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const refImageInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +52,14 @@ export default function VideoNode({ id, data, selected }: { id: string, data: an
   const isOngoingConnection = connectionNodeId !== null;
   const showHandle = isHovered || isOngoingConnection;
   const showPanel = selected && selectedCount === 1;
+
+  useEffect(() => {
+    if (!showPanel) return;
+    fetch('/api/templates?nodeType=video')
+      .then(r => r.json())
+      .then((list: Array<{ id: string; name: string; promptPreset: string; cameraParams: string | null; durationHint: number | null }>) => setTemplates(list))
+      .catch(() => {});
+  }, [showPanel]);
 
   const videoOrderUrls: string[] = Array.isArray(data.videoOrderUrls) ? data.videoOrderUrls : [];
   const onToggleVideo: ((nodeId: string, url: string, label: string) => void) | undefined = data.onToggleVideo;
@@ -80,6 +93,31 @@ export default function VideoNode({ id, data, selected }: { id: string, data: an
       const reader = new FileReader();
       reader.onload = (event) => setManualRefImage(event.target?.result as string);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const mergeVideoPrompt = async (tplId: string, extra: string) => {
+    const tpl = templates.find(t => t.id === tplId);
+    if (!tpl) return;
+    setMerging(true);
+    try {
+      const resp = await fetch('/api/templates/merge-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templatePrompt: tpl.promptPreset,
+          userInput: extra,
+          nodeType: 'video',
+        }),
+      });
+      if (resp.ok) {
+        const { mergedPrompt: mp } = await resp.json() as { mergedPrompt: string };
+        setMergedPrompt(mp);
+        setPrompt(mp);
+        if (tpl.durationHint) setDuration(tpl.durationHint);
+      }
+    } finally {
+      setMerging(false);
     }
   };
 
@@ -243,6 +281,45 @@ export default function VideoNode({ id, data, selected }: { id: string, data: an
             ))}
           </div>
 
+          {/* 模板选择条 */}
+          {templates.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <span className="text-[10px] text-gray-600 flex-shrink-0">模板</span>
+              <button
+                onClick={() => { setSelectedTplId(null); setMergedPrompt(''); }}
+                className={`px-2.5 py-1 rounded-full text-[11px] flex-shrink-0 border transition-colors ${
+                  !selectedTplId ? 'bg-white/8 text-gray-300 border-white/15' : 'text-gray-600 border-white/8 hover:text-gray-400'
+                }`}
+              >全部</button>
+              {templates.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => { setSelectedTplId(t.id); mergeVideoPrompt(t.id, userExtra); }}
+                  className={`px-2.5 py-1 rounded-full text-[11px] flex-shrink-0 border transition-colors whitespace-nowrap ${
+                    selectedTplId === t.id
+                      ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                      : 'text-gray-500 border-white/8 hover:text-gray-300'
+                  }`}
+                >
+                  {selectedTplId === t.id && merging ? '✦ 融合中…' : `✦ ${t.name}`}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 选中模板时显示推荐运镜 */}
+          {selectedTplId && (() => {
+            const tpl = templates.find(t => t.id === selectedTplId);
+            return tpl?.cameraParams ? (
+              <div
+                className="text-[11px] text-violet-300 bg-violet-500/10 border border-violet-500/25 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-violet-500/15 transition-colors"
+                onClick={() => setPrompt(prev => prev ? `${prev}，${tpl.cameraParams}` : tpl.cameraParams!)}
+              >
+                推荐运镜: {tpl.cameraParams} · 点击加入
+              </div>
+            ) : null;
+          })()}
+
           {/* 图生视频：参考图区域 */}
           {mode === 'image' && (
             <div className="flex items-start gap-3">
@@ -276,16 +353,37 @@ export default function VideoNode({ id, data, selected }: { id: string, data: an
             </div>
           )}
 
-          {/* 提示词 */}
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
-            }}
-            placeholder="描述您的修改或生成需求..."
-            className="w-full bg-transparent border-none text-[16px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[60px] py-1 leading-relaxed"
-          />
+          {/* 提示词区域 */}
+          {selectedTplId ? (
+            <>
+              <div className="bg-[#1a1a24] border border-orange-500/20 rounded-xl px-3 py-2.5">
+                <div className="text-[10px] text-orange-400 mb-1.5">✦ AI 融合提示词</div>
+                <textarea
+                  value={mergedPrompt}
+                  onChange={e => { setMergedPrompt(e.target.value); setPrompt(e.target.value); }}
+                  className="w-full bg-transparent text-[13px] text-orange-100 leading-relaxed resize-none outline-none min-h-[50px]"
+                  placeholder="AI 融合中…"
+                />
+              </div>
+              <input
+                value={userExtra}
+                onChange={e => setUserExtra(e.target.value)}
+                onBlur={() => { if (selectedTplId) mergeVideoPrompt(selectedTplId, userExtra); }}
+                placeholder="+ 加入你的想法（可选）"
+                className="w-full bg-white/[0.04] border border-white/[0.06] text-[12px] text-gray-400 placeholder-gray-700 rounded-lg px-3 py-2 outline-none focus:border-white/15"
+              />
+            </>
+          ) : (
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
+              }}
+              placeholder="描述您的修改或生成需求..."
+              className="w-full bg-transparent border-none text-[16px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[60px] py-1 leading-relaxed"
+            />
+          )}
 
           {genError && <p className="text-red-400 text-[12px]">{genError}</p>}
 
