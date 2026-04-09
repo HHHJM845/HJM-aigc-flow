@@ -12,6 +12,7 @@ import { breakdownScript, type StoryboardRow } from '../lib/api';
 import { splitParagraphs, diffParagraphs, mergeRows } from '../lib/diff';
 import ScriptOptimizeModal from './ScriptOptimizeModal';
 import ShareDialog from './ShareDialog';
+import AnnotationBubble, { type AnnotationData } from './AnnotationBubble';
 
 // ── 比例选项 ─────────────────────────────────────────
 const CARD_RATIOS = [
@@ -34,12 +35,13 @@ const LENS_OPTIONS = [
 
 // ── SortableRow ───────────────────────────────────────
 function SortableRow({
-  row, onUpdate, onDelete, isNew,
+  row, onUpdate, onDelete, isNew, annotation,
 }: {
   row: StoryboardRow;
   onUpdate: (id: string, field: keyof StoryboardRow, value: string) => void;
   onDelete: (id: string) => void;
   isNew: boolean;
+  annotation?: AnnotationData;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: row.id });
   const style: React.CSSProperties = { transform: CSS.Transform.toString(transform), transition };
@@ -83,14 +85,17 @@ function SortableRow({
           rows={2}
         />
       </td>
-      {/* 删除 */}
+      {/* 删除 + 批注 */}
       <td className="py-4 px-4 text-right">
-        <button
-          onClick={() => onDelete(row.id)}
-          className="text-white/20 hover:text-[#ee7d77] transition-colors opacity-0 group-hover:opacity-100"
-        >
-          <X size={12} />
-        </button>
+        <div className="flex items-center justify-end gap-2">
+          {annotation && <AnnotationBubble annotation={annotation} />}
+          <button
+            onClick={() => onDelete(row.id)}
+            className="text-white/20 hover:text-[#ee7d77] transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <X size={12} />
+          </button>
+        </div>
       </td>
     </tr>
   );
@@ -103,10 +108,11 @@ interface Props {
   externalInitText?: string;
   projectId?: string;
   projectName?: string;
+  annotations?: AnnotationData[];
 }
 
 // ── Main Component ────────────────────────────────────
-export default function BreakdownView({ initialRows, onImport, externalInitText, projectId, projectName }: Props) {
+export default function BreakdownView({ initialRows, onImport, externalInitText, projectId, projectName, annotations = [] }: Props) {
   const [scriptText, setScriptText] = useState('');
   const [committedScript, setCommittedScript] = useState('');
   const [rows, setRows] = useState<StoryboardRow[]>(initialRows ?? []);
@@ -377,6 +383,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
                           onUpdate={handleUpdateRow}
                           onDelete={handleDeleteRow}
                           isNew={newlyUpdatedIds.has(row.id)}
+                          annotation={annotations.find(a => a.rowId === row.id)}
                         />
                       ))}
                     </tbody>
