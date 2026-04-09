@@ -12,6 +12,7 @@ import { breakdownScript, type StoryboardRow } from '../lib/api';
 import { splitParagraphs, diffParagraphs, mergeRows } from '../lib/diff';
 import ScriptOptimizeModal from './ScriptOptimizeModal';
 import ShareDialog from './ShareDialog';
+import VersionDropdown from './VersionDropdown';
 import AnnotationBubble, { type AnnotationData } from './AnnotationBubble';
 
 // ── 比例选项 ─────────────────────────────────────────
@@ -109,10 +110,12 @@ interface Props {
   projectId?: string;
   projectName?: string;
   annotations?: AnnotationData[];
+  onSnapshotRestore?: (snapshotId: string) => Promise<void>;
+  onSaveSnapshot?: (label: string) => Promise<void>;
 }
 
 // ── Main Component ────────────────────────────────────
-export default function BreakdownView({ initialRows, onImport, externalInitText, projectId, projectName, annotations = [] }: Props) {
+export default function BreakdownView({ initialRows, onImport, externalInitText, projectId, projectName, annotations = [], onSnapshotRestore, onSaveSnapshot }: Props) {
   const [scriptText, setScriptText] = useState('');
   const [committedScript, setCommittedScript] = useState('');
   const [rows, setRows] = useState<StoryboardRow[]>(initialRows ?? []);
@@ -131,6 +134,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
     expiresAt: number;
   } | null>(null);
   const [sharing, setSharing] = useState(false);
+  const hasUnsavedChanges = false; // Phase 2 baseline; can be enhanced later with savedRowsHash
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -267,6 +271,14 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
               <Wand2 size={12} />
               AI 优化
             </button>
+            {projectId && onSnapshotRestore && onSaveSnapshot && (
+              <VersionDropdown
+                projectId={projectId}
+                hasUnsavedChanges={hasUnsavedChanges}
+                onRestore={onSnapshotRestore}
+                onSaveSnapshot={onSaveSnapshot}
+              />
+            )}
             {projectId && (
               <button
                 onClick={handleShare}

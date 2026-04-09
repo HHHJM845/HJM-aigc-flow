@@ -729,6 +729,21 @@ function Flow({
     }
   }, []);
 
+  const handleSnapshotRestore = async (snapshotId: string) => {
+    const res = await fetch(`/api/snapshots/${snapshotId}/restore`, { method: 'POST' });
+    if (!res.ok) throw new Error('restore failed');
+    // WS broadcast will trigger useSync to update project state
+  };
+
+  const handleSaveSnapshot = async (label: string) => {
+    if (!projectId) return;
+    await fetch(`/api/projects/${projectId}/snapshot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label }),
+    });
+  };
+
   return (
     <div className="w-screen h-screen bg-[#000000] overflow-hidden relative">
 
@@ -909,6 +924,8 @@ function Flow({
           projectId={projectId}
           projectName={projectName}
           annotations={annotations}
+          onSnapshotRestore={handleSnapshotRestore}
+          onSaveSnapshot={handleSaveSnapshot}
         />
       </div>
 
