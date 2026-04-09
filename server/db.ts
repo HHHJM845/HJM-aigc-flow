@@ -60,6 +60,20 @@ db.exec(`
     created_at  INTEGER NOT NULL,
     read        INTEGER DEFAULT 0
   );
+
+  CREATE TABLE IF NOT EXISTS templates (
+    id              TEXT PRIMARY KEY,
+    name            TEXT NOT NULL,
+    genre           TEXT NOT NULL,
+    nodeType        TEXT NOT NULL,
+    promptPreset    TEXT NOT NULL,
+    styleTag        TEXT,
+    compositionTip  TEXT,
+    cameraParams    TEXT,
+    durationHint    INTEGER,
+    audioHint       TEXT,
+    createdAt       INTEGER NOT NULL
+  );
 `);
 
 export function getAllProjects(): Project[] {
@@ -232,4 +246,51 @@ export function markNotificationRead(id: string): void {
 
 export function markAllNotificationsRead(projectId: string): void {
   db.prepare('UPDATE notifications SET read = 1 WHERE project_id = ?').run(projectId);
+}
+
+// ── Template functions ───────────────────────────────────
+
+export interface Template {
+  id: string;
+  name: string;
+  genre: string;
+  nodeType: 'image' | 'video';
+  promptPreset: string;
+  styleTag: string | null;
+  compositionTip: string | null;
+  cameraParams: string | null;
+  durationHint: number | null;
+  audioHint: string | null;
+  createdAt: number;
+}
+
+export function getTemplates(nodeType?: string, genre?: string): Template[] {
+  let sql = 'SELECT * FROM templates WHERE 1=1';
+  const params: string[] = [];
+  if (nodeType) { sql += ' AND nodeType = ?'; params.push(nodeType); }
+  if (genre && genre !== '全部') { sql += ' AND genre = ?'; params.push(genre); }
+  sql += ' ORDER BY createdAt DESC';
+  return db.prepare(sql).all(...params) as Template[];
+}
+
+export function createTemplate(t: Omit<Template, 'createdAt'>): void {
+  db.prepare(`
+    INSERT INTO templates
+      (id, name, genre, nodeType, promptPreset, styleTag, compositionTip, cameraParams, durationHint, audioHint, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(t.id, t.name, t.genre, t.nodeType, t.promptPreset,
+         t.styleTag ?? null, t.compositionTip ?? null,
+         t.cameraParams ?? null, t.durationHint ?? null,
+         t.audioHint ?? null, Date.now());
+}
+
+export function updateTemplate(id: string, t: Partial<Omit<Template, 'id' | 'createdAt'>>): void {
+  const fields = Object.keys(t).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(t);
+  if (!fields) return;
+  db.prepare(`UPDATE templates SET ${fields} WHERE id = ?`).run(...values, id);
+}
+
+export function deleteTemplate(id: string): void {
+  db.prepare('DELETE FROM templates WHERE id = ?').run(id);
 }
