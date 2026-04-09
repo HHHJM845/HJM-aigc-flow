@@ -15,6 +15,7 @@ import matchAssetsRouter from './routes/match-assets.js';
 import optimizePromptRouter from './routes/optimize-prompt.js';
 import topicResearchRouter from './routes/topic-research.js';
 import uploadRouter from './routes/upload.js';
+import reviewRouter from './routes/review.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 
@@ -48,6 +49,7 @@ app.use('/api/match-assets', matchAssetsRouter);
 app.use('/api/optimize-prompt', optimizePromptRouter);
 app.use('/api/topic-research', topicResearchRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api', reviewRouter);
 
 // Serve uploaded files publicly
 import { fileURLToPath as fu } from 'url';
