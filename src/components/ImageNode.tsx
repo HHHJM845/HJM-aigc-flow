@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, useStore, type ReactFlowState } from '@xyflow/react';
 import {
   Plus,
@@ -41,6 +41,11 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
   const [selectedStyle, setSelectedStyle] = useState<string>(data.style ?? '');
   const [customStyle, setCustomStyle] = useState<string>('');
   const [optimizing, setOptimizing] = useState(false);
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; promptPreset: string; styleTag: string | null }>>([]);
+  const [selectedTplId, setSelectedTplId] = useState<string | null>(null);
+  const [mergedPrompt, setMergedPrompt] = useState('');
+  const [userExtra, setUserExtra] = useState('');
+  const [merging, setMerging] = useState(false);
 
   const handleOptimizePrompt = async () => {
     if (!data.shotDescription) return;
@@ -67,6 +72,31 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
     }
   };
 
+  const mergePrompt = async (tplId: string, extra: string) => {
+    const tpl = templates.find(t => t.id === tplId);
+    if (!tpl) return;
+    setMerging(true);
+    try {
+      const resp = await fetch('/api/templates/merge-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templatePrompt: tpl.promptPreset,
+          userInput: extra,
+          nodeType: 'image',
+          shotDescription: data.shotDescription,
+        }),
+      });
+      if (resp.ok) {
+        const { mergedPrompt: mp } = await resp.json() as { mergedPrompt: string };
+        setMergedPrompt(mp);
+        setPrompt(mp);
+      }
+    } finally {
+      setMerging(false);
+    }
+  };
+
   // 手动上传的参考图（多张）
   const [uploadedRefImages, setUploadedRefImages] = useState<string[]>([]);
   const refImageInputRef = useRef<HTMLInputElement>(null);
@@ -88,6 +118,14 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
   const showHandle = isHovered || isOngoingConnection;
   // 多选时不展开面板，只有单独选中才展开
   const showPanel = selected && selectedCount === 1;
+
+  useEffect(() => {
+    if (!showPanel) return;
+    fetch('/api/templates?nodeType=image')
+      .then(r => r.json())
+      .then((list: Array<{ id: string; name: string; promptPreset: string; styleTag: string | null }>) => setTemplates(list))
+      .catch(() => {});
+  }, [showPanel]);
 
   const contents = Array.isArray(data.content) ? data.content : (data.content ? [data.content] : []);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -319,7 +357,78 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
           onMouseDown={(e) => e.stopPropagation()}
         >
 
-          {/* 0. 参考图上传区 */}
+          {/* 0. 模板选择条 */}
+          {templates.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <span className="text-[10px] text-gray-600 flex-shrink-0">模板</span>
+              <button
+                onClick={() => { setSelectedTplId(null); setMergedPrompt(''); }}
+                className={`px-2.5 py-1 rounded-full text-[11px] flex-shrink-0 border transition-colors ${
+                  !selectedTplId ? 'bg-white/8 text-gray-300 border-white/15' : 'text-gray-600 border-white/8 hover:text-gray-400'
+                }`}
+              >全部</button>
+              {templates.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => { setSelectedTplId(t.id); mergePrompt(t.id, userExtra); }}
+                  className={`px-2.5 py-1 rounded-full text-[11px] flex-shrink-0 border transition-colors whitespace-nowrap ${
+                    selectedTplId === t.id
+                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                      : 'text-gray-500 border-white/8 hover:text-gray-300'
+                  }`}
+                >
+                  {selectedTplId === t.id && merging ? '✦ 融合中…' : `✦ ${t.name}`}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 1. 提示词区域：有模板时显示融合框，无模板时显示普通输入 */}
+          <div className="flex flex-col gap-1.5">
+            {selectedTplId ? (
+              <>
+                <div className="bg-[#1a1a24] border border-indigo-500/25 rounded-xl px-3 py-2.5">
+                  <div className="text-[10px] text-indigo-400 mb-1.5 flex items-center gap-1">✦ AI 融合提示词</div>
+                  <textarea
+                    value={mergedPrompt}
+                    onChange={e => { setMergedPrompt(e.target.value); setPrompt(e.target.value); }}
+                    className="w-full bg-transparent text-[13px] text-indigo-100 leading-relaxed resize-none outline-none min-h-[60px]"
+                    placeholder="AI 融合中…"
+                  />
+                </div>
+                <input
+                  value={userExtra}
+                  onChange={e => setUserExtra(e.target.value)}
+                  onBlur={() => { if (selectedTplId) mergePrompt(selectedTplId, userExtra); }}
+                  placeholder="+ 加入你的想法（可选）"
+                  className="bg-white/[0.04] border border-white/[0.06] text-[12px] text-gray-400 placeholder-gray-700 rounded-lg px-3 py-2 outline-none focus:border-white/15"
+                />
+              </>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wide">提示词</span>
+                  <button
+                    onClick={handleOptimizePrompt}
+                    disabled={optimizing || !data.shotDescription}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-600/60 hover:bg-violet-600/80 disabled:opacity-40 text-[11px] text-white transition-colors"
+                  >
+                    {optimizing ? <Loader2 size={10} className="animate-spin" /> : <span>✨</span>}
+                    {optimizing ? '优化中…' : 'AI优化'}
+                  </button>
+                </div>
+                <textarea
+                  value={prompt}
+                  onChange={e => setPrompt(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
+                  placeholder="描述任何你想生成的内容"
+                  className="flex-1 bg-transparent border-none text-[16px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[80px] py-1 leading-relaxed"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 2. 参考图区域（保持原有逻辑） */}
           <div className="flex items-center gap-2 flex-wrap">
             {allRefImages.map((img, i) => {
               const isEdgeConnected = data.referenceImage && i === 0;
@@ -349,103 +458,45 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
                 <Plus size={20} />
               </button>
             )}
-            <input
-              type="file"
-              ref={refImageInputRef}
-              className="hidden"
-              accept="image/*"
-              multiple
-              onChange={handleRefImageUpload}
-            />
+            <input type="file" ref={refImageInputRef} className="hidden" accept="image/*" multiple onChange={handleRefImageUpload} />
           </div>
 
-          {/* 1. 镜头描述区 */}
+          {/* 3. 镜头描述（保持不变） */}
           {data.shotDescription && (
             <div className="bg-white/5 rounded-xl px-4 py-3">
               <p className="text-[11px] text-gray-500 mb-1 font-medium uppercase tracking-wide">镜头描述</p>
-              <p
-                className="text-[13px] text-gray-300 leading-relaxed select-text cursor-text"
-                onMouseDown={(e) => e.stopPropagation()}
-              >{data.shotDescription}</p>
+              <p className="text-[13px] text-gray-300 leading-relaxed select-text cursor-text" onMouseDown={e => e.stopPropagation()}>
+                {data.shotDescription}
+              </p>
             </div>
           )}
 
-          {/* Style selector */}
-          <div
-            className="flex flex-wrap gap-1.5 items-center"
-            onMouseDown={e => e.stopPropagation()}
-          >
+          {/* 4. 画风选择（保持不变） */}
+          <div className="flex flex-wrap gap-1.5 items-center" onMouseDown={e => e.stopPropagation()}>
             {STYLE_PRESETS.map(style => (
               <button
                 key={style}
-                onClick={() => {
-                  const newStyle = selectedStyle === style ? '' : style;
-                  setSelectedStyle(newStyle);
-                  setCustomStyle('');
-                  data.onUpdate?.(id, { style: newStyle });
-                }}
+                onClick={() => { const newStyle = selectedStyle === style ? '' : style; setSelectedStyle(newStyle); setCustomStyle(''); data.onUpdate?.(id, { style: newStyle }); }}
                 className={`px-2 py-0.5 rounded-full text-[11px] border transition-colors ${
-                  selectedStyle === style
-                    ? 'bg-violet-600/80 border-violet-500 text-white'
-                    : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80'
+                  selectedStyle === style ? 'bg-violet-600/80 border-violet-500 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80'
                 }`}
-              >
-                {style}
-              </button>
+              >{style}</button>
             ))}
             <input
               value={customStyle}
-              onChange={e => {
-                setCustomStyle(e.target.value);
-                setSelectedStyle('');
-                data.onUpdate?.(id, { style: e.target.value });
-              }}
+              onChange={e => { setCustomStyle(e.target.value); setSelectedStyle(''); data.onUpdate?.(id, { style: e.target.value }); }}
               placeholder="自定义画风"
               className="flex-1 min-w-[80px] bg-white/5 border border-white/10 rounded-full px-3 py-0.5 text-[11px] text-white/70 placeholder-white/25 outline-none focus:border-white/30"
             />
           </div>
 
-          {/* 2. 提示词输入区 */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wide">提示词</span>
-              <button
-                onClick={handleOptimizePrompt}
-                disabled={optimizing || !data.shotDescription}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-600/60 hover:bg-violet-600/80 disabled:opacity-40 text-[11px] text-white transition-colors"
-              >
-                {optimizing
-                  ? <Loader2 size={10} className="animate-spin" />
-                  : <span>✨</span>
-                }
-                {optimizing ? '优化中…' : 'AI优化'}
-              </button>
-            </div>
-            <div className="flex items-start gap-4">
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleGenerate();
-                  }
-                }}
-                placeholder="描述任何你想生成的内容"
-                className="flex-1 bg-transparent border-none text-[16px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[80px] py-1 leading-relaxed"
-              />
-            </div>
-          </div>
-
           {genError && <p className="text-red-400 text-[12px]">{genError}</p>}
 
-          {/* 4. 底部控制栏 */}
+          {/* 5. 底部控制栏（保持原有结构） */}
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-3 relative">
-              {/* 模型名称 */}
               <span className="text-[13px] text-gray-400 font-medium">SeeDream 4.5</span>
               <div className="w-[1px] h-3.5 bg-white/10" />
-              {/* 比例 & 画质 */}
               <div className="relative">
                 <button
                   onClick={() => setIsRatioOpen(!isRatioOpen)}
@@ -459,70 +510,40 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
                   <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
                     <div className="px-4 py-2 text-[11px] text-gray-500 uppercase font-mono border-b border-white/5">比例</div>
                     {(['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9'] as const).map(r => (
-                      <button
-                        key={r}
-                        onClick={() => {
-                          setRatio(r);
-                          const size = RATIO_SIZES[r] ?? { w: 380, h: 214 };
-                          data.onUpdate?.(id, { ratio: r, _width: size.w, _height: size.h });
-                        }}
+                      <button key={r} onClick={() => { setRatio(r); const size = RATIO_SIZES[r] ?? { w: 380, h: 214 }; data.onUpdate?.(id, { ratio: r, _width: size.w, _height: size.h }); }}
                         className={`w-full px-4 py-2 text-left text-[13px] transition-colors flex items-center justify-between ${ratio === r ? 'text-white bg-white/10' : 'text-gray-300 hover:bg-white/10'}`}
-                      >
-                        {r}
-                        {ratio === r && <span className="text-white/40 text-[10px]">✓</span>}
-                      </button>
+                      >{r}{ratio === r && <span className="text-white/40 text-[10px]">✓</span>}</button>
                     ))}
                     <div className="px-4 py-2 text-[11px] text-gray-500 uppercase font-mono border-y border-white/5">画质</div>
                     {(['1K', '2K'] as const).map(q => (
-                      <button
-                        key={q}
-                        onClick={() => setQuality(q)}
+                      <button key={q} onClick={() => setQuality(q)}
                         className={`w-full px-4 py-2 text-left text-[13px] transition-colors flex items-center justify-between ${quality === q ? 'text-white bg-white/10' : 'text-gray-300 hover:bg-white/10'}`}
-                      >
-                        {q}
-                        {quality === q && <span className="text-white/40 text-[10px]">✓</span>}
-                      </button>
+                      >{q}{quality === q && <span className="text-white/40 text-[10px]">✓</span>}</button>
                     ))}
                   </div>
                 )}
               </div>
             </div>
-
             <div className="flex items-center gap-3">
-              {/* 下载按钮 */}
               {currentContent && (
-                <button
-                  onClick={handleDownload}
-                  className="p-2 text-gray-400 hover:text-white transition-colors"
-                  title="下载图片"
-                >
+                <button onClick={handleDownload} className="p-2 text-gray-400 hover:text-white transition-colors" title="下载图片">
                   <Download size={20} />
                 </button>
               )}
-
-              {/* 生成数量 */}
               <div className="relative">
-                <button
-                  onClick={() => setIsCountOpen(!isCountOpen)}
+                <button onClick={() => setIsCountOpen(!isCountOpen)}
                   className="flex items-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl text-[13px] font-medium transition-colors border border-white/5"
-                >
-                  {generateCount}x
-                </button>
+                >{generateCount}x</button>
                 {isCountOpen && (
                   <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col">
                     {[4, 3, 2, 1].map(num => (
-                      <button
-                        key={num}
-                        onClick={() => { setGenerateCount(num); setIsCountOpen(false); }}
+                      <button key={num} onClick={() => { setGenerateCount(num); setIsCountOpen(false); }}
                         className={`px-4 py-2 text-center text-[13px] transition-colors ${generateCount === num ? 'text-white bg-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}
-                      >
-                        {num}x
-                      </button>
+                      >{num}x</button>
                     ))}
                   </div>
                 )}
               </div>
-
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt}
