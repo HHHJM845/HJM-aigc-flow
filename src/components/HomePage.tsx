@@ -2,26 +2,29 @@ import React, { useState } from 'react';
 import { type Project } from '../lib/storage';
 import homeBgVideo from '../assets/home-bg.mp4';
 import ProjectCard from './ProjectCard';
+import NewProjectDialog, { type NewProjectData } from './NewProjectDialog';
 
 interface Props {
   projects: Project[];
-  onNewProject: (initialScript?: string) => void;
+  onNewProject: (data?: NewProjectData) => void;
   onOpenProject: (project: Project) => void;
   onDeleteProject: (id: string) => void;
   onRenameProject?: (id: string, name: string) => void;
+  onUpdateProject?: (id: string, updates: Partial<Project>) => void;
   onGoToSkills?: () => void;
   onGoToTopic?: (keyword: string) => void;
 }
 
-export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onGoToSkills, onGoToTopic }: Props) {
+export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onUpdateProject, onGoToSkills, onGoToTopic }: Props) {
   const [inputText, setInputText] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleSubmit = () => {
     const kw = inputText.trim();
     if (kw && onGoToTopic) {
       onGoToTopic(kw);
     } else {
-      onNewProject(kw || undefined);
+      setDialogOpen(true);
     }
     setInputText('');
   };
@@ -114,7 +117,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {/* New project card */}
           <button
-            onClick={() => onNewProject()}
+            onClick={() => setDialogOpen(true)}
             className="group relative aspect-[4/5] bg-black/30 backdrop-blur-sm rounded-2xl border border-dashed border-white/20 hover:border-white/40 flex flex-col items-center justify-center transition-all duration-500"
           >
             <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-5 group-hover:scale-105 group-hover:border-white/40 transition-all duration-500">
@@ -136,7 +139,7 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
               onOpen={() => onOpenProject(project)}
               onDelete={() => onDeleteProject(project.id)}
               onRename={name => onRenameProject?.(project.id, name)}
-              onUpdate={_updates => {}}
+              onUpdate={updates => onUpdateProject?.(project.id, updates)}
             />
           ))}
         </div>
@@ -147,6 +150,13 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
           </p>
         )}
       </section>
+
+      {dialogOpen && (
+        <NewProjectDialog
+          onConfirm={data => { onNewProject(data); setDialogOpen(false); }}
+          onCancel={() => setDialogOpen(false)}
+        />
+      )}
 
       {/* Footer */}
       <footer className="relative z-10 text-center mt-4">

@@ -25,6 +25,7 @@ import ContextMenu from './components/ContextMenu';
 import CustomEdge from './components/CustomEdge';
 import BreakdownView from './components/BreakdownView';
 import HomePage from './components/HomePage';
+import { type NewProjectData } from './components/NewProjectDialog';
 import LoginView from './components/LoginView';
 import AIPanel from './components/AIPanel';
 import SkillCommunity from './components/SkillCommunity';
@@ -1052,8 +1053,13 @@ export default function App() {
   const { projects, connected, saveProject: wsSaveProject, deleteProject: wsDeleteProject } =
     useSync(handleRemoteProjectUpdate);
 
-  const handleNewProject = () => {
-    const proj = createProject();
+  const handleNewProject = (data?: NewProjectData) => {
+    const proj: Project = {
+      ...createProject(data?.name),
+      projectType: data?.projectType,
+      tags: data?.tags ?? [],
+      members: data?.members ?? [],
+    };
     wsSaveProject(proj);
     setCurrentProject(proj);
     setCanvasInitialNodes([]);
@@ -1067,6 +1073,12 @@ export default function App() {
     setCanvasInitialTopicDraft('');
     setCanvasInitialTopicKeyword('');
     setView('canvas');
+  };
+
+  const handleUpdateProject = (id: string, updates: Partial<Project>) => {
+    const proj = projects.find(p => p.id === id);
+    if (!proj) return;
+    wsSaveProject({ ...proj, ...updates });
   };
 
   const handleRenameProject = (id: string, name: string) => {
@@ -1197,6 +1209,7 @@ export default function App() {
           onOpenProject={handleOpenProject}
           onDeleteProject={wsDeleteProject}
           onRenameProject={handleRenameProject}
+          onUpdateProject={handleUpdateProject}
           onGoToSkills={handleGoToSkills}
           onGoToTopic={handleGoToTopic}
         />
