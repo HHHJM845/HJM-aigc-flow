@@ -266,7 +266,7 @@ export interface Template {
 
 export function getTemplates(nodeType?: string, genre?: string): Template[] {
   let sql = 'SELECT * FROM templates WHERE 1=1';
-  const params: string[] = [];
+  const params: (string | number)[] = [];
   if (nodeType) { sql += ' AND nodeType = ?'; params.push(nodeType); }
   if (genre && genre !== '全部') { sql += ' AND genre = ?'; params.push(genre); }
   sql += ' ORDER BY createdAt DESC';
@@ -285,9 +285,11 @@ export function createTemplate(t: Omit<Template, 'createdAt'>): void {
 }
 
 export function updateTemplate(id: string, t: Partial<Omit<Template, 'id' | 'createdAt'>>): void {
-  const fields = Object.keys(t).map(k => `${k} = ?`).join(', ');
-  const values = Object.values(t);
-  if (!fields) return;
+  const ALLOWED = new Set(['name','genre','nodeType','promptPreset','styleTag','compositionTip','cameraParams','durationHint','audioHint']);
+  const keys = Object.keys(t).filter(k => ALLOWED.has(k));
+  if (!keys.length) return;
+  const fields = keys.map(k => `${k} = ?`).join(', ');
+  const values = keys.map(k => (t as Record<string, unknown>)[k]);
   db.prepare(`UPDATE templates SET ${fields} WHERE id = ?`).run(...values, id);
 }
 
