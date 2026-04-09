@@ -1,6 +1,5 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
-import App from './App.tsx';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import './index.css';
 
 // Suppress benign ResizeObserver errors
@@ -18,8 +17,22 @@ window.addEventListener('error', (e) => {
   }
 });
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+const root = createRoot(document.getElementById('root')!);
+
+if (window.location.pathname.startsWith('/r/')) {
+  import('./pages/ReviewPage').then(({ default: ReviewPage }) => {
+    root.render(
+      <StrictMode>
+        <ReviewPage />
+      </StrictMode>
+    );
+  });
+} else {
+  import('./App').then(({ default: App }) => {
+    root.render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    );
+  });
+}
