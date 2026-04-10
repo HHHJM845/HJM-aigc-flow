@@ -8,22 +8,27 @@ const TEXT_MODEL = 'doubao-1-5-pro-32k-250115';
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { description, style, label } = req.body as {
-      description: string;
+      description?: string;
       style?: string;
       label?: string;
     };
 
-    if (!description?.trim()) {
-      return res.status(400).json({ error: '请提供画面描述' });
+    const hasDescription = !!description?.trim();
+    const hasStyle = !!style?.trim();
+
+    if (!hasDescription && !hasStyle) {
+      return res.status(400).json({ error: '请提供画面描述或风格' });
     }
 
     const apiKey = process.env.IMAGE_API_KEY;
     if (!apiKey) return res.status(500).json({ error: '服务端未配置 IMAGE_API_KEY' });
 
-    const styleText = style?.trim() ? `画风：${style}` : '';
-    const labelText = label?.trim() ? `镜头信息：${label}` : '';
+    const parts: string[] = [];
+    if (hasDescription) parts.push(`画面描述：${description!.trim()}`);
+    if (hasStyle) parts.push(`画风：${style!.trim()}`);
+    if (label?.trim()) parts.push(`镜头信息：${label.trim()}`);
 
-    const userPrompt = `你是专业的AI图像生成提示词工程师。根据分镜画面描述和画风，生成一段优化的图像生成提示词。
+    const userPrompt = `你是专业的AI图像生成提示词工程师。根据以下信息，生成一段优化的图像生成提示词。
 
 要求：
 - 语言：中文
@@ -31,9 +36,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 - 包含：画面主体、构图、光线氛围、画风关键词
 - 只输出提示词本身，不要加任何解释或标题
 
-画面描述：${description}
-${styleText}
-${labelText}`.trim();
+${parts.join('\n')}`.trim();
 
     const upstream = await fetch(`${ARK_BASE}/chat/completions`, {
       method: 'POST',
