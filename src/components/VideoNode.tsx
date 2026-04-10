@@ -121,7 +121,7 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
   };
 
   const selectedTpl = templates.find(t => t.id === selectedTplId) ?? null;
-  const canOptimize = !!prompt.trim() || !!selectedTpl;
+  const canOptimize = !!prompt.trim();
 
   // ── AI optimize ────────────────────────────────────
   const handleOptimizePrompt = async () => {
