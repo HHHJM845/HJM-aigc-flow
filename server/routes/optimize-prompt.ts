@@ -7,10 +7,11 @@ const TEXT_MODEL = 'doubao-1-5-pro-32k-250115';
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { description, style, label } = req.body as {
+    const { description, style, label, nodeType } = req.body as {
       description?: string;
       style?: string;
       label?: string;
+      nodeType?: 'image' | 'video';
     };
 
     const hasDescription = !!description?.trim();
@@ -28,7 +29,18 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     if (hasStyle) parts.push(`画风：${style!.trim()}`);
     if (label?.trim()) parts.push(`镜头信息：${label.trim()}`);
 
-    const userPrompt = `你是专业的AI图像生成提示词工程师。根据以下信息，生成一段优化的图像生成提示词。
+    const userPrompt = nodeType === 'video'
+      ? `你是专业的AI视频生成提示词工程师。根据以下信息，生成一段优化的视频生成提示词。
+
+要求：
+- 语言：中文
+- 长度：50-150字
+- 包含：画面主体、运镜方式（如推镜/拉镜/平移/旋转/跟镜）、动态效果、光线氛围、画风关键词
+- 强调运动感和时间变化
+- 只输出提示词本身，不要加任何解释或标题
+
+${parts.join('\n')}`.trim()
+      : `你是专业的AI图像生成提示词工程师。根据以下信息，生成一段优化的图像生成提示词。
 
 要求：
 - 语言：中文
