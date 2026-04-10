@@ -38,7 +38,6 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
   // ── Style template ─────────────────────────────────
   const [templates, setTemplates] = useState<Array<{ id: string; name: string; promptPreset: string; styleTag: string | null; genre: string }>>([]);
   const [selectedTplId, setSelectedTplId] = useState<string | null>(null);
-  const [styleCatFilter, setStyleCatFilter] = useState<string>('全部');
 
   // ── Asset panel ────────────────────────────────────
   const [assetCategory, setAssetCategory] = useState<'character' | 'scene' | 'other'>('character');
@@ -110,11 +109,7 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
       .catch(() => {});
   }, [showPanel, expandedPanel]);
 
-  // ── Derived: style categories ──────────────────────
-  const styleCategories = ['全部', ...Array.from(new Set(templates.map(t => t.styleTag).filter(Boolean) as string[]))];
-  const filteredTemplates = styleCatFilter === '全部'
-    ? templates
-    : templates.filter(t => t.styleTag === styleCatFilter);
+
 
   // ── Toggle expand panel ────────────────────────────
   const togglePanel = useCallback((panel: 'style' | 'asset') => {
@@ -599,58 +594,33 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
           {expandedPanel !== null && (
             <div className="border-t border-white/[0.06] bg-[#1a1a1c] px-4 py-3 flex flex-col gap-3">
 
-              {/* 风格模板面板 */}
+              {/* 风格模板面板：pill 列表 */}
               {expandedPanel === 'style' && (
-                <>
-                  {/* 分类筛选 */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {templates.length > 0 && styleCategories.map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => setStyleCatFilter(cat)}
-                        className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${
-                          styleCatFilter === cat
-                            ? 'bg-white/10 text-gray-200 border-white/20 font-semibold'
-                            : 'text-gray-600 border-white/10 hover:text-gray-400'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                    <button className="px-3 py-1 rounded-full text-[12px] border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors">
-                      + 自定义
+                <div className="flex flex-wrap gap-1.5">
+                  {templates.map(tpl => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => handleSelectTemplate(tpl.id)}
+                      className={`px-3 py-1 rounded-full text-[12px] border transition-all ${
+                        selectedTplId === tpl.id
+                          ? 'bg-violet-500/20 border-violet-400 text-violet-200 font-semibold'
+                          : 'text-gray-400 border-white/10 hover:text-gray-200 hover:border-white/25 hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      {tpl.name}
                     </button>
-                  </div>
-
-                  {/* 模板网格 */}
-                  {filteredTemplates.length === 0 ? (
-                    <div className="text-center py-6 text-gray-600 text-[13px]">暂无模板，点击「+ 自定义」添加</div>
-                  ) : (
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {filteredTemplates.map(tpl => (
-                        <button
-                          key={tpl.id}
-                          onClick={() => handleSelectTemplate(tpl.id)}
-                          className={`relative rounded-[10px] overflow-hidden aspect-[0.85] bg-white/5 flex flex-col items-center justify-end transition-all ${
-                            selectedTplId === tpl.id ? 'ring-2 ring-violet-400' : 'hover:ring-1 hover:ring-white/20'
-                          }`}
-                        >
-                          <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-40">
-                            🎨
-                          </div>
-                          <div className="relative w-full bg-gradient-to-t from-black/75 to-transparent text-[10px] text-center text-gray-200 py-1 px-1 truncate">
-                            {tpl.name}
-                          </div>
-                        </button>
-                      ))}
-                      {/* + 添加格 */}
-                      <button className="relative rounded-[10px] overflow-hidden aspect-[0.85] border-[1.5px] border-dashed border-white/10 flex flex-col items-center justify-center gap-1 text-gray-600 hover:text-gray-400 hover:border-white/20 transition-all">
-                        <Plus size={18} />
-                        <span className="text-[10px]">添加</span>
-                      </button>
-                    </div>
+                  ))}
+                  {templates.length === 0 && (
+                    <span className="text-[12px] text-gray-600">暂无模板</span>
                   )}
-                </>
+                  {/* + 自定义 → 跳转模板库 */}
+                  <button
+                    onClick={() => (data.onNavigateToTemplates as (() => void) | undefined)?.()}
+                    className="px-3 py-1 rounded-full text-[12px] border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors"
+                  >
+                    + 自定义
+                  </button>
+                </div>
               )}
 
               {/* 资产面板 */}

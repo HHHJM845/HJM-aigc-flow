@@ -694,6 +694,7 @@ function Flow({
           isInStoryboard: storyboardOrder.includes(node.id),
           onToggleStoryboard: handleToggleStoryboard,
           assets: assets,
+          onNavigateToTemplates: () => setActiveView('templates'),
         } : {}),
         ...(node.type === 'videoNode' ? {
           videoOrderUrls: videoOrder.map(v => v.url),
