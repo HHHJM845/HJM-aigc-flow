@@ -100,15 +100,15 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
     setCurrentIndex(0);
   }, [data.content]);
 
-  // ── Template loading ───────────────────────────────
+  // ── Template loading：每次展开风格面板时重新拉取，确保新增模板即时可见 ──
   useEffect(() => {
-    if (!showPanel) return;
+    if (!showPanel || expandedPanel !== 'style') return;
     fetch('/api/templates?nodeType=image')
       .then(r => r.json())
       .then((list: Array<{ id: string; name: string; promptPreset: string; styleTag: string | null; genre: string }>) =>
         setTemplates(list))
       .catch(() => {});
-  }, [showPanel]);
+  }, [showPanel, expandedPanel]);
 
   // ── Derived: style categories ──────────────────────
   const styleCategories = ['全部', ...Array.from(new Set(templates.map(t => t.styleTag).filter(Boolean) as string[]))];
