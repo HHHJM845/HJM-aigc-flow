@@ -31,8 +31,11 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
   // ── Mode tab ───────────────────────────────────────
   const [mode, setMode] = useState<'text' | 'image'>(data.referenceImage ? 'image' : 'text');
 
-  // ── Prompt ─────────────────────────────────────────
+  // ── Prompt（最终发给生成 API 的内容，可直接输入或由 AI 优化填入） ──
   const [prompt, setPrompt] = useState<string>(data.initialPrompt || '');
+
+  // ── 画面描述（用户原始输入，AI 优化的来源） ─────────
+  const [shotDescription, setShotDescription] = useState<string>(data.shotDescription ?? '');
 
   // ── Settings ───────────────────────────────────────
   const [ratio, setRatio] = useState<string>(data.ratio || '16:9');
@@ -97,6 +100,10 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
   }, [data.ratio]);
 
   useEffect(() => {
+    setShotDescription(data.shotDescription ?? '');
+  }, [data.shotDescription]);
+
+  useEffect(() => {
     setCurrentIndex(0);
   }, [data.content]);
 
@@ -121,9 +128,15 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
   };
 
   const selectedTpl = templates.find(t => t.id === selectedTplId) ?? null;
-  const canOptimize = !!prompt.trim();
+  // 必须有用户填写的画面描述才能触发 AI 优化
+  const canOptimize = !!shotDescription.trim();
 
-  // ── AI optimize ────────────────────────────────────
+  // ── 画面描述 blur 保存 ─────────────────────────────
+  const handleShotDescBlur = () => {
+    data.onUpdate?.(id, { shotDescription });
+  };
+
+  // ── AI optimize：画面描述 + 选中风格模板 → 融合写入 prompt ──
   const handleOptimizePrompt = async () => {
     if (!canOptimize || optimizing) return;
     setOptimizing(true);
@@ -132,7 +145,7 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          description: prompt,
+          description: shotDescription,
           style: selectedTpl?.promptPreset ?? '',
           label: data.label,
           nodeType: 'video',
@@ -408,14 +421,29 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
               </div>
             )}
 
-            {/* 提示词（全宽） */}
+            {/* 最终提示词（AI 优化后写入，或直接输入，Enter 生成） */}
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
-              placeholder="描述你想要的视频画面…（Enter 生成，Shift+Enter 换行）"
-              className="w-full bg-transparent text-[14px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[72px] leading-relaxed"
+              placeholder="最终提示词…（Enter 生成，Shift+Enter 换行）"
+              className="w-full bg-transparent text-[14px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[56px] leading-relaxed"
             />
+
+            {/* 画面描述（原始输入，AI 优化的来源） */}
+            <div className="flex items-start gap-2">
+              <div className="w-[3px] self-stretch bg-white/10 rounded-full flex-shrink-0 mt-1" />
+              <div className="flex-1 flex flex-col gap-0.5">
+                <span className="text-[10px] text-gray-600 uppercase tracking-wider">画面描述</span>
+                <textarea
+                  value={shotDescription}
+                  onChange={e => setShotDescription(e.target.value)}
+                  onBlur={handleShotDescBlur}
+                  placeholder="输入画面描述，选择风格模板后点 AI 优化自动生成提示词…"
+                  className="w-full bg-transparent text-[13px] text-gray-400 placeholder-gray-700 focus:outline-none resize-none min-h-[36px] leading-relaxed"
+                />
+              </div>
+            </div>
           </div>
 
           {/* ── 底部工具栏（两行） ── */}
