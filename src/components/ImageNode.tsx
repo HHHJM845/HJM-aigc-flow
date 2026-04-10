@@ -454,7 +454,136 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
             )}
           </div>
 
-          {/* ── 展开面板区（风格 / 资产） ── */}
+          {/* ── 底部工具栏（固定，始终在输入区正下方） ── */}
+          <div className="flex items-center gap-1.5 px-3 py-2.5 border-t border-white/[0.06]">
+
+            {/* 模型 */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full text-[12px] text-gray-400">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              SeeDream
+            </div>
+
+            {/* 比例 */}
+            <div className="relative">
+              <button
+                onClick={() => { setIsRatioOpen(v => !v); setIsQualityOpen(false); setIsCountOpen(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                {ratio}
+                <ChevronDown size={10} className="text-gray-600" />
+              </button>
+              {isRatioOpen && (
+                <div className="absolute top-full left-0 mt-2 w-32 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                  {(['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'] as const).map(r => (
+                    <button key={r} onClick={() => { setRatio(r); const s = RATIO_SIZES[r] ?? {w:380,h:214}; data.onUpdate?.(id,{ratio:r,_width:s.w,_height:s.h}); setIsRatioOpen(false); }}
+                      className={`w-full px-3 py-1.5 text-left text-[12px] transition-colors flex justify-between items-center ${ratio===r?'text-white bg-white/10':'text-gray-400 hover:bg-white/[0.08]'}`}
+                    >{r}{ratio===r&&<span className="text-white/40 text-[10px]">✓</span>}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 清晰度 */}
+            <div className="relative">
+              <button
+                onClick={() => { setIsQualityOpen(v => !v); setIsRatioOpen(false); setIsCountOpen(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
+              >
+                {quality}
+                <ChevronDown size={10} className="text-gray-600" />
+              </button>
+              {isQualityOpen && (
+                <div className="absolute top-full left-0 mt-2 w-20 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                  {(['1K','2K'] as const).map(q => (
+                    <button key={q} onClick={() => { setQuality(q); setIsQualityOpen(false); }}
+                      className={`w-full px-3 py-1.5 text-left text-[12px] transition-colors flex justify-between items-center ${quality===q?'text-white bg-white/10':'text-gray-400 hover:bg-white/[0.08]'}`}
+                    >{q}{quality===q&&<span className="text-white/40 text-[10px]">✓</span>}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 风格图标 */}
+            <button
+              onClick={() => togglePanel('style')}
+              title="风格模板"
+              className={`w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all ${
+                expandedPanel === 'style'
+                  ? 'bg-violet-500/20 border-violet-500/50 text-violet-300'
+                  : 'bg-white/[0.05] border-white/[0.08] text-gray-500 hover:text-gray-300 hover:bg-white/[0.09]'
+              }`}
+            >
+              <Palette size={15} />
+            </button>
+
+            {/* 资产图标 */}
+            <button
+              onClick={() => togglePanel('asset')}
+              title="资产"
+              className={`w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all ${
+                expandedPanel === 'asset'
+                  ? 'bg-violet-500/20 border-violet-500/50 text-violet-300'
+                  : 'bg-white/[0.05] border-white/[0.08] text-gray-500 hover:text-gray-300 hover:bg-white/[0.09]'
+              }`}
+            >
+              <Users size={15} />
+            </button>
+
+            <div className="flex-1" />
+
+            {/* AI优化 */}
+            <button
+              onClick={handleOptimizePrompt}
+              disabled={!canOptimize || optimizing}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-violet-600/50 hover:bg-violet-600/70 disabled:opacity-30 text-[12px] text-violet-200 border border-violet-500/30 transition-all"
+            >
+              {optimizing ? <Loader2 size={11} className="animate-spin" /> : <span>✨</span>}
+              {optimizing ? '优化中…' : 'AI 优化'}
+            </button>
+
+            {/* 数量 */}
+            <div className="relative">
+              <button
+                onClick={() => { setIsCountOpen(v => !v); setIsRatioOpen(false); setIsQualityOpen(false); }}
+                className="flex items-center gap-1 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
+              >
+                {generateCount}x
+                <ChevronDown size={10} className="text-gray-600" />
+              </button>
+              {isCountOpen && (
+                <div className="absolute top-full right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                  {[4,3,2,1].map(n => (
+                    <button key={n} onClick={() => { setGenerateCount(n); setIsCountOpen(false); }}
+                      className={`w-full px-4 py-2 text-center text-[12px] transition-colors ${generateCount===n?'text-white bg-white/10':'text-gray-400 hover:bg-white/5'}`}
+                    >{n}x</button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 下载 */}
+            {currentContent && (
+              <button onClick={handleDownload} className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-gray-500 hover:text-gray-200 transition-colors">
+                <Download size={16} />
+              </button>
+            )}
+
+            {/* 生成按钮 */}
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt}
+              className="w-[34px] h-[34px] rounded-full bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-40 flex items-center justify-center shadow-lg shadow-fuchsia-900/40 transition-all active:scale-95"
+            >
+              {isGenerating
+                ? <Loader2 size={16} className="animate-spin text-white" />
+                : <ArrowUp size={16} strokeWidth={2.5} className="text-white" />
+              }
+            </button>
+
+          </div>
+
+          {/* ── 展开面板区（风格 / 资产，在工具栏下方展开） ── */}
           {expandedPanel !== null && (
             <div className="border-t border-white/[0.06] bg-[#1a1a1c] px-4 py-3 flex flex-col gap-3">
 
@@ -564,135 +693,6 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
               )}
             </div>
           )}
-
-          {/* ── 底部工具栏 ── */}
-          <div className="flex items-center gap-1.5 px-3 py-2.5 border-t border-white/[0.06]">
-
-            {/* 模型 */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full text-[12px] text-gray-400">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-              SeeDream
-            </div>
-
-            {/* 比例 */}
-            <div className="relative">
-              <button
-                onClick={() => { setIsRatioOpen(v => !v); setIsQualityOpen(false); setIsCountOpen(false); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
-                {ratio}
-                <ChevronDown size={10} className="text-gray-600" />
-              </button>
-              {isRatioOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-32 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                  {(['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'] as const).map(r => (
-                    <button key={r} onClick={() => { setRatio(r); const s = RATIO_SIZES[r] ?? {w:380,h:214}; data.onUpdate?.(id,{ratio:r,_width:s.w,_height:s.h}); setIsRatioOpen(false); }}
-                      className={`w-full px-3 py-1.5 text-left text-[12px] transition-colors flex justify-between items-center ${ratio===r?'text-white bg-white/10':'text-gray-400 hover:bg-white/[0.08]'}`}
-                    >{r}{ratio===r&&<span className="text-white/40 text-[10px]">✓</span>}</button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 清晰度 */}
-            <div className="relative">
-              <button
-                onClick={() => { setIsQualityOpen(v => !v); setIsRatioOpen(false); setIsCountOpen(false); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
-              >
-                {quality}
-                <ChevronDown size={10} className="text-gray-600" />
-              </button>
-              {isQualityOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-20 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                  {(['1K','2K'] as const).map(q => (
-                    <button key={q} onClick={() => { setQuality(q); setIsQualityOpen(false); }}
-                      className={`w-full px-3 py-1.5 text-left text-[12px] transition-colors flex justify-between items-center ${quality===q?'text-white bg-white/10':'text-gray-400 hover:bg-white/[0.08]'}`}
-                    >{q}{quality===q&&<span className="text-white/40 text-[10px]">✓</span>}</button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 风格图标 */}
-            <button
-              onClick={() => togglePanel('style')}
-              title="风格模板"
-              className={`w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all ${
-                expandedPanel === 'style'
-                  ? 'bg-violet-500/20 border-violet-500/50 text-violet-300'
-                  : 'bg-white/[0.05] border-white/[0.08] text-gray-500 hover:text-gray-300 hover:bg-white/[0.09]'
-              }`}
-            >
-              <Palette size={15} />
-            </button>
-
-            {/* 资产图标 */}
-            <button
-              onClick={() => togglePanel('asset')}
-              title="资产"
-              className={`w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all ${
-                expandedPanel === 'asset'
-                  ? 'bg-violet-500/20 border-violet-500/50 text-violet-300'
-                  : 'bg-white/[0.05] border-white/[0.08] text-gray-500 hover:text-gray-300 hover:bg-white/[0.09]'
-              }`}
-            >
-              <Users size={15} />
-            </button>
-
-            <div className="flex-1" />
-
-            {/* AI优化 */}
-            <button
-              onClick={handleOptimizePrompt}
-              disabled={!canOptimize || optimizing}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-violet-600/50 hover:bg-violet-600/70 disabled:opacity-30 text-[12px] text-violet-200 border border-violet-500/30 transition-all"
-            >
-              {optimizing ? <Loader2 size={11} className="animate-spin" /> : <span>✨</span>}
-              {optimizing ? '优化中…' : 'AI 优化'}
-            </button>
-
-            {/* 数量 */}
-            <div className="relative">
-              <button
-                onClick={() => { setIsCountOpen(v => !v); setIsRatioOpen(false); setIsQualityOpen(false); }}
-                className="flex items-center gap-1 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
-              >
-                {generateCount}x
-                <ChevronDown size={10} className="text-gray-600" />
-              </button>
-              {isCountOpen && (
-                <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                  {[4,3,2,1].map(n => (
-                    <button key={n} onClick={() => { setGenerateCount(n); setIsCountOpen(false); }}
-                      className={`w-full px-4 py-2 text-center text-[12px] transition-colors ${generateCount===n?'text-white bg-white/10':'text-gray-400 hover:bg-white/5'}`}
-                    >{n}x</button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 下载 */}
-            {currentContent && (
-              <button onClick={handleDownload} className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-gray-500 hover:text-gray-200 transition-colors">
-                <Download size={16} />
-              </button>
-            )}
-
-            {/* 生成按钮 */}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !prompt}
-              className="w-[34px] h-[34px] rounded-full bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-40 flex items-center justify-center shadow-lg shadow-fuchsia-900/40 transition-all active:scale-95"
-            >
-              {isGenerating
-                ? <Loader2 size={16} className="animate-spin text-white" />
-                : <ArrowUp size={16} strokeWidth={2.5} className="text-white" />
-              }
-            </button>
-
-          </div>
 
           {/* 生成错误 */}
           {genError && <p className="px-4 pb-3 text-red-400 text-[12px]">{genError}</p>}
