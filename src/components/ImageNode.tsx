@@ -585,7 +585,7 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-40 text-white text-[13px] font-medium shadow-lg shadow-fuchsia-900/40 transition-all active:scale-95"
+                className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-[13px] font-medium shadow-lg shadow-violet-900/40 transition-all active:scale-95"
               >
                 {isGenerating
                   ? <Loader2 size={14} className="animate-spin" />
