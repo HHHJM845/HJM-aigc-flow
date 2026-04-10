@@ -448,26 +448,24 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
               {expandedPanel === 'style' && (
                 <>
                   {/* 分类筛选 */}
-                  {templates.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {styleCategories.map(cat => (
-                        <button
-                          key={cat}
-                          onClick={() => setStyleCatFilter(cat)}
-                          className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${
-                            styleCatFilter === cat
-                              ? 'bg-white/10 text-gray-200 border-white/20 font-semibold'
-                              : 'text-gray-600 border-white/10 hover:text-gray-400'
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                      <button className="px-3 py-1 rounded-full text-[12px] border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors">
-                        + 自定义
+                  <div className="flex flex-wrap gap-1.5">
+                    {templates.length > 0 && styleCategories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setStyleCatFilter(cat)}
+                        className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${
+                          styleCatFilter === cat
+                            ? 'bg-white/10 text-gray-200 border-white/20 font-semibold'
+                            : 'text-gray-600 border-white/10 hover:text-gray-400'
+                        }`}
+                      >
+                        {cat}
                       </button>
-                    </div>
-                  )}
+                    ))}
+                    <button className="px-3 py-1 rounded-full text-[12px] border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors">
+                      + 自定义
+                    </button>
+                  </div>
 
                   {/* 模板网格 */}
                   {filteredTemplates.length === 0 ? (
