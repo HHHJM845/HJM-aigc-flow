@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Handle, Position, useStore, type ReactFlowState } from '@xyflow/react';
 import {
   Plus,
@@ -10,8 +10,11 @@ import {
   Download,
   Sparkles,
   X,
+  Palette,
+  Users,
 } from 'lucide-react';
 import { generateImages } from '../lib/api';
+import type { AssetItem } from '../lib/storage';
 
 const RATIO_SIZES: Record<string, { w: number; h: number }> = {
   '1:1':  { w: 380, h: 380 },
@@ -24,90 +27,48 @@ const RATIO_SIZES: Record<string, { w: number; h: number }> = {
   '21:9': { w: 380, h: 163 },
 };
 
-const STYLE_PRESETS = ['写实', '动漫', '油画', '水彩', '赛博朋克', '中国水墨', '素描', '3D渲染', '皮克斯风格'] as const;
-
 export default function ImageNode({ id, data, selected }: { id: string; data: any; selected?: boolean }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const isInStoryboard: boolean = Boolean(data.isInStoryboard);
-  const onToggleStoryboard: ((id: string) => void) | undefined = data.onToggleStoryboard;
+  // ── Panel expand state ─────────────────────────────
+  const [expandedPanel, setExpandedPanel] = useState<'style' | 'asset' | null>(null);
+
+  // ── Prompt & shot description ──────────────────────
   const [prompt, setPrompt] = useState('');
+  const [shotDescription, setShotDescription] = useState<string>(data.shotDescription ?? '');
+
+  // ── Style template ─────────────────────────────────
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; promptPreset: string; styleTag: string | null; genre: string }>>([]);
+  const [selectedTplId, setSelectedTplId] = useState<string | null>(null);
+  const [styleCatFilter, setStyleCatFilter] = useState<string>('全部');
+
+  // ── Asset panel ────────────────────────────────────
+  const [assetCategory, setAssetCategory] = useState<'character' | 'scene' | 'other'>('character');
+
+  // ── Generation controls ────────────────────────────
   const [ratio, setRatio] = useState(data.ratio || '16:9');
-  const [quality, setQuality] = useState('2K');
+  const [quality, setQuality] = useState<'1K' | '2K'>('2K');
   const [generateCount, setGenerateCount] = useState(1);
-  const [isCountOpen, setIsCountOpen] = useState(false);
-  const [isRatioOpen, setIsRatioOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [genError, setGenError] = useState('');
-  const [selectedStyle, setSelectedStyle] = useState<string>(data.style ?? '');
-  const [customStyle, setCustomStyle] = useState<string>('');
   const [optimizing, setOptimizing] = useState(false);
-  const [templates, setTemplates] = useState<Array<{ id: string; name: string; promptPreset: string; styleTag: string | null }>>([]);
-  const [selectedTplId, setSelectedTplId] = useState<string | null>(null);
-  const [mergedPrompt, setMergedPrompt] = useState('');
-  const [userExtra, setUserExtra] = useState('');
-  const [merging, setMerging] = useState(false);
 
-  const handleOptimizePrompt = async () => {
-    if (!data.shotDescription) return;
-    const style = selectedStyle || customStyle;
-    setOptimizing(true);
-    try {
-      const resp = await fetch('/api/optimize-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: data.shotDescription,
-          style,
-          label: data.label,
-        }),
-      });
-      if (resp.ok) {
-        const result = await resp.json() as { prompt: string };
-        setPrompt(result.prompt);
-      }
-    } catch {
-      // Silent fail
-    } finally {
-      setOptimizing(false);
-    }
-  };
+  // ── Dropdowns open state ───────────────────────────
+  const [isCountOpen, setIsCountOpen] = useState(false);
+  const [isRatioOpen, setIsRatioOpen] = useState(false);
+  const [isQualityOpen, setIsQualityOpen] = useState(false);
+  const [isModelOpen, setIsModelOpen] = useState(false);
 
-  const mergePrompt = async (tplId: string, extra: string) => {
-    const tpl = templates.find(t => t.id === tplId);
-    if (!tpl) return;
-    setMerging(true);
-    try {
-      const resp = await fetch('/api/templates/merge-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templatePrompt: tpl.promptPreset,
-          userInput: extra,
-          nodeType: 'image',
-          shotDescription: data.shotDescription,
-        }),
-      });
-      if (resp.ok) {
-        const { mergedPrompt: mp } = await resp.json() as { mergedPrompt: string };
-        setMergedPrompt(mp);
-        setPrompt(mp);
-      }
-    } finally {
-      setMerging(false);
-    }
-  };
-
-  // 手动上传的参考图（多张）
+  // ── Reference images ───────────────────────────────
   const [uploadedRefImages, setUploadedRefImages] = useState<string[]>([]);
   const refImageInputRef = useRef<HTMLInputElement>(null);
-
-  // 所有参考图：边连接的优先放第一位，再拼上手动上传的
   const allRefImages = [
     ...(data.referenceImage ? [data.referenceImage] : []),
     ...uploadedRefImages,
   ];
 
+  // ── File inputs ────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── React Flow store ───────────────────────────────
   const connectionNodeId = useStore((s: ReactFlowState) =>
     s.connection && 'nodeId' in s.connection ? s.connection.nodeId : null
   );
@@ -115,38 +76,92 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
     s.nodes.filter((n) => n.selected).length
   );
   const isOngoingConnection = connectionNodeId !== null;
+  const [isHovered, setIsHovered] = useState(false);
   const showHandle = isHovered || isOngoingConnection;
-  // 多选时不展开面板，只有单独选中才展开
   const showPanel = selected && selectedCount === 1;
 
-  useEffect(() => {
-    if (!showPanel) return;
-    fetch('/api/templates?nodeType=image')
-      .then(r => r.json())
-      .then((list: Array<{ id: string; name: string; promptPreset: string; styleTag: string | null }>) => setTemplates(list))
-      .catch(() => {});
-  }, [showPanel]);
-
+  // ── Multi-image display ────────────────────────────
   const contents = Array.isArray(data.content) ? data.content : (data.content ? [data.content] : []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentContent = contents[currentIndex] || null;
 
+  // ── Assets (injected via data) ─────────────────────
+  const assets: AssetItem[] = data.assets ?? [];
+
+  // ── Template loading ───────────────────────────────
+  useEffect(() => {
+    if (!showPanel) return;
+    fetch('/api/templates?nodeType=image')
+      .then(r => r.json())
+      .then((list: Array<{ id: string; name: string; promptPreset: string; styleTag: string | null; genre: string }>) =>
+        setTemplates(list))
+      .catch(() => {});
+  }, [showPanel]);
+
+  // ── Derived: style categories ──────────────────────
+  const styleCategories = ['全部', ...Array.from(new Set(templates.map(t => t.styleTag).filter(Boolean) as string[]))];
+  const filteredTemplates = styleCatFilter === '全部'
+    ? templates
+    : templates.filter(t => t.styleTag === styleCatFilter);
+
+  // ── Toggle expand panel ────────────────────────────
+  const togglePanel = useCallback((panel: 'style' | 'asset') => {
+    setExpandedPanel(prev => prev === panel ? null : panel);
+  }, []);
+
+  // ── Shot description save on blur ──────────────────
+  const handleShotDescBlur = () => {
+    data.onUpdate?.(id, { shotDescription });
+  };
+
+  // ── AI optimize ────────────────────────────────────
+  const selectedTpl = templates.find(t => t.id === selectedTplId) ?? null;
+  const canOptimize = !!shotDescription.trim() || !!selectedTpl;
+
+  const handleOptimizePrompt = async () => {
+    if (!canOptimize || optimizing) return;
+    setOptimizing(true);
+    try {
+      const resp = await fetch('/api/optimize-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: shotDescription,
+          style: selectedTpl?.promptPreset ?? '',
+          label: data.label,
+        }),
+      });
+      if (resp.ok) {
+        const result = await resp.json() as { prompt: string };
+        setPrompt(result.prompt);
+      }
+    } catch { /* silent */ }
+    finally { setOptimizing(false); }
+  };
+
+  // ── Template select ────────────────────────────────
+  const handleSelectTemplate = (tplId: string) => {
+    if (selectedTplId === tplId) {
+      setSelectedTplId(null);
+      return;
+    }
+    setSelectedTplId(tplId);
+  };
+
+  // ── File upload ────────────────────────────────────
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        data.onUpdate?.(id, { content: [result] });
-        setCurrentIndex(0);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      data.onUpdate?.(id, { content: [ev.target?.result as string] });
+      setCurrentIndex(0);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRefImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? new FileList());
-    files.forEach((file: File) => {
+    Array.from(e.target.files ?? []).forEach((file: File) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
         setUploadedRefImages(prev => [...prev, ev.target?.result as string]);
@@ -157,105 +172,103 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
   };
 
   const removeUploadedRef = (index: number) => {
-    // index within uploadedRefImages (subtract edge-connected count)
     setUploadedRefImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  // ── Asset click → add as reference ────────────────
+  const handleAssetClick = (src: string) => {
+    if (uploadedRefImages.includes(src)) {
+      setUploadedRefImages(prev => prev.filter(s => s !== src));
+    } else if (allRefImages.length < 4) {
+      setUploadedRefImages(prev => [...prev, src]);
+    }
+  };
+
+  // ── Asset category filter ──────────────────────────
+  const categoryMap: Record<'character' | 'scene' | 'other', string> = {
+    character: '角色', scene: '场景', other: '道具',
+  };
+  const filteredAssets = assets.filter(a => {
+    if (assetCategory === 'character') return a.category === 'character';
+    if (assetCategory === 'scene') return a.category === 'scene';
+    return a.category === 'other' || !a.category;
+  });
+
+  // ── Generate ───────────────────────────────────────
   const handleGenerate = async () => {
     if (!prompt || isGenerating) return;
     setIsGenerating(true);
     setGenError('');
     try {
-      const images = await generateImages(prompt, generateCount, ratio, allRefImages.length > 0 ? allRefImages : undefined, quality);
+      const images = await generateImages(
+        prompt,
+        generateCount,
+        ratio,
+        allRefImages.length > 0 ? allRefImages : undefined,
+        quality,
+      );
       data.onUpdate?.(id, { content: images });
       setCurrentIndex(0);
       setPrompt('');
-    } catch (err: any) {
-      setGenError(err.message || '生成失败');
+    } catch (err: unknown) {
+      setGenError(err instanceof Error ? err.message : '生成失败');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const [isDragOver, setIsDragOver] = useState(false);
-
-  const handleAssetDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/asset-src')) {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragOver(true);
-    }
-  };
-
-  const handleAssetDragLeave = (e: React.DragEvent) => {
-    setIsDragOver(false);
-  };
-
-  const handleAssetDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-    const assetSrc = e.dataTransfer.getData('application/asset-src');
-    if (assetSrc) {
-      data.onUpdate?.(id, { content: [assetSrc] });
-      setCurrentIndex(0);
-    }
-  };
-
+  // ── Download ───────────────────────────────────────
   const handleDownload = () => {
     if (!currentContent) return;
     const a = document.createElement('a');
     a.href = currentContent;
-    a.download = `storyboard-${data.label || id}.png`;
+    a.download = `image-${data.label || id}.png`;
     a.click();
   };
 
-  const renderContent = () => {
-    if (!currentContent) {
-      return (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-500">
-          <ImageIcon size={64} className="opacity-20" strokeWidth={1.5} />
-        </div>
-      );
+  // ── Drag & drop asset into node ────────────────────
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleAssetDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('application/asset-src')) {
+      e.preventDefault(); e.stopPropagation(); setIsDragOver(true);
     }
-    return (
-      <img
-        src={currentContent}
-        alt="Node content"
-        className="object-cover w-full h-full pointer-events-none"
-        referrerPolicy="no-referrer"
-      />
-    );
+  };
+  const handleAssetDragLeave = () => setIsDragOver(false);
+  const handleAssetDrop = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setIsDragOver(false);
+    const src = e.dataTransfer.getData('application/asset-src');
+    if (src) { data.onUpdate?.(id, { content: [src] }); setCurrentIndex(0); }
   };
 
   return (
     <div
       className={`relative w-full h-full min-w-[320px] min-h-[250px] flex flex-col bg-[#262626] rounded-2xl shadow-2xl transition-all duration-200 overflow-visible ${
-        isInStoryboard
+        (data.isInStoryboard as boolean | undefined)
           ? 'ring-2 ring-inset ring-white/80'
           : selected
           ? 'ring-2 ring-inset ring-gray-500 shadow-[0_0_25px_rgba(255,255,255,0.05)]'
           : 'ring-1 ring-inset ring-white/5 hover:ring-white/10'
       }`}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setIsRatioOpen(false);
-      }}
+      onMouseLeave={() => { setIsHovered(false); setIsRatioOpen(false); }}
+      onDragOver={handleAssetDragOver}
+      onDragLeave={handleAssetDragLeave}
+      onDrop={handleAssetDrop}
     >
       {/* 分镜打勾按钮 */}
-      {onToggleStoryboard && (isHovered || isInStoryboard) && (
+      {data.onToggleStoryboard && (isHovered || data.isInStoryboard) && (
         <button
           className="nodrag absolute top-2 right-2 z-30 w-[22px] h-[22px] rounded-full flex items-center justify-center transition-all duration-150"
           style={
-            isInStoryboard
+            data.isInStoryboard
               ? { background: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }
               : { background: 'rgba(0,0,0,0.35)', border: '1.5px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(4px)' }
           }
-          onClick={(e) => { e.stopPropagation(); onToggleStoryboard(id); }}
-          title={isInStoryboard ? '从分镜中移除' : '加入分镜'}
+          onClick={(e) => { e.stopPropagation(); (data.onToggleStoryboard as (id: string) => void)(id); }}
+          title={data.isInStoryboard ? '从分镜中移除' : '加入分镜'}
         >
-          {isInStoryboard && (
+          {data.isInStoryboard && (
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M2 6l3 3 5-5" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -263,12 +276,12 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
         </button>
       )}
 
-      {/* 预选中环绕光效 */}
+      {/* 预选中光效 */}
       <div className="absolute -inset-[2px] rounded-[18px] pointer-events-none target-glow opacity-0 transition-opacity duration-300 z-50 target-glow-mask">
         <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg_at_50%_50%,#3b82f6_0%,transparent_60%,#3b82f6_100%)] animate-[spin_2s_linear_infinite]" />
       </div>
 
-      {/* 生成中流光边框 */}
+      {/* 生成流光边框 */}
       {isGenerating && (
         <>
           <div className="absolute -inset-[2px] rounded-[18px] pointer-events-none generating-glow-mask z-20">
@@ -279,30 +292,31 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
         </>
       )}
 
-      {/* 上传按钮 */}
-      <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-3 transition-opacity duration-200 z-10 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-2 px-4 py-1.5 bg-white/5 hover:bg-white/10 text-gray-200 rounded-full text-[12px] shadow-lg border border-white/5 transition-all"
-        >
-          <Upload size={14} />
-          上传
-        </button>
-        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleUpload} />
-      </div>
-
       {/* Label */}
-      <div className="absolute -top-8 left-1 flex justify-between items-center shrink-0">
+      <div className="absolute -top-8 left-1 flex items-center gap-2 shrink-0">
         <div className="text-[13px] text-gray-400 font-medium flex items-center gap-2">
           <ImageIcon size={14} className="text-gray-500" />
           {data.label || 'Image'}
         </div>
       </div>
 
-      {/* 节点主体 */}
-      <div className="flex-1 w-full bg-transparent relative group transition-all duration-300 rounded-2xl overflow-hidden min-h-0">
+      {/* 节点主体图片区 */}
+      <div
+        className={`flex-1 w-full bg-transparent relative group transition-all duration-300 rounded-2xl overflow-hidden min-h-0 ${isDragOver ? 'ring-2 ring-inset ring-violet-400' : ''}`}
+      >
         <div className="absolute inset-0 flex items-center justify-center">
-          {renderContent()}
+          {currentContent ? (
+            <img
+              src={currentContent}
+              alt="Node content"
+              className="object-cover w-full h-full pointer-events-none"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-500">
+              <ImageIcon size={64} className="opacity-20" strokeWidth={1.5} />
+            </div>
+          )}
         </div>
 
         {/* 生成进度条 */}
@@ -312,7 +326,7 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
           </div>
         )}
 
-        {/* 右下角标签胶囊 */}
+        {/* 多图切换胶囊 */}
         {currentContent && (
           <button
             className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 bg-black/55 backdrop-blur-md border border-white/10 rounded-full text-[12px] text-white font-medium shadow-lg hover:bg-black/75 transition-all nodrag"
@@ -338,11 +352,10 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
         className={`!w-8 !h-8 !bg-gray-500 hover:!bg-gray-400 !text-white !rounded-full !flex !items-center !justify-center !shadow-lg transition-all duration-150 ease-out origin-center !border-none !-right-10 !top-1/2 !-translate-y-1/2 ${
           showHandle ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
         }`}
-        onClick={(e) => data.onPlusClick?.(e, id)}
+        onClick={(e) => (data.onPlusClick as ((e: React.MouseEvent, id: string) => void) | undefined)?.(e, id)}
       >
         <Plus size={15} strokeWidth={3} className="pointer-events-none" />
       </Handle>
-
       <Handle
         type="target"
         position={Position.Left}
@@ -350,209 +363,334 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
         className={`!w-3 !h-3 !bg-gray-500 !border-2 !border-[#1a1d24] transition-opacity duration-150 ${showHandle ? 'opacity-100' : 'opacity-0'} !-left-1.5 !top-1/2 !-translate-y-1/2`}
       />
 
-      {/* 下方控制面板：多选时不展开 */}
+      {/* ── 下方控制面板 ── */}
       {showPanel && (
         <div
-          className="nodrag absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[520px] bg-[#2e2e32] rounded-3xl p-5 shadow-2xl border border-white/5 flex flex-col gap-4 z-50"
+          className="nodrag absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[460px] bg-[#1c1c1e] rounded-3xl shadow-2xl border border-white/[0.07] flex flex-col overflow-hidden z-50"
           onMouseDown={(e) => e.stopPropagation()}
         >
-
-          {/* 0. 模板选择条 */}
-          {templates.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              <span className="text-[10px] text-gray-600 flex-shrink-0">模板</span>
+          {/* ── 输入区 ── */}
+          <div className="p-4 flex flex-col gap-3">
+            {/* 上传 + 提示词 */}
+            <div className="flex gap-3 items-start">
               <button
-                onClick={() => { setSelectedTplId(null); setMergedPrompt(''); }}
-                className={`px-2.5 py-1 rounded-full text-[11px] flex-shrink-0 border transition-colors ${
-                  !selectedTplId ? 'bg-white/8 text-gray-300 border-white/15' : 'text-gray-600 border-white/8 hover:text-gray-400'
-                }`}
-              >全部</button>
-              {templates.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => { setSelectedTplId(t.id); mergePrompt(t.id, userExtra); }}
-                  className={`px-2.5 py-1 rounded-full text-[11px] flex-shrink-0 border transition-colors whitespace-nowrap ${
-                    selectedTplId === t.id
-                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                      : 'text-gray-500 border-white/8 hover:text-gray-300'
-                  }`}
-                >
-                  {selectedTplId === t.id && merging ? '✦ 融合中…' : `✦ ${t.name}`}
-                </button>
-              ))}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-shrink-0 w-[68px] h-[68px] border-[1.5px] border-dashed border-white/15 hover:border-white/30 rounded-[14px] flex flex-col items-center justify-center gap-1 text-gray-500 hover:text-gray-300 transition-all"
+              >
+                <Upload size={20} />
+                <span className="text-[10px]">上传</span>
+              </button>
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleUpload} />
+              <textarea
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
+                placeholder="可复制或拖拽图片至此，描述你想要的画面"
+                className="flex-1 bg-transparent border-none text-[14px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[68px] py-1 leading-relaxed"
+              />
             </div>
-          )}
 
-          {/* 1. 提示词区域：有模板时显示融合框，无模板时显示普通输入 */}
-          <div className="flex flex-col gap-1.5">
-            {selectedTplId ? (
-              <>
-                <div className="bg-[#1a1a24] border border-indigo-500/25 rounded-xl px-3 py-2.5">
-                  <div className="text-[10px] text-indigo-400 mb-1.5 flex items-center gap-1">✦ AI 融合提示词</div>
-                  <textarea
-                    value={mergedPrompt}
-                    onChange={e => { setMergedPrompt(e.target.value); setPrompt(e.target.value); }}
-                    className="w-full bg-transparent text-[13px] text-indigo-100 leading-relaxed resize-none outline-none min-h-[60px]"
-                    placeholder="AI 融合中…"
-                  />
-                </div>
-                <input
-                  value={userExtra}
-                  onChange={e => setUserExtra(e.target.value)}
-                  onBlur={() => { if (selectedTplId) mergePrompt(selectedTplId, userExtra); }}
-                  placeholder="+ 加入你的想法（可选）"
-                  className="bg-white/[0.04] border border-white/[0.06] text-[12px] text-gray-400 placeholder-gray-700 rounded-lg px-3 py-2 outline-none focus:border-white/15"
-                />
-              </>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wide">提示词</span>
-                  <button
-                    onClick={handleOptimizePrompt}
-                    disabled={optimizing || !data.shotDescription}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-600/60 hover:bg-violet-600/80 disabled:opacity-40 text-[11px] text-white transition-colors"
-                  >
-                    {optimizing ? <Loader2 size={10} className="animate-spin" /> : <span>✨</span>}
-                    {optimizing ? '优化中…' : 'AI优化'}
-                  </button>
-                </div>
+            {/* 镜头描述（可编辑） */}
+            <div className="flex items-start gap-2">
+              <div className="w-[3px] self-stretch bg-white/10 rounded-full flex-shrink-0 mt-1" />
+              <div className="flex-1 flex flex-col gap-0.5">
+                <span className="text-[10px] text-gray-600 uppercase tracking-wider">镜头描述</span>
                 <textarea
-                  value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
-                  placeholder="描述任何你想生成的内容"
-                  className="flex-1 bg-transparent border-none text-[16px] text-gray-200 placeholder-gray-600 focus:outline-none resize-none min-h-[80px] py-1 leading-relaxed"
+                  value={shotDescription}
+                  onChange={e => setShotDescription(e.target.value)}
+                  onBlur={handleShotDescBlur}
+                  placeholder="添加镜头描述…"
+                  className="w-full bg-transparent text-[13px] text-gray-400 placeholder-gray-700 focus:outline-none resize-none min-h-[36px] leading-relaxed"
                 />
+              </div>
+            </div>
+
+            {/* 参考图区域 */}
+            {allRefImages.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {allRefImages.map((img, i) => {
+                  const isEdgeConnected = data.referenceImage && i === 0;
+                  const uploadedIndex = data.referenceImage ? i - 1 : i;
+                  return (
+                    <div key={i} className="relative w-12 h-12 rounded-xl overflow-hidden border border-white/10 group flex-shrink-0">
+                      <img src={img} alt="参考图" className="w-full h-full object-cover" />
+                      {isEdgeConnected && (
+                        <div className="absolute bottom-0 left-0 right-0 text-center text-[9px] text-white/50 bg-black/40 py-0.5">链接</div>
+                      )}
+                      {!isEdgeConnected && (
+                        <button
+                          onClick={() => removeUploadedRef(uploadedIndex)}
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                        >
+                          <X size={14} className="text-white" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {allRefImages.length < 4 && (
+                  <button
+                    onClick={() => refImageInputRef.current?.click()}
+                    className="w-12 h-12 rounded-xl border-[1.5px] border-dashed border-white/15 hover:border-white/30 flex items-center justify-center text-gray-600 hover:text-gray-400 transition-colors flex-shrink-0"
+                  >
+                    <Plus size={16} />
+                  </button>
+                )}
               </div>
             )}
           </div>
 
-          {/* 2. 参考图区域（保持原有逻辑） */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {allRefImages.map((img, i) => {
-              const isEdgeConnected = data.referenceImage && i === 0;
-              const uploadedIndex = data.referenceImage ? i - 1 : i;
-              return (
-                <div key={i} className="relative w-14 h-14 rounded-xl overflow-hidden border border-white/10 group flex-shrink-0">
-                  <img src={img} alt="参考图" className="w-full h-full object-cover" />
-                  {isEdgeConnected && (
-                    <div className="absolute bottom-0 left-0 right-0 text-center text-[9px] text-white/50 bg-black/40 py-0.5">链接</div>
-                  )}
-                  {!isEdgeConnected && (
-                    <button
-                      onClick={() => removeUploadedRef(uploadedIndex)}
-                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                    >
-                      <X size={16} className="text-white" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-            {allRefImages.length < 4 && (
-              <button
-                onClick={() => refImageInputRef.current?.click()}
-                className="w-14 h-14 rounded-xl border-2 border-dashed border-white/15 hover:border-white/35 flex items-center justify-center text-gray-600 hover:text-gray-400 transition-colors flex-shrink-0"
-              >
-                <Plus size={20} />
-              </button>
-            )}
-            <input type="file" ref={refImageInputRef} className="hidden" accept="image/*" multiple onChange={handleRefImageUpload} />
-          </div>
+          {/* ── 展开面板区（风格 / 资产） ── */}
+          {expandedPanel !== null && (
+            <div className="border-t border-white/[0.06] bg-[#1a1a1c] px-4 py-3 flex flex-col gap-3">
 
-          {/* 3. 镜头描述（保持不变） */}
-          {data.shotDescription && (
-            <div className="bg-white/5 rounded-xl px-4 py-3">
-              <p className="text-[11px] text-gray-500 mb-1 font-medium uppercase tracking-wide">镜头描述</p>
-              <p className="text-[13px] text-gray-300 leading-relaxed select-text cursor-text" onMouseDown={e => e.stopPropagation()}>
-                {data.shotDescription}
-              </p>
+              {/* 风格模板面板 */}
+              {expandedPanel === 'style' && (
+                <>
+                  {/* 分类筛选 */}
+                  {templates.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {styleCategories.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setStyleCatFilter(cat)}
+                          className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${
+                            styleCatFilter === cat
+                              ? 'bg-white/10 text-gray-200 border-white/20 font-semibold'
+                              : 'text-gray-600 border-white/10 hover:text-gray-400'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                      <button className="px-3 py-1 rounded-full text-[12px] border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors">
+                        + 自定义
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 模板网格 */}
+                  {filteredTemplates.length === 0 ? (
+                    <div className="text-center py-6 text-gray-600 text-[13px]">暂无模板，点击「+ 自定义」添加</div>
+                  ) : (
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {filteredTemplates.map(tpl => (
+                        <button
+                          key={tpl.id}
+                          onClick={() => handleSelectTemplate(tpl.id)}
+                          className={`relative rounded-[10px] overflow-hidden aspect-[0.85] bg-white/5 flex flex-col items-center justify-end transition-all ${
+                            selectedTplId === tpl.id ? 'ring-2 ring-violet-400' : 'hover:ring-1 hover:ring-white/20'
+                          }`}
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-40">
+                            🎨
+                          </div>
+                          <div className="relative w-full bg-gradient-to-t from-black/75 to-transparent text-[10px] text-center text-gray-200 py-1 px-1 truncate">
+                            {tpl.name}
+                          </div>
+                        </button>
+                      ))}
+                      {/* + 添加格 */}
+                      <button className="relative rounded-[10px] overflow-hidden aspect-[0.85] border-[1.5px] border-dashed border-white/10 flex flex-col items-center justify-center gap-1 text-gray-600 hover:text-gray-400 hover:border-white/20 transition-all">
+                        <Plus size={18} />
+                        <span className="text-[10px]">添加</span>
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* 资产面板 */}
+              {expandedPanel === 'asset' && (
+                <>
+                  {/* 分类 Tab */}
+                  <div className="flex gap-2">
+                    {(['character', 'scene', 'other'] as const).map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setAssetCategory(cat)}
+                        className={`px-4 py-1.5 rounded-full text-[12px] transition-colors ${
+                          assetCategory === cat
+                            ? 'bg-white/10 text-gray-200 font-semibold'
+                            : 'text-gray-600 hover:text-gray-400'
+                        }`}
+                      >
+                        {categoryMap[cat]}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* 资产网格 */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {filteredAssets.map(asset => {
+                      const isSelected = uploadedRefImages.includes(asset.src);
+                      return (
+                        <button
+                          key={asset.id}
+                          onClick={() => handleAssetClick(asset.src)}
+                          className={`rounded-xl aspect-square bg-white/[0.05] border overflow-hidden flex flex-col items-center justify-center gap-1 transition-all ${
+                            isSelected
+                              ? 'border-violet-400 ring-1 ring-violet-400'
+                              : 'border-white/[0.07] hover:border-white/20'
+                          }`}
+                        >
+                          {asset.src ? (
+                            <img src={asset.src} alt={asset.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <ImageIcon size={20} className="text-gray-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                    {/* + 创建 */}
+                    <button className="rounded-xl aspect-square border-[1.5px] border-dashed border-white/10 flex flex-col items-center justify-center gap-1 text-gray-600 hover:text-gray-400 hover:border-white/20 transition-all">
+                      <Plus size={20} />
+                      <span className="text-[10px]">创建</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          {/* 4. 画风选择（保持不变） */}
-          <div className="flex flex-wrap gap-1.5 items-center" onMouseDown={e => e.stopPropagation()}>
-            {STYLE_PRESETS.map(style => (
-              <button
-                key={style}
-                onClick={() => { const newStyle = selectedStyle === style ? '' : style; setSelectedStyle(newStyle); setCustomStyle(''); data.onUpdate?.(id, { style: newStyle }); }}
-                className={`px-2 py-0.5 rounded-full text-[11px] border transition-colors ${
-                  selectedStyle === style ? 'bg-violet-600/80 border-violet-500 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80'
-                }`}
-              >{style}</button>
-            ))}
-            <input
-              value={customStyle}
-              onChange={e => { setCustomStyle(e.target.value); setSelectedStyle(''); data.onUpdate?.(id, { style: e.target.value }); }}
-              placeholder="自定义画风"
-              className="flex-1 min-w-[80px] bg-white/5 border border-white/10 rounded-full px-3 py-0.5 text-[11px] text-white/70 placeholder-white/25 outline-none focus:border-white/30"
-            />
-          </div>
+          {/* ── 底部工具栏 ── */}
+          <div className="flex items-center gap-1.5 px-3 py-2.5 border-t border-white/[0.06]">
 
-          {genError && <p className="text-red-400 text-[12px]">{genError}</p>}
+            {/* 模型 */}
+            <button
+              onClick={() => setIsModelOpen(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              SeeDream
+              <ChevronDown size={10} className="text-gray-600" />
+            </button>
 
-          {/* 5. 底部控制栏（保持原有结构） */}
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-3 relative">
-              <span className="text-[13px] text-gray-400 font-medium">SeeDream 4.5</span>
-              <div className="w-[1px] h-3.5 bg-white/10" />
-              <div className="relative">
-                <button
-                  onClick={() => setIsRatioOpen(!isRatioOpen)}
-                  className="flex items-center gap-2 text-[13px] text-gray-300 hover:text-white transition-colors group px-2 py-1 rounded-lg hover:bg-white/5"
-                >
-                  <div className="w-3.5 h-3.5 border border-gray-500 rounded-sm group-hover:border-blue-400" />
-                  <span>{ratio} · {quality}</span>
-                  <ChevronDown size={12} className={`text-gray-600 transition-transform ${isRatioOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isRatioOpen && (
-                  <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                    <div className="px-4 py-2 text-[11px] text-gray-500 uppercase font-mono border-b border-white/5">比例</div>
-                    {(['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9'] as const).map(r => (
-                      <button key={r} onClick={() => { setRatio(r); const size = RATIO_SIZES[r] ?? { w: 380, h: 214 }; data.onUpdate?.(id, { ratio: r, _width: size.w, _height: size.h }); }}
-                        className={`w-full px-4 py-2 text-left text-[13px] transition-colors flex items-center justify-between ${ratio === r ? 'text-white bg-white/10' : 'text-gray-300 hover:bg-white/10'}`}
-                      >{r}{ratio === r && <span className="text-white/40 text-[10px]">✓</span>}</button>
-                    ))}
-                    <div className="px-4 py-2 text-[11px] text-gray-500 uppercase font-mono border-y border-white/5">画质</div>
-                    {(['1K', '2K'] as const).map(q => (
-                      <button key={q} onClick={() => setQuality(q)}
-                        className={`w-full px-4 py-2 text-left text-[13px] transition-colors flex items-center justify-between ${quality === q ? 'text-white bg-white/10' : 'text-gray-300 hover:bg-white/10'}`}
-                      >{q}{quality === q && <span className="text-white/40 text-[10px]">✓</span>}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {currentContent && (
-                <button onClick={handleDownload} className="p-2 text-gray-400 hover:text-white transition-colors" title="下载图片">
-                  <Download size={20} />
-                </button>
-              )}
-              <div className="relative">
-                <button onClick={() => setIsCountOpen(!isCountOpen)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl text-[13px] font-medium transition-colors border border-white/5"
-                >{generateCount}x</button>
-                {isCountOpen && (
-                  <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col">
-                    {[4, 3, 2, 1].map(num => (
-                      <button key={num} onClick={() => { setGenerateCount(num); setIsCountOpen(false); }}
-                        className={`px-4 py-2 text-center text-[13px] transition-colors ${generateCount === num ? 'text-white bg-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}
-                      >{num}x</button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* 比例 */}
+            <div className="relative">
               <button
-                onClick={handleGenerate}
-                disabled={isGenerating || !prompt}
-                className="p-2 bg-white text-black rounded-full hover:bg-gray-200 transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => { setIsRatioOpen(v => !v); setIsQualityOpen(false); setIsCountOpen(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
               >
-                {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <ArrowUp size={20} strokeWidth={3} />}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                {ratio}
+                <ChevronDown size={10} className="text-gray-600" />
               </button>
+              {isRatioOpen && (
+                <div className="absolute bottom-full left-0 mb-2 w-32 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                  {(['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'] as const).map(r => (
+                    <button key={r} onClick={() => { setRatio(r); const s = RATIO_SIZES[r] ?? {w:380,h:214}; data.onUpdate?.(id,{ratio:r,_width:s.w,_height:s.h}); setIsRatioOpen(false); }}
+                      className={`w-full px-3 py-1.5 text-left text-[12px] transition-colors flex justify-between items-center ${ratio===r?'text-white bg-white/10':'text-gray-400 hover:bg-white/[0.08]'}`}
+                    >{r}{ratio===r&&<span className="text-white/40 text-[10px]">✓</span>}</button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* 清晰度 */}
+            <div className="relative">
+              <button
+                onClick={() => { setIsQualityOpen(v => !v); setIsRatioOpen(false); setIsCountOpen(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
+              >
+                {quality}
+                <ChevronDown size={10} className="text-gray-600" />
+              </button>
+              {isQualityOpen && (
+                <div className="absolute bottom-full left-0 mb-2 w-20 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                  {(['1K','2K'] as const).map(q => (
+                    <button key={q} onClick={() => { setQuality(q); setIsQualityOpen(false); }}
+                      className={`w-full px-3 py-1.5 text-left text-[12px] transition-colors flex justify-between items-center ${quality===q?'text-white bg-white/10':'text-gray-400 hover:bg-white/[0.08]'}`}
+                    >{q}{quality===q&&<span className="text-white/40 text-[10px]">✓</span>}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 风格图标 */}
+            <button
+              onClick={() => togglePanel('style')}
+              title="风格模板"
+              className={`w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all ${
+                expandedPanel === 'style'
+                  ? 'bg-violet-500/20 border-violet-500/50 text-violet-300'
+                  : 'bg-white/[0.05] border-white/[0.08] text-gray-500 hover:text-gray-300 hover:bg-white/[0.09]'
+              }`}
+            >
+              <Palette size={15} />
+            </button>
+
+            {/* 资产图标 */}
+            <button
+              onClick={() => togglePanel('asset')}
+              title="资产"
+              className={`w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all ${
+                expandedPanel === 'asset'
+                  ? 'bg-violet-500/20 border-violet-500/50 text-violet-300'
+                  : 'bg-white/[0.05] border-white/[0.08] text-gray-500 hover:text-gray-300 hover:bg-white/[0.09]'
+              }`}
+            >
+              <Users size={15} />
+            </button>
+
+            <div className="flex-1" />
+
+            {/* AI优化 */}
+            <button
+              onClick={handleOptimizePrompt}
+              disabled={!canOptimize || optimizing}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-violet-600/50 hover:bg-violet-600/70 disabled:opacity-30 text-[12px] text-violet-200 border border-violet-500/30 transition-all"
+            >
+              {optimizing ? <Loader2 size={11} className="animate-spin" /> : <span>✨</span>}
+              {optimizing ? '优化中…' : 'AI 优化'}
+            </button>
+
+            {/* 数量 */}
+            <div className="relative">
+              <button
+                onClick={() => { setIsCountOpen(v => !v); setIsRatioOpen(false); setIsQualityOpen(false); }}
+                className="flex items-center gap-1 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
+              >
+                {generateCount}x
+                <ChevronDown size={10} className="text-gray-600" />
+              </button>
+              {isCountOpen && (
+                <div className="absolute bottom-full right-0 mb-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                  {[4,3,2,1].map(n => (
+                    <button key={n} onClick={() => { setGenerateCount(n); setIsCountOpen(false); }}
+                      className={`w-full px-4 py-2 text-center text-[12px] transition-colors ${generateCount===n?'text-white bg-white/10':'text-gray-400 hover:bg-white/5'}`}
+                    >{n}x</button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 下载 */}
+            {currentContent && (
+              <button onClick={handleDownload} className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-gray-500 hover:text-gray-200 transition-colors">
+                <Download size={16} />
+              </button>
+            )}
+
+            {/* 生成按钮 */}
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt}
+              className="w-[34px] h-[34px] rounded-full bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-40 flex items-center justify-center shadow-lg shadow-fuchsia-900/40 transition-all active:scale-95"
+            >
+              {isGenerating
+                ? <Loader2 size={16} className="animate-spin text-white" />
+                : <ArrowUp size={16} strokeWidth={2.5} className="text-white" />
+              }
+            </button>
+
           </div>
+
+          {/* 生成错误 */}
+          {genError && <p className="px-4 pb-3 text-red-400 text-[12px]">{genError}</p>}
+
+          {/* 隐藏 input */}
+          <input type="file" ref={refImageInputRef} className="hidden" accept="image/*" multiple onChange={handleRefImageUpload} />
         </div>
       )}
     </div>
