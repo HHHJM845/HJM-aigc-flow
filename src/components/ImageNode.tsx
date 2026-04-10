@@ -55,7 +55,6 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
   const [isCountOpen, setIsCountOpen] = useState(false);
   const [isRatioOpen, setIsRatioOpen] = useState(false);
   const [isQualityOpen, setIsQualityOpen] = useState(false);
-  const [isModelOpen, setIsModelOpen] = useState(false);
 
   // ── Reference images ───────────────────────────────
   const [uploadedRefImages, setUploadedRefImages] = useState<string[]>([]);
@@ -87,6 +86,19 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
 
   // ── Assets (injected via data) ─────────────────────
   const assets: AssetItem[] = data.assets ?? [];
+
+  // ── Sync external data changes ────────────────────
+  useEffect(() => {
+    setShotDescription(data.shotDescription ?? '');
+  }, [data.shotDescription]);
+
+  useEffect(() => {
+    if (data.ratio) setRatio(data.ratio);
+  }, [data.ratio]);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [data.content]);
 
   // ── Template loading ───────────────────────────────
   useEffect(() => {
@@ -223,7 +235,9 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
     const a = document.createElement('a');
     a.href = currentContent;
     a.download = `image-${data.label || id}.png`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
   // ── Drag & drop asset into node ────────────────────
@@ -251,7 +265,7 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
           : 'ring-1 ring-inset ring-white/5 hover:ring-white/10'
       }`}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => { setIsHovered(false); setIsRatioOpen(false); }}
+      onMouseLeave={() => { setIsHovered(false); setIsRatioOpen(false); setIsQualityOpen(false); setIsCountOpen(false); }}
       onDragOver={handleAssetDragOver}
       onDragLeave={handleAssetDragLeave}
       onDrop={handleAssetDrop}
@@ -555,14 +569,10 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
           <div className="flex items-center gap-1.5 px-3 py-2.5 border-t border-white/[0.06]">
 
             {/* 模型 */}
-            <button
-              onClick={() => setIsModelOpen(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] rounded-full text-[12px] text-gray-400 transition-all"
-            >
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full text-[12px] text-gray-400">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
               SeeDream
-              <ChevronDown size={10} className="text-gray-600" />
-            </button>
+            </div>
 
             {/* 比例 */}
             <div className="relative">
