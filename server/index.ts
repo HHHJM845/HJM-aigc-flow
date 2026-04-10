@@ -9,7 +9,6 @@ import chatRouter from './routes/chat.js';
 import generateRouter from './routes/generate.js';
 import videoRouter from './routes/video.js';
 import analyzeRouter from './routes/analyze.js';
-import subtitleGenerateRouter from './routes/subtitle-generate.js';
 import exportVideoRouter from './routes/export-video.js';
 import matchAssetsRouter from './routes/match-assets.js';
 import optimizePromptRouter from './routes/optimize-prompt.js';
@@ -19,10 +18,12 @@ import reviewRouter from './routes/review.js';
 import templatesRouter from './routes/templates.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
+import { seedDefaultImageTemplates } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+seedDefaultImageTemplates();
 const PORT = process.env.PORT || 3001;
 
 app.use(express.json({ limit: '20mb' }));
@@ -44,7 +45,6 @@ app.use('/api/chat', chatRouter);
 app.use('/api/generate', generateRouter);
 app.use('/api/video', videoRouter);
 app.use('/api/analyze', analyzeRouter);
-app.use('/api/subtitle-generate', subtitleGenerateRouter);
 app.use('/api/export-video', exportVideoRouter);
 app.use('/api/match-assets', matchAssetsRouter);
 app.use('/api/optimize-prompt', optimizePromptRouter);

@@ -296,3 +296,26 @@ export function updateTemplate(id: string, t: Partial<Omit<Template, 'id' | 'cre
 export function deleteTemplate(id: string): void {
   db.prepare('DELETE FROM templates WHERE id = ?').run(id);
 }
+
+const DEFAULT_IMAGE_TEMPLATES = [
+  { name: '写实', genre: '写实摄影', styleTag: '写实', promptPreset: '超写实摄影风格，自然光线，细节丰富，照片级质感，真实皮肤纹理' },
+  { name: '动漫', genre: '动漫插画', styleTag: '动漫', promptPreset: '日式动漫风格，清晰线条，鲜艳色彩，二次元角色，精细插画' },
+  { name: '油画', genre: '艺术绘画', styleTag: '油画', promptPreset: '古典油画风格，丰富肌理，厚涂笔触，温暖色调，博物馆级质感' },
+  { name: '水彩', genre: '艺术绘画', styleTag: '水彩', promptPreset: '水彩插画风格，通透色彩，柔和边缘，水痕晕染效果，轻盈唯美' },
+  { name: '赛博朋克', genre: '科幻未来', styleTag: '赛博朋克', promptPreset: '赛博朋克风格，霓虹灯光，暗黑城市背景，科技感，未来都市氛围' },
+  { name: '中国水墨', genre: '国风艺术', styleTag: '国风', promptPreset: '中国传统水墨画风格，留白构图，墨色浓淡变化，写意笔法，诗意意境' },
+  { name: '素描', genre: '艺术绘画', styleTag: '素描', promptPreset: '铅笔素描风格，黑白灰调，线条清晰，光影层次丰富，手绘质感' },
+  { name: '3D渲染', genre: '3D设计', styleTag: '3D渲染', promptPreset: '高质量3D渲染，逼真光照，材质细腻，景深效果，电影级渲染质感' },
+];
+
+export function seedDefaultImageTemplates(): void {
+  const existing = db.prepare("SELECT COUNT(*) as cnt FROM templates WHERE nodeType = 'image'").get() as { cnt: number };
+  if (existing.cnt > 0) return; // already seeded
+  const insert = db.prepare(`
+    INSERT INTO templates (id, name, genre, nodeType, promptPreset, styleTag, compositionTip, cameraParams, durationHint, audioHint, createdAt)
+    VALUES (?, ?, ?, 'image', ?, ?, NULL, NULL, NULL, NULL, ?)
+  `);
+  for (const t of DEFAULT_IMAGE_TEMPLATES) {
+    insert.run(`tpl_seed_${t.name}`, t.name, t.genre, t.promptPreset, t.styleTag, Date.now());
+  }
+}
