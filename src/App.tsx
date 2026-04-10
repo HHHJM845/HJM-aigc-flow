@@ -699,6 +699,7 @@ function Flow({
         ...(node.type === 'videoNode' ? {
           videoOrderUrls: videoOrder.map(v => v.url),
           onToggleVideo: handleToggleVideo,
+          onNavigateToTemplates: () => setActiveView('templates'),
         } : {}),
       },
     };

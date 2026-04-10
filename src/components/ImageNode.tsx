@@ -381,8 +381,8 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
           {/* ── 输入区 ── */}
           <div className="px-4 pt-4 pb-3 flex flex-col gap-2.5">
 
-            {/* 上传按钮 + 参考图（同一行） */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* 上传按钮 */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-white/20 hover:border-white/35 rounded-full text-[12px] text-gray-500 hover:text-gray-300 transition-all"
@@ -391,39 +391,46 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
                 上传图片
               </button>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleUpload} />
-
-              {/* 参考图缩略图 */}
-              {allRefImages.map((img, i) => {
-                const isEdgeConnected = data.referenceImage && i === 0;
-                const uploadedIndex = data.referenceImage ? i - 1 : i;
-                return (
-                  <div key={i} className="relative w-8 h-8 rounded-lg overflow-hidden border border-white/10 group flex-shrink-0">
-                    <img src={img} alt="参考图" className="w-full h-full object-cover" />
-                    {isEdgeConnected && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <span className="text-[8px] text-white/70">链</span>
-                      </div>
-                    )}
-                    {!isEdgeConnected && (
-                      <button
-                        onClick={() => removeUploadedRef(uploadedIndex)}
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                      >
-                        <X size={10} className="text-white" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              {allRefImages.length > 0 && allRefImages.length < 4 && (
-                <button
-                  onClick={() => refImageInputRef.current?.click()}
-                  className="w-8 h-8 rounded-lg border border-dashed border-white/15 hover:border-white/30 flex items-center justify-center text-gray-600 hover:text-gray-400 transition-colors flex-shrink-0"
-                >
-                  <Plus size={12} />
-                </button>
-              )}
             </div>
+
+            {/* 参考图（独立区域） */}
+            {allRefImages.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] text-gray-600 uppercase tracking-wider">参考图</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {allRefImages.map((img, i) => {
+                    const isEdgeConnected = data.referenceImage && i === 0;
+                    const uploadedIndex = data.referenceImage ? i - 1 : i;
+                    return (
+                      <div key={i} className="relative w-10 h-10 rounded-lg overflow-hidden border border-white/10 group flex-shrink-0">
+                        <img src={img} alt="参考图" className="w-full h-full object-cover" />
+                        {isEdgeConnected && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <span className="text-[8px] text-white/70">链</span>
+                          </div>
+                        )}
+                        {!isEdgeConnected && (
+                          <button
+                            onClick={() => removeUploadedRef(uploadedIndex)}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          >
+                            <X size={10} className="text-white" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {allRefImages.length < 4 && (
+                    <button
+                      onClick={() => refImageInputRef.current?.click()}
+                      className="w-10 h-10 rounded-lg border border-dashed border-white/15 hover:border-white/30 flex items-center justify-center text-gray-600 hover:text-gray-400 transition-colors flex-shrink-0"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* 提示词（全宽） */}
             <textarea
@@ -578,7 +585,7 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-40 text-white text-[13px] font-medium shadow-lg shadow-fuchsia-900/40 transition-all active:scale-95"
+                className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-[13px] font-medium shadow-lg shadow-violet-900/40 transition-all active:scale-95"
               >
                 {isGenerating
                   ? <Loader2 size={14} className="animate-spin" />
