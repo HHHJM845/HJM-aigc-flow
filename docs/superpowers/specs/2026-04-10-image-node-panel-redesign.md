@@ -40,7 +40,7 @@
 
 - **上传按钮**：左上角虚线框（+ 上传），点击触发文件选择，支持拖拽放入
 - **提示词**：右侧大文本区，placeholder "可复制或拖拽图片至此，描述你想要的画面"，支持 Enter 触发生成（Shift+Enter 换行）
-- **镜头描述**：有 `data.shotDescription` 时在文本区下方显示，带左侧竖线，只读灰色文字，标注「镜头描述」前缀
+- **镜头描述**：有 `data.shotDescription` 时在文本区下方显示，带左侧竖线，**可编辑的 textarea**，编辑后通过 `data.onUpdate?.(id, { shotDescription })` 持久化到节点数据；placeholder 为「添加镜头描述…」，无内容时也可手动输入新建
 
 ### 2. 风格模板面板（🎨 展开）
 
@@ -77,7 +77,7 @@
 | 🎨 风格图标 | 圆形按钮 | 激活时紫色背景，切换风格面板 |
 | 👥 资产图标 | 圆形按钮 | 激活时紫色背景，切换资产面板 |
 | `spacer` | 弹性间距 | — |
-| ✨ AI 优化 | 小按钮 | 调用 `/api/optimize-prompt`，结果填入提示词区；无镜头描述时 disabled |
+| ✨ AI 优化 | 小按钮 | 将**已选风格模板的 `promptPreset`** + **当前镜头描述**一起传给 `/api/optimize-prompt`，返回的优化提示词填入提示词区；无镜头描述且无选中模板时 disabled |
 | 数量 | 下拉 Pill | 1x / 2x / 3x / 4x |
 | 下载 | 图标按钮 | 有图片时出现，下载当前图片 |
 | ↑ 生成 | 圆形按钮（紫/粉） | 无提示词时 disabled |
@@ -90,10 +90,31 @@
 
 ```ts
 const [expandedPanel, setExpandedPanel] = useState<'style' | 'asset' | null>(null);
+const [shotDescription, setShotDescription] = useState(data.shotDescription ?? ''); // 可编辑，脱焦时 onUpdate
 // 原 selectedStyle / customStyle → 统一为 selectedTplId（模板ID）
 // 原 isRatioOpen / isCountOpen → 保留（下拉菜单开关）
 // quality state 保留，新增 UI 控件
 // uploadedRefImages 保留（资产点击追加到此）
+```
+
+**AI 优化调用逻辑**：
+```ts
+const handleOptimizePrompt = async () => {
+  const style = selectedTplId
+    ? templates.find(t => t.id === selectedTplId)?.promptPreset ?? ''
+    : '';
+  // 至少有一个有内容才发请求
+  if (!shotDescription && !style) return;
+  setOptimizing(true);
+  const resp = await fetch('/api/optimize-prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: shotDescription, style, label: data.label }),
+  });
+  const { prompt } = await resp.json();
+  setPrompt(prompt);
+  setOptimizing(false);
+};
 ```
 
 `expandedPanel` 逻辑：
