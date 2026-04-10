@@ -309,13 +309,17 @@ const DEFAULT_IMAGE_TEMPLATES = [
 ];
 
 export function seedDefaultImageTemplates(): void {
-  const existing = db.prepare("SELECT COUNT(*) as cnt FROM templates WHERE nodeType = 'image'").get() as { cnt: number };
+  const existing = db.prepare("SELECT COUNT(*) as cnt FROM templates WHERE id LIKE 'tpl_seed_%'").get() as { cnt: number };
   if (existing.cnt > 0) return; // already seeded
   const insert = db.prepare(`
-    INSERT INTO templates (id, name, genre, nodeType, promptPreset, styleTag, compositionTip, cameraParams, durationHint, audioHint, createdAt)
+    INSERT OR IGNORE INTO templates (id, name, genre, nodeType, promptPreset, styleTag, compositionTip, cameraParams, durationHint, audioHint, createdAt)
     VALUES (?, ?, ?, 'image', ?, ?, NULL, NULL, NULL, NULL, ?)
   `);
-  for (const t of DEFAULT_IMAGE_TEMPLATES) {
-    insert.run(`tpl_seed_${t.name}`, t.name, t.genre, t.promptPreset, t.styleTag, Date.now());
-  }
+  const seedTx = db.transaction(() => {
+    const now = Date.now();
+    for (const t of DEFAULT_IMAGE_TEMPLATES) {
+      insert.run(`tpl_seed_${t.name}`, t.name, t.genre, t.promptPreset, t.styleTag, now);
+    }
+  });
+  seedTx();
 }
