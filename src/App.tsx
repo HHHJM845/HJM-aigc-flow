@@ -116,6 +116,11 @@ function Flow({
   initialTopicKeyword,
   projectId,
   annotations = [],
+  annotationSuggestions,
+  annotationSuggestionsLoading,
+  onDismissSuggestion,
+  onApplySuggestion,
+  revisionNodeRequest,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -141,6 +146,11 @@ function Flow({
   initialTopicKeyword?: string;
   projectId?: string;
   annotations?: AnnotationData[];
+  annotationSuggestions?: Map<string, { suggestedPrompt: string; reason: string; comment: string; status: 'pending' | 'dismissed' }>;
+  annotationSuggestionsLoading?: boolean;
+  onDismissSuggestion?: (rowId: string) => void;
+  onApplySuggestion?: (rowId: string, prompt: string, rowIndex: number) => void;
+  revisionNodeRequest?: { sourceNodeId: string; newNodeId: string; prompt: string; rowIndex: number; } | null;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
@@ -194,6 +204,31 @@ function Flow({
     const t = setTimeout(() => { isApplyingExternal.current = false; }, 200);
     return () => clearTimeout(t);
   }, [externalNodes, externalEdges, externalHistory, setNodes, setEdges]);
+
+  // Handle revision node addition from BreakdownView suggestions
+  useEffect(() => {
+    if (!revisionNodeRequest) return;
+    const { sourceNodeId, newNodeId, prompt, rowIndex } = revisionNodeRequest;
+    const sourceNode = nodesRef.current.find(n => n.id === sourceNodeId);
+    const baseX = sourceNode ? sourceNode.position.x + 420 : 200;
+    const baseY = sourceNode ? sourceNode.position.y : 200;
+    const revisionNode: Node = {
+      id: newNodeId,
+      type: 'imageNode',
+      position: { x: baseX, y: baseY },
+      width: 380,
+      height: 214,
+      data: {
+        label: `修改版 · #${rowIndex}`,
+        contentType: 'image',
+        content: [],
+        initialPrompt: prompt,
+        onPlusClick: handlePlusClick,
+        onUpdate: handleUpdateNode,
+      },
+    };
+    setNodes(nds => [...nds, revisionNode]);
+  }, [revisionNodeRequest]);
 
   // 自动保存：nodes 或 edges 变化后 3 秒防抖通过 onSave → wsSaveProject 同步到服务器
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -921,6 +956,10 @@ function Flow({
           annotations={annotations}
           onSnapshotRestore={handleSnapshotRestore}
           onSaveSnapshot={handleSaveSnapshot}
+          annotationSuggestions={annotationSuggestions}
+          annotationSuggestionsLoading={annotationSuggestionsLoading}
+          onDismissSuggestion={onDismissSuggestion}
+          onApplySuggestion={onApplySuggestion}
         />
       </div>
 
@@ -1019,6 +1058,33 @@ export default function App() {
   };
   const [annotationSuggestions, setAnnotationSuggestions] = useState<Map<string, AnnotationSuggestion>>(new Map());
   const [annotationSuggestionsLoading, setAnnotationSuggestionsLoading] = useState(false);
+
+  const [revisionNodeRequest, setRevisionNodeRequest] = useState<{
+    sourceNodeId: string;
+    newNodeId: string;
+    prompt: string;
+    rowIndex: number;
+  } | null>(null);
+
+  const handleDismissSuggestion = (rowId: string) => {
+    setAnnotationSuggestions(prev => {
+      const next = new Map(prev);
+      const s = next.get(rowId);
+      if (s) next.set(rowId, { ...s, status: 'dismissed' });
+      return next;
+    });
+  };
+
+  const handleApplySuggestion = (rowId: string, prompt: string, rowIndex: number) => {
+    const newNodeId = `revision_${rowId}_${Date.now()}`;
+    setRevisionNodeRequest({
+      sourceNodeId: `storyboard-${rowId}`,
+      newNodeId,
+      prompt,
+      rowIndex,
+    });
+    handleDismissSuggestion(rowId);
+  };
   const annotationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAnnotationsRef = useRef<{ rowId: string; rowIndex: number; comment: string }[]>([]);
   const [projectAnnotations, setProjectAnnotations] = useState<AnnotationData[]>([]);
@@ -1353,6 +1419,11 @@ export default function App() {
           initialTopicKeyword={canvasInitialTopicKeyword}
           projectId={currentProject?.id}
           annotations={projectAnnotations}
+          annotationSuggestions={annotationSuggestions}
+          annotationSuggestionsLoading={annotationSuggestionsLoading}
+          onDismissSuggestion={handleDismissSuggestion}
+          onApplySuggestion={handleApplySuggestion}
+          revisionNodeRequest={revisionNodeRequest}
         />
       )}
     </ReactFlowProvider>
