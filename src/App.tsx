@@ -1010,6 +1010,17 @@ export default function App() {
   const [view, setView] = useState<'home' | 'canvas'>('home');
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  // ── Annotation AI suggestions ────────────────────────
+  type AnnotationSuggestion = {
+    suggestedPrompt: string;
+    reason: string;
+    comment: string;
+    status: 'pending' | 'dismissed';
+  };
+  const [annotationSuggestions, setAnnotationSuggestions] = useState<Map<string, AnnotationSuggestion>>(new Map());
+  const [annotationSuggestionsLoading, setAnnotationSuggestionsLoading] = useState(false);
+  const annotationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAnnotationsRef = useRef<{ rowId: string; rowIndex: number; comment: string }[]>([]);
   const [projectAnnotations, setProjectAnnotations] = useState<AnnotationData[]>([]);
   const [canvasInitialNodes, setCanvasInitialNodes] = useState<Node[]>([]);
   const [canvasInitialEdges, setCanvasInitialEdges] = useState<Edge[]>([]);
@@ -1048,6 +1059,54 @@ export default function App() {
     }
   }, []);
 
+  const triggerAnnotationReview = async (
+    pending: { rowId: string; rowIndex: number; comment: string }[]
+  ) => {
+    const project = currentProjectRef.current;
+    if (!project) return;
+
+    const rows = pending
+      .map(p => {
+        const row = project.storyboardRows?.find(r => r.id === p.rowId);
+        if (!row) return null;
+        return {
+          rowId: p.rowId,
+          rowIndex: p.rowIndex,
+          shotType: row.shotType ?? '',
+          description: row.description ?? '',
+          comment: p.comment,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    if (!rows.length) return;
+
+    setAnnotationSuggestionsLoading(true);
+    try {
+      const res = await fetch('/api/agent/annotation-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows }),
+      });
+      if (!res.ok) return;
+      const data = await res.json() as {
+        suggestions: { rowId: string; prompt: string; reason: string }[];
+      };
+      setAnnotationSuggestions(prev => {
+        const next = new Map(prev);
+        for (const s of data.suggestions) {
+          const comment = pending.find(p => p.rowId === s.rowId)?.comment ?? '';
+          next.set(s.rowId, { suggestedPrompt: s.prompt, reason: s.reason, comment, status: 'pending' });
+        }
+        return next;
+      });
+    } catch (err) {
+      console.error('[annotation-review]', err);
+    } finally {
+      setAnnotationSuggestionsLoading(false);
+    }
+  };
+
   const handleAnnotationAdded = (msg: {
     projectId: string; shareId: string; rowIndex: number; rowId: string;
     status: string; comment: string; createdAt: number;
@@ -1073,6 +1132,19 @@ export default function App() {
         createdAt: msg.createdAt,
       }];
     });
+    // Only trigger AI review for revision annotations on the current project
+    if (msg.status === 'revision' && msg.projectId === currentProjectRef.current?.id) {
+      pendingAnnotationsRef.current.push({
+        rowId: msg.rowId,
+        rowIndex: msg.rowIndex,
+        comment: msg.comment,
+      });
+      if (annotationDebounceRef.current) clearTimeout(annotationDebounceRef.current);
+      annotationDebounceRef.current = setTimeout(() => {
+        triggerAnnotationReview(pendingAnnotationsRef.current);
+        pendingAnnotationsRef.current = [];
+      }, 3000);
+    }
   };
 
   const { projects, connected, saveProject: wsSaveProject, deleteProject: wsDeleteProject } =
