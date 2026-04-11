@@ -11,11 +11,10 @@ interface Props {
   onDeleteProject: (id: string) => void;
   onRenameProject?: (id: string, name: string) => void;
   onUpdateProject?: (id: string, updates: Partial<Project>) => void;
-  onGoToSkills?: () => void;
   onGoToTopic?: (keyword: string) => void;
 }
 
-export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onUpdateProject, onGoToSkills, onGoToTopic }: Props) {
+export default function HomePage({ projects, onNewProject, onOpenProject, onDeleteProject, onRenameProject, onUpdateProject, onGoToTopic }: Props) {
   const [inputText, setInputText] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -28,13 +27,6 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
     }
     setInputText('');
   };
-
-  const quickActions = [
-    { label: '剧本拆解分镜', onClick: () => onNewProject() },
-    { label: '提示词全能优化', onClick: () => onNewProject() },
-    { label: '批量统一分镜光影', onClick: () => onNewProject() },
-    { label: '技能社区', onClick: () => onGoToSkills?.() },
-  ];
 
   return (
     <div className="relative min-h-screen flex flex-col items-center pt-16 pb-8 bg-black overflow-x-hidden">
@@ -81,19 +73,6 @@ export default function HomePage({ projects, onNewProject, onOpenProject, onDele
           </div>
         </div>
 
-        {/* Action pills */}
-        <div className="flex flex-wrap justify-center gap-3">
-          {quickActions.map(({ label, onClick }) => (
-            <button
-              key={label}
-              onClick={onClick}
-              className="px-6 py-2.5 rounded-full bg-black/30 backdrop-blur-sm text-sm font-medium text-white/50 hover:text-white/80 hover:bg-black/50 transition-all border border-white/15"
-              style={{ fontFamily: 'Manrope' }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </section>
 
       {/* Recent Projects */}

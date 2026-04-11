@@ -15,6 +15,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import type { Node } from '@xyflow/react';
 import StoryboardCard from './StoryboardCard';
+import ShareDialog from './ShareDialog';
 
 interface Props {
   storyboardOrder: string[];
@@ -22,10 +23,28 @@ interface Props {
   onReorder: (newOrder: string[]) => void;
   onToggle: (nodeId: string) => void;
   onExportToCanvas: () => Promise<void>;
+  projectId?: string;
 }
 
-export default function StoryboardView({ storyboardOrder, nodes, onReorder, onToggle, onExportToCanvas }: Props) {
+export default function StoryboardView({ storyboardOrder, nodes, onReorder, onToggle, onExportToCanvas, projectId }: Props) {
   const [isExporting, setIsExporting] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareDialogData, setShareDialogData] = useState<{ shareUrl: string; expiresAt: number } | null>(null);
+
+  const handleShare = async () => {
+    if (!projectId || sharing) return;
+    setSharing(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/share`, { method: 'POST' });
+      if (!res.ok) throw new Error('share failed');
+      const { url, expiresAt } = await res.json() as { url: string; expiresAt: number };
+      setShareDialogData({ shareUrl: url, expiresAt });
+    } catch (e) {
+      console.error('[share]', e);
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -83,6 +102,21 @@ export default function StoryboardView({ storyboardOrder, nodes, onReorder, onTo
               )}
             </button>
           )}
+          {projectId && (
+            <button
+              onClick={handleShare}
+              disabled={sharing}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-50"
+              style={{
+                background: 'rgba(200,190,220,0.15)',
+                color: 'rgba(200,190,220,0.85)',
+                border: '1px solid rgba(200,190,220,0.3)',
+              }}
+            >
+              <span className="material-symbols-outlined text-[13px]">share</span>
+              {sharing ? '生成中...' : '提交审片'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -114,6 +148,13 @@ export default function StoryboardView({ storyboardOrder, nodes, onReorder, onTo
           </DndContext>
         )}
       </div>
+      {shareDialogData && (
+        <ShareDialog
+          shareUrl={shareDialogData.shareUrl}
+          expiresAt={shareDialogData.expiresAt}
+          onClose={() => setShareDialogData(null)}
+        />
+      )}
     </div>
   );
 }

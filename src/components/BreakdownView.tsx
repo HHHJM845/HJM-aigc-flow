@@ -11,7 +11,6 @@ import { Loader2, Sparkles, Plus, X, GripVertical, Wand2 } from 'lucide-react';
 import { breakdownScript, type StoryboardRow } from '../lib/api';
 import { splitParagraphs, diffParagraphs, mergeRows } from '../lib/diff';
 import ScriptOptimizeModal from './ScriptOptimizeModal';
-import ShareDialog from './ShareDialog';
 import VersionDropdown from './VersionDropdown';
 import AnnotationBubble, { type AnnotationData } from './AnnotationBubble';
 
@@ -129,11 +128,6 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
   // TODO: pass selectedLens and promptText to onImport when backend supports them
   const [selectedLens, setSelectedLens] = useState(LENS_OPTIONS[0]);
   const [promptText, setPromptText] = useState('');
-  const [shareDialogData, setShareDialogData] = useState<{
-    shareUrl: string;
-    expiresAt: number;
-  } | null>(null);
-  const [sharing, setSharing] = useState(false);
   const hasUnsavedChanges = false; // Phase 2 baseline; can be enhanced later with savedRowsHash
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -212,20 +206,6 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
     onImport(rows, r.ratio, r.w, r.h);
   };
 
-  const handleShare = async () => {
-    if (!projectId || sharing) return;
-    setSharing(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/share`, { method: 'POST' });
-      if (!res.ok) throw new Error('share failed');
-      const { url, expiresAt } = await res.json() as { url: string; expiresAt: number };
-      setShareDialogData({ shareUrl: url, expiresAt });
-    } catch (e) {
-      console.error('[share]', e);
-    } finally {
-      setSharing(false);
-    }
-  };
 
   const hasDiff = changedSegments.length > 0 && scriptText !== committedScript;
   const isFirstBreakdown = rows.length === 0;
@@ -278,21 +258,6 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
                 onRestore={onSnapshotRestore}
                 onSaveSnapshot={onSaveSnapshot}
               />
-            )}
-            {projectId && (
-              <button
-                onClick={handleShare}
-                disabled={sharing}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-50"
-                style={{
-                  background: 'rgba(200,190,220,0.15)',
-                  color: 'rgba(200,190,220,0.85)',
-                  border: '1px solid rgba(200,190,220,0.3)',
-                }}
-              >
-                <span className="material-symbols-outlined text-[13px]">share</span>
-                {sharing ? '生成中...' : '提交审片'}
-              </button>
             )}
           </div>
 
@@ -507,14 +472,6 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
           scriptText={scriptText}
           onApply={(optimized) => { setScriptText(optimized); setShowOptimizeModal(false); }}
           onClose={() => setShowOptimizeModal(false)}
-        />
-      )}
-      {shareDialogData && (
-        <ShareDialog
-          projectName={projectName ?? '未命名项目'}
-          shareUrl={shareDialogData.shareUrl}
-          expiresAt={shareDialogData.expiresAt}
-          onClose={() => setShareDialogData(null)}
         />
       )}
     </div>

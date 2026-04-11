@@ -4,13 +4,6 @@ import type { StoryboardRow } from './api';
 export type ProjectStage = 'script' | 'storyboard' | 'generation' | 'review';
 export type ProjectType = '短片' | '广告' | 'MV' | '教程' | '其他';
 
-export interface SubtitleEntry {
-  id: string;
-  startMs: number;
-  endMs: number;
-  text: string;
-}
-
 export interface AssetItem {
   id: string;
   type: 'image' | 'video';
@@ -50,7 +43,6 @@ export interface Project {
   generationHistory: HistoryItem[];
   storyboardOrder: string[];
   videoOrder: VideoOrderItem[];
-  subtitles: SubtitleEntry[];
   topicDraft?: string;
   stageOverride?: ProjectStage;
   members: string[];
@@ -112,7 +104,6 @@ export function createProject(name = '未命名项目'): Project {
     generationHistory: [],
     storyboardOrder: [],
     videoOrder: [],
-    subtitles: [],
     members: [],
     tags: [],
   };
@@ -137,7 +128,7 @@ export function stageIndex(stage: ProjectStage): number {
 
 export function inferStage(project: Project): ProjectStage {
   if (project.stageOverride) return project.stageOverride;
-  if (project.videoOrder.length > 0) return 'review';
+  if (project.videoOrder?.length > 0) return 'review';
   const hasGeneratedImage = project.nodes.some(
     n => n.type === 'imageNode' && n.data?.content
   );

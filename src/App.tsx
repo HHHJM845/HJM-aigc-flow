@@ -27,8 +27,6 @@ import BreakdownView from './components/BreakdownView';
 import HomePage from './components/HomePage';
 import { type NewProjectData } from './components/NewProjectDialog';
 import LoginView from './components/LoginView';
-import AIPanel from './components/AIPanel';
-import SkillCommunity from './components/SkillCommunity';
 import LeftToolbar, { type ActiveTool } from './components/LeftToolbar';
 import BoardNode from './components/BoardNode';
 import CommentNode from './components/CommentNode';
@@ -52,7 +50,7 @@ import TemplateLibraryView from './components/TemplateLibraryView';
 import { useSync } from './hooks/useSync';
 import { FileText } from 'lucide-react';
 import UserMenu from './components/UserMenu';
-import NotificationBell, { type NotificationItem } from './components/NotificationBell';
+import { type NotificationItem } from './components/NotificationBell';
 import type { AnnotationData } from './components/AnnotationBubble';
 
 const nodeTypes = {
@@ -879,7 +877,6 @@ function Flow({
           />
 
         </div>
-        <AIPanel />
       </div>
 
       {/* Storyboard view */}
@@ -1010,7 +1007,7 @@ function Flow({
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem('loggedIn') === '1');
   const [username, setUsername] = useState(() => sessionStorage.getItem('username') || 'user');
-  const [view, setView] = useState<'home' | 'canvas' | 'skills'>('home');
+  const [view, setView] = useState<'home' | 'canvas'>('home');
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [projectAnnotations, setProjectAnnotations] = useState<AnnotationData[]>([]);
@@ -1143,7 +1140,6 @@ export default function App() {
   };
 
   const handleGoHome = () => setView('home');
-  const handleGoToSkills = () => setView('skills');
 
   const handleGoToTopic = (keyword: string) => {
     const proj = createProject();
@@ -1231,24 +1227,23 @@ export default function App() {
 
   return (
     <>
-    <UserMenu username={username} onLogout={handleLogout} />
-    <div className="fixed top-3 right-16 z-50">
-      <NotificationBell
-        notifications={notifications}
-        onRead={id => {
-          fetch(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
-          setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: 1 } : n));
-        }}
-        onReadAll={projectId => {
-          fetch(`/api/projects/${projectId}/notifications/read-all`, { method: 'POST' }).catch(() => {});
-          setNotifications(prev => prev.map(n => n.projectId === projectId ? { ...n, read: 1 } : n));
-        }}
-        onNavigate={(projectId, _rowId) => {
-          const proj = projects.find(p => p.id === projectId);
-          if (proj) handleOpenProject(proj);
-        }}
-      />
-    </div>
+    <UserMenu
+      username={username}
+      onLogout={handleLogout}
+      notifications={notifications}
+      onRead={id => {
+        fetch(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: 1 } : n));
+      }}
+      onReadAll={projectId => {
+        fetch(`/api/projects/${projectId}/notifications/read-all`, { method: 'POST' }).catch(() => {});
+        setNotifications(prev => prev.map(n => n.projectId === projectId ? { ...n, read: 1 } : n));
+      }}
+      onNavigate={(projectId, _rowId) => {
+        const proj = projects.find(p => p.id === projectId);
+        if (proj) handleOpenProject(proj);
+      }}
+    />
     <ReactFlowProvider>
       {view === 'home' ? (
         <HomePage
@@ -1258,11 +1253,8 @@ export default function App() {
           onDeleteProject={wsDeleteProject}
           onRenameProject={handleRenameProject}
           onUpdateProject={handleUpdateProject}
-          onGoToSkills={handleGoToSkills}
           onGoToTopic={handleGoToTopic}
         />
-      ) : view === 'skills' ? (
-        <SkillCommunity onBack={handleGoHome} />
       ) : (
         <Flow
           initialNodes={canvasInitialNodes}

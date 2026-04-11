@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, Library, Users, Minimize2 } from 'lucide-react';
+import { Sparkles, Send, Minimize2 } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -7,42 +7,13 @@ interface Message {
   loading?: boolean;
 }
 
-const SKILLS = [
-  '硅基制片厂',
-  '写剧本超快',
-  '提示词全能自动优化器',
-  '批量统一分镜光影',
-];
-
-function WelcomeState({ onSkillClick }: { onSkillClick: (s: string) => void }) {
+function WelcomeState() {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-1 text-center">
-        <span className="text-4xl select-none">👋</span>
-        <p className="text-gray-400 text-[13px] leading-relaxed">
-          你好！输入你的创意，我来帮你完成剧本、分镜、角色设计等工作。
-        </p>
-      </div>
-      <div className="mt-auto space-y-1.5">
-        <p className="text-gray-600 text-[11px] mb-2 tracking-wide">试一下创意SKILL：</p>
-        {SKILLS.map(skill => (
-          <button
-            key={skill}
-            onClick={() => onSkillClick(skill)}
-            className="w-full text-left px-3 py-2 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.05] rounded-xl text-gray-300 text-[12px] transition-colors"
-          >
-            {skill}
-          </button>
-        ))}
-        <div className="flex items-center gap-5 pt-2">
-          <button className="flex items-center gap-1.5 text-gray-600 hover:text-gray-400 text-[11px] transition-colors">
-            <Library size={11} />技能库
-          </button>
-          <button className="flex items-center gap-1.5 text-gray-600 hover:text-gray-400 text-[11px] transition-colors">
-            <Users size={11} />技能社区
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col h-full items-center justify-center gap-4 px-1 text-center">
+      <span className="text-4xl select-none">👋</span>
+      <p className="text-gray-400 text-[13px] leading-relaxed">
+        你好！输入你的创意，我来帮你完成剧本、分镜、角色设计等工作。
+      </p>
     </div>
   );
 }
@@ -153,7 +124,7 @@ export default function AIPanel() {
       {/* Messages / Welcome */}
       <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
         {messages.length === 0 ? (
-          <WelcomeState onSkillClick={s => { setInput(s); textareaRef.current?.focus(); }} />
+          <WelcomeState />
         ) : (
           <>
             {messages.map((msg, i) => <MessageBubble key={i} msg={msg} />)}
