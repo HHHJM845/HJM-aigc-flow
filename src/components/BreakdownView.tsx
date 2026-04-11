@@ -35,18 +35,22 @@ const LENS_OPTIONS = [
 
 // ── SortableRow ───────────────────────────────────────
 function SortableRow({
-  row, onUpdate, onDelete, isNew, annotation,
+  row, onUpdate, onDelete, isNew, annotation, suggestion, onDismissSuggestion, onApplySuggestion,
 }: {
   row: StoryboardRow;
   onUpdate: (id: string, field: keyof StoryboardRow, value: string) => void;
   onDelete: (id: string) => void;
   isNew: boolean;
   annotation?: AnnotationData;
+  suggestion?: { suggestedPrompt: string; reason: string; status: 'pending' | 'dismissed' };
+  onDismissSuggestion?: (rowId: string) => void;
+  onApplySuggestion?: (rowId: string, prompt: string, rowIndex: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: row.id });
   const style: React.CSSProperties = { transform: CSS.Transform.toString(transform), transition };
 
   return (
+    <>
     <tr
       ref={setNodeRef}
       style={style}
@@ -98,10 +102,62 @@ function SortableRow({
         </div>
       </td>
     </tr>
+    {suggestion && suggestion.status === 'pending' && (
+      <tr>
+        <td colSpan={4} style={{ padding: 0 }}>
+          <div style={{
+            margin: '0 12px 12px',
+            padding: '12px 14px',
+            borderRadius: 8,
+            background: 'rgba(124, 58, 237, 0.08)',
+            border: '1px solid rgba(124, 58, 237, 0.25)',
+            fontSize: 13,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: '#7c3aed', fontWeight: 600 }}>
+              <span>✦</span><span>AI 建议</span>
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, marginBottom: 4 }}>
+              {suggestion.suggestedPrompt}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginBottom: 10 }}>
+              改动：{suggestion.reason}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => onDismissSuggestion?.(row.id)}
+                style={{
+                  padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 12,
+                }}
+              >
+                忽略
+              </button>
+              <button
+                onClick={() => onApplySuggestion?.(row.id, suggestion.suggestedPrompt, row.index)}
+                style={{
+                  padding: '4px 12px', borderRadius: 6, border: 'none',
+                  background: '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                }}
+              >
+                导入画布
+              </button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    )}
+    </>
   );
 }
 
 // ── Props ─────────────────────────────────────────────
+type AnnotationSuggestion = {
+  suggestedPrompt: string;
+  reason: string;
+  comment: string;
+  status: 'pending' | 'dismissed';
+};
+
 interface Props {
   initialRows?: StoryboardRow[];
   onImport: (rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => void;
@@ -111,10 +167,14 @@ interface Props {
   annotations?: AnnotationData[];
   onSnapshotRestore?: (snapshotId: string) => Promise<void>;
   onSaveSnapshot?: (label: string) => Promise<void>;
+  annotationSuggestions?: Map<string, AnnotationSuggestion>;
+  annotationSuggestionsLoading?: boolean;
+  onDismissSuggestion?: (rowId: string) => void;
+  onApplySuggestion?: (rowId: string, prompt: string, rowIndex: number) => void;
 }
 
 // ── Main Component ────────────────────────────────────
-export default function BreakdownView({ initialRows, onImport, externalInitText, projectId, projectName, annotations = [], onSnapshotRestore, onSaveSnapshot }: Props) {
+export default function BreakdownView({ initialRows, onImport, externalInitText, projectId, projectName, annotations = [], onSnapshotRestore, onSaveSnapshot, annotationSuggestions, annotationSuggestionsLoading = false, onDismissSuggestion, onApplySuggestion }: Props) {
   const [scriptText, setScriptText] = useState('');
   const [committedScript, setCommittedScript] = useState('');
   const [rows, setRows] = useState<StoryboardRow[]>(initialRows ?? []);
@@ -211,7 +271,14 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
   const isFirstBreakdown = rows.length === 0;
 
   return (
-    <div className="w-full h-full flex bg-black overflow-hidden font-body">
+    <div className="w-full h-full flex bg-black overflow-hidden font-body relative">
+      {annotationSuggestionsLoading && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3, zIndex: 50,
+          background: 'linear-gradient(90deg, #7c3aed, #a78bfa)',
+          animation: 'pulse 1.5s ease-in-out infinite',
+        }} />
+      )}
 
       {/* ══ 左栏：脚本正文 30% ══ */}
       <section className="w-[30%] h-full bg-[#080808] flex flex-col border-r border-white/[0.06]">
@@ -361,6 +428,9 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
                           onDelete={handleDeleteRow}
                           isNew={newlyUpdatedIds.has(row.id)}
                           annotation={annotations.find(a => a.rowId === row.id)}
+                          suggestion={annotationSuggestions?.get(row.id)}
+                          onDismissSuggestion={onDismissSuggestion}
+                          onApplySuggestion={onApplySuggestion}
                         />
                       ))}
                     </tbody>
