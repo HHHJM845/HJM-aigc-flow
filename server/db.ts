@@ -375,9 +375,7 @@ export async function seedAdminUser(): Promise<void> {
   }
 
   const hash = await bcrypt.hash(adminPassword, 10);
-  const id = `user_admin_${Date.now()}`;
-  db.prepare(
-    'INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(id, adminUsername, hash, 'admin', Date.now());
+  const id = 'user_admin';
+  createUser(id, adminUsername, hash, 'admin');
   console.log(`[auth] Admin user '${adminUsername}' created`);
 }
