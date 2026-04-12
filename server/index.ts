@@ -17,6 +17,7 @@ import uploadRouter from './routes/upload.js';
 import reviewRouter from './routes/review.js';
 import templatesRouter from './routes/templates.js';
 import agentAnnotationReviewRouter from './routes/agent-annotation-review.js';
+import agentCanvasCommandRouter from './routes/agent-canvas-command.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 import { seedDefaultImageTemplates } from './db.js';
@@ -53,6 +54,7 @@ app.use('/api/topic-research', topicResearchRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/templates', templatesRouter);
 app.use('/api/agent/annotation-review', agentAnnotationReviewRouter);
+app.use('/api/agent/canvas-command', agentCanvasCommandRouter);
 app.use('/api', reviewRouter);
 
 // Serve uploaded files publicly
