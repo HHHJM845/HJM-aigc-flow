@@ -138,6 +138,18 @@ export default function UserMenu({ username, role = 'user', onLogout, onNavigate
             <span className="text-[13px] text-[#aaa]">个人设置</span>
           </button>
 
+          {/* Admin */}
+          {role === 'admin' && (
+            <button
+              onClick={() => { setOpen(false); onNavigateAdmin?.(); }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] text-gray-300 hover:bg-white/[0.06] hover:text-white transition-colors text-left border-b border-[#1a1a1a]"
+              style={{ fontFamily: 'Inter' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>manage_accounts</span>
+              用户管理
+            </button>
+          )}
+
           {/* Logout */}
           <button
             onClick={handleLogout}
