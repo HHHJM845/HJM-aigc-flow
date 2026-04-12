@@ -21,11 +21,15 @@ import agentCanvasCommandRouter from './routes/agent-canvas-command.js';
 import { createServer } from 'http';
 import { attachWebSocketServer } from './ws.js';
 import { seedDefaultImageTemplates } from './db.js';
+import authRouter from './routes/auth.js';
+import adminRouter from './routes/admin.js';
+import { seedAdminUser } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 seedDefaultImageTemplates();
+seedAdminUser().catch(err => console.error('[auth] seed error:', err));
 const PORT = process.env.PORT || 3001;
 
 app.use(express.json({ limit: '20mb' }));
@@ -37,7 +41,7 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
@@ -56,6 +60,8 @@ app.use('/api/templates', templatesRouter);
 app.use('/api/agent/annotation-review', agentAnnotationReviewRouter);
 app.use('/api/agent/canvas-command', agentCanvasCommandRouter);
 app.use('/api', reviewRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 
 // Serve uploaded files publicly
 import { fileURLToPath as fu } from 'url';
