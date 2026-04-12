@@ -1298,6 +1298,14 @@ export default function App() {
   }, []);
 
   const [view, setView] = useState<'home' | 'canvas' | 'admin'>('home');
+
+  // Redirect away from admin view if not admin
+  useEffect(() => {
+    if (view === 'admin' && role !== 'admin') {
+      setView('home');
+    }
+  }, [view, role]);
+
   const [showAssistant, setShowAssistant] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);

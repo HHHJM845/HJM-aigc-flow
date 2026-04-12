@@ -49,8 +49,9 @@ export default function UserMenu({ username, role = 'user', onLogout, onNavigate
   }, [open]);
 
   const handleLogout = () => {
-    sessionStorage.removeItem('loggedIn');
+    sessionStorage.removeItem('token');
     sessionStorage.removeItem('username');
+    sessionStorage.removeItem('role');
     setOpen(false);
     onLogout();
   };
