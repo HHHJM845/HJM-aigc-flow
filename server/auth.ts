@@ -1,4 +1,5 @@
 // server/auth.ts
+import { randomUUID } from 'crypto';
 
 export interface SessionData {
   userId: string;
@@ -9,7 +10,7 @@ export interface SessionData {
 const sessions = new Map<string, SessionData>();
 
 export function createSession(userId: string, username: string, role: string): string {
-  const token = crypto.randomUUID();
+  const token = randomUUID();
   sessions.set(token, { userId, username, role });
   return token;
 }

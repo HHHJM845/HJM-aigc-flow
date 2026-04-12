@@ -1,5 +1,6 @@
 // server/routes/auth.ts
 import { Router } from 'express';
+import bcrypt from 'bcryptjs';
 import { getUserByUsername } from '../db.js';
 import { createSession, getSession, deleteSession, extractToken } from '../auth.js';
 
@@ -11,15 +12,16 @@ router.post('/login', async (req, res) => {
   if (!username || !password) {
     return res.status(400).json({ error: '请输入账号和密码' });
   }
-
-  const user = getUserByUsername(username.trim());
-  if (!user) {
-    return res.status(401).json({ error: '用户名或密码错误' });
+  if (password.length > 72) {
+    return res.status(400).json({ error: '密码不能超过72个字符' });
   }
 
-  const { default: bcrypt } = await import('bcryptjs');
-  const match = await bcrypt.compare(password, user.password_hash);
-  if (!match) {
+  const DUMMY_HASH = '$2b$10$invalid.hash.for.timing.protection.only.xxxxxxxxxxxxxxxxx';
+  const user = getUserByUsername(username.trim());
+  const hashToCheck = user ? user.password_hash : DUMMY_HASH;
+  const match = await bcrypt.compare(password, hashToCheck);
+
+  if (!user || !match) {
     return res.status(401).json({ error: '用户名或密码错误' });
   }
 

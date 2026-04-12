@@ -1,7 +1,9 @@
 // server/routes/admin.ts
 import { Router } from 'express';
+import bcrypt from 'bcryptjs';
 import { getAllUsers, createUser, deleteUser } from '../db.js';
 import { getSession, extractToken } from '../auth.js';
+import type { SessionData } from '../auth.js';
 
 const router = Router();
 
@@ -12,7 +14,7 @@ function requireAdmin(req: any, res: any, next: any) {
   const session = getSession(token);
   if (!session) return res.status(401).json({ error: 'Session expired' });
   if (session.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-  req.session = session;
+  res.locals.session = session;
   next();
 }
 
@@ -32,11 +34,13 @@ router.post('/users', requireAdmin, async (req: any, res) => {
   if (!username || !password) {
     return res.status(400).json({ error: '请填写用户名和密码' });
   }
+  if (password.length > 72) {
+    return res.status(400).json({ error: '密码不能超过72个字符' });
+  }
   if (!['user', 'admin'].includes(role)) {
     return res.status(400).json({ error: '角色必须为 user 或 admin' });
   }
 
-  const { default: bcrypt } = await import('bcryptjs');
   const hash = await bcrypt.hash(password, 10);
   const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   try {
@@ -53,7 +57,7 @@ router.post('/users', requireAdmin, async (req: any, res) => {
 // DELETE /api/admin/users/:id
 router.delete('/users/:id', requireAdmin, (req: any, res) => {
   const { id } = req.params;
-  if (id === req.session.userId) {
+  if (id === (res.locals.session as SessionData).userId) {
     return res.status(400).json({ error: '不能删除自己' });
   }
   deleteUser(id);
