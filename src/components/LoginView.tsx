@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import loginBgVideo from '../assets/login-bg.mp4';
 
 interface Props {
-  onLogin: (username: string) => void;
+  onLogin: (username: string, role: string) => void;
 }
 
 export default function LoginView({ onLogin }: Props) {
@@ -10,14 +10,35 @@ export default function LoginView({ onLogin }: Props) {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
       setError('请输入账号和密码');
       return;
     }
-    onLogin(username.trim());
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const data = await res.json() as { token?: string; username?: string; role?: string; error?: string };
+      if (!res.ok) {
+        setError(data.error || '登录失败');
+        return;
+      }
+      sessionStorage.setItem('token', data.token!);
+      sessionStorage.setItem('role', data.role!);
+      onLogin(data.username!, data.role!);
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -121,19 +142,13 @@ export default function LoginView({ onLogin }: Props) {
             {/* 登录按钮 */}
             <button
               type="submit"
-              className="w-full rounded-md bg-black py-3.5 text-sm font-semibold text-white hover:bg-black/80 active:scale-[0.98] transition-all border border-white/10"
+              disabled={loading}
+              className="w-full rounded-md bg-black py-3.5 text-sm font-semibold text-white hover:bg-black/80 active:scale-[0.98] transition-all border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'Inter' }}
             >
-              登录
+              {loading ? '登录中...' : '登录'}
             </button>
 
-            {/* 注册提示 */}
-            <p className="text-center text-xs text-white/40" style={{ fontFamily: 'Inter' }}>
-              还没有账号？{' '}
-              <button type="button" className="font-semibold text-white/70 hover:text-white transition-colors">
-                在此注册
-              </button>
-            </p>
           </form>
         </div>
       </div>
