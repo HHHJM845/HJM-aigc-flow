@@ -74,6 +74,14 @@ db.exec(`
     audioHint       TEXT,
     createdAt       INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id            TEXT PRIMARY KEY,
+    username      TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'user',
+    created_at    INTEGER NOT NULL
+  );
 `);
 
 export function getAllProjects(): Project[] {
@@ -322,4 +330,54 @@ export function seedDefaultImageTemplates(): void {
     }
   });
   seedTx();
+}
+
+// ── User / Auth functions ────────────────────────────────
+
+export interface UserRecord {
+  id: string;
+  username: string;
+  password_hash: string;
+  role: string;
+  created_at: number;
+}
+
+export function getUserByUsername(username: string): UserRecord | null {
+  return (db.prepare('SELECT * FROM users WHERE username = ?').get(username) as UserRecord) ?? null;
+}
+
+export function getAllUsers(): Omit<UserRecord, 'password_hash'>[] {
+  return db.prepare(
+    'SELECT id, username, role, created_at FROM users ORDER BY created_at ASC'
+  ).all() as Omit<UserRecord, 'password_hash'>[];
+}
+
+export function createUser(id: string, username: string, passwordHash: string, role: string): void {
+  db.prepare(
+    'INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)'
+  ).run(id, username, passwordHash, role, Date.now());
+}
+
+export function deleteUser(id: string): void {
+  db.prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+export async function seedAdminUser(): Promise<void> {
+  const { default: bcrypt } = await import('bcryptjs');
+  const existing = db.prepare("SELECT id FROM users WHERE role = 'admin'").get();
+  if (existing) return;
+
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    console.warn('[auth] ADMIN_PASSWORD not set in .env — skipping admin seed');
+    return;
+  }
+
+  const hash = await bcrypt.hash(adminPassword, 10);
+  const id = `user_admin_${Date.now()}`;
+  db.prepare(
+    'INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)'
+  ).run(id, adminUsername, hash, 'admin', Date.now());
+  console.log(`[auth] Admin user '${adminUsername}' created`);
 }
