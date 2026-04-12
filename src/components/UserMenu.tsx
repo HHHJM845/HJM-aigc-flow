@@ -8,6 +8,8 @@ interface Props {
   onRead?: (id: string) => void;
   onReadAll?: (projectId: string) => void;
   onNavigate?: (projectId: string, rowId: string) => void;
+  showAssistant?: boolean;
+  onToggleAssistant?: () => void;
 }
 
 const CHANGELOG = [
@@ -23,7 +25,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 type Panel = 'main' | 'changelog' | 'notifications';
 
-export default function UserMenu({ username, onLogout, notifications = [], onRead, onReadAll, onNavigate, sidebarOpen = false }: Props & { sidebarOpen?: boolean }) {
+export default function UserMenu({ username, onLogout, notifications = [], onRead, onReadAll, onNavigate, sidebarOpen = false, showAssistant = false, onToggleAssistant }: Props & { sidebarOpen?: boolean }) {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>('main');
   const menuRef = useRef<HTMLDivElement>(null);
@@ -52,7 +54,7 @@ export default function UserMenu({ username, onLogout, notifications = [], onRea
   };
 
   return (
-    <div ref={menuRef} className="fixed top-4 z-[9999]" style={{ fontFamily: 'Inter', right: sidebarOpen ? 336 : 16, transition: 'right 0.2s ease' }}>
+    <div ref={menuRef} className="fixed top-4 z-[9999] flex items-center gap-2" style={{ fontFamily: 'Inter', right: sidebarOpen ? 336 : 16, transition: 'right 0.2s ease' }}>
       {/* Avatar button */}
       <button
         onClick={() => { setOpen(v => !v); setPanel('main'); }}
@@ -69,6 +71,21 @@ export default function UserMenu({ username, onLogout, notifications = [], onRea
           </span>
         )}
       </button>
+
+      {/* Canvas Assistant toggle */}
+      {onToggleAssistant && (
+        <button
+          onClick={onToggleAssistant}
+          title="画布助手"
+          className={`w-9 h-9 flex items-center justify-center rounded-full text-base transition-all ${
+            showAssistant
+              ? 'bg-[#7c3aed]/30 text-[#a78bfa] ring-1 ring-[#7c3aed]/40 shadow-lg'
+              : 'bg-[#1e1e1e] text-[#aaa] border border-[#2a2a2a] hover:border-[#3a3a3a] hover:text-white'
+          }`}
+        >
+          ✦
+        </button>
+      )}
 
       {/* Main dropdown */}
       {open && panel === 'main' && (

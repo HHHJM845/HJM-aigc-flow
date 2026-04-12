@@ -12,6 +12,8 @@ import {
   X,
   Palette,
   Users,
+  FolderPlus,
+  Check,
 } from 'lucide-react';
 import { generateImages } from '../lib/api';
 import type { AssetItem } from '../lib/storage';
@@ -41,6 +43,22 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
 
   // ── Asset panel ────────────────────────────────────
   const [assetCategory, setAssetCategory] = useState<'character' | 'scene' | 'other'>('character');
+  const [savedToAsset, setSavedToAsset] = useState(false);
+
+  const handleSaveToAsset = () => {
+    if (!currentContent || !data.onAddAsset) return;
+    const newAsset: AssetItem = {
+      id: `asset_${Date.now()}`,
+      type: 'image',
+      src: currentContent,
+      name: `生成图 · ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`,
+      createdAt: Date.now(),
+      category: assetCategory,
+    };
+    data.onAddAsset(newAsset);
+    setSavedToAsset(true);
+    setTimeout(() => setSavedToAsset(false), 2000);
+  };
 
   // ── Generation controls ────────────────────────────
   const [ratio, setRatio] = useState(data.ratio || '16:9');
@@ -633,21 +651,39 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
               {/* 资产面板 */}
               {expandedPanel === 'asset' && (
                 <>
-                  {/* 分类 Tab */}
-                  <div className="flex gap-2">
-                    {(['character', 'scene', 'other'] as const).map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => setAssetCategory(cat)}
-                        className={`px-4 py-1.5 rounded-full text-[12px] transition-colors ${
-                          assetCategory === cat
-                            ? 'bg-white/10 text-gray-200 font-semibold'
-                            : 'text-gray-600 hover:text-gray-400'
-                        }`}
-                      >
-                        {categoryMap[cat]}
-                      </button>
-                    ))}
+                  {/* 分类 Tab + 存入资产库按钮 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      {(['character', 'scene', 'other'] as const).map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setAssetCategory(cat)}
+                          className={`px-4 py-1.5 rounded-full text-[12px] transition-colors ${
+                            assetCategory === cat
+                              ? 'bg-white/10 text-gray-200 font-semibold'
+                              : 'text-gray-600 hover:text-gray-400'
+                          }`}
+                        >
+                          {categoryMap[cat]}
+                        </button>
+                      ))}
+                    </div>
+                    {/* 存入资产库 */}
+                    <button
+                      onClick={handleSaveToAsset}
+                      disabled={!currentContent || savedToAsset}
+                      title="将当前图片存入资产库"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] transition-all border ${
+                        savedToAsset
+                          ? 'border-violet-500/50 text-violet-400 bg-violet-500/10'
+                          : currentContent
+                          ? 'border-white/15 text-gray-400 hover:border-violet-500/50 hover:text-violet-400 hover:bg-violet-500/10'
+                          : 'border-white/[0.06] text-gray-700 cursor-not-allowed'
+                      }`}
+                    >
+                      {savedToAsset ? <Check size={12} /> : <FolderPlus size={12} />}
+                      {savedToAsset ? '已存入' : '存入资产库'}
+                    </button>
                   </div>
 
                   {/* 资产网格 */}

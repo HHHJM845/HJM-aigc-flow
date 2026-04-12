@@ -122,7 +122,8 @@ function Flow({
   onDismissSuggestion,
   onApplySuggestion,
   revisionNodeRequest,
-  onAssistantChange,
+  showAssistant,
+  onSetAssistant,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -153,7 +154,8 @@ function Flow({
   onDismissSuggestion?: (rowId: string) => void;
   onApplySuggestion?: (rowId: string, prompt: string, rowIndex: number) => void;
   revisionNodeRequest?: { sourceNodeId: string; newNodeId: string; prompt: string; rowIndex: number; } | null;
-  onAssistantChange?: (open: boolean) => void;
+  showAssistant: boolean;
+  onSetAssistant: (open: boolean) => void;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
@@ -167,8 +169,8 @@ function Flow({
   const [activeTool, setActiveTool] = useState<ActiveTool>(null);
   const [showAssets, setShowAssets] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showMinimap, setShowMinimap] = useState(true);
   // ── Canvas Assistant state ─────────────────────────────────
-  const [showAssistant, setShowAssistant] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState<ChatMessage[]>([]);
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantRefNodes, setAssistantRefNodes] = useState<RefNode[]>([]);
@@ -634,8 +636,7 @@ function Flow({
   const showAssistantRef = useRef(false);
   useEffect(() => {
     showAssistantRef.current = showAssistant;
-    onAssistantChange?.(showAssistant);
-  }, [showAssistant, onAssistantChange]);
+  }, [showAssistant]);
 
   const handleSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: Node[] }) => {
     if (!showAssistantRef.current) return;
@@ -1035,7 +1036,29 @@ function Flow({
             </Panel>
 
 
-<MiniMap nodeColor="#333333" maskColor="rgba(0, 0, 0, 0.8)" className="bg-[#0a0a0a] border-[#1a1a1a]" />
+            <Panel position="bottom-right" style={{ margin: 0, padding: 0 }}>
+              <div className="flex flex-col items-end gap-0" style={{ fontFamily: 'Inter' }}>
+                {showMinimap && (
+                  <div style={{ width: 200, height: 120, position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #1a1a1a', background: '#0a0a0a' }}>
+                    <MiniMap
+                      nodeColor="#333333"
+                      maskColor="rgba(0,0,0,0.8)"
+                      style={{ position: 'static', width: '100%', height: '100%', margin: 0 }}
+                    />
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowMinimap(v => !v)}
+                  title={showMinimap ? '收起缩略图' : '展开缩略图'}
+                  className="flex items-center gap-1 px-2 py-1 mt-1 mb-2 mr-2 rounded-lg text-[11px] text-[#555] hover:text-[#999] bg-[#111] border border-[#1e1e1e] hover:border-[#2a2a2a] transition-all select-none"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
+                    {showMinimap ? 'unfold_less' : 'map'}
+                  </span>
+                  {showMinimap ? '收起' : '缩略图'}
+                </button>
+              </div>
+            </Panel>
           </ReactFlow>
 
           {/* Board drag-create overlay */}
@@ -1075,11 +1098,9 @@ function Flow({
             activeTool={activeTool}
             showAssets={showAssets}
             showHistory={showHistory}
-            showAssistant={showAssistant}
             onToolChange={setActiveTool}
             onToggleAssets={() => { setShowAssets(v => !v); setShowHistory(false); }}
             onToggleHistory={() => { setShowHistory(v => !v); setShowAssets(false); }}
-            onToggleAssistant={() => setShowAssistant(v => !v)}
           />
 
           {/* Asset Panel */}
@@ -1113,7 +1134,7 @@ function Flow({
           {/* Canvas Assistant Sidebar */}
           {showAssistant && (
             <CanvasAssistantPanel
-              onClose={() => setShowAssistant(false)}
+              onClose={() => onSetAssistant(false)}
               referencedNodes={assistantRefNodes}
               onRemoveRef={id => setAssistantRefNodes(prev => prev.filter(r => r.id !== id))}
               messages={assistantMessages}
@@ -1258,7 +1279,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem('loggedIn') === '1');
   const [username, setUsername] = useState(() => sessionStorage.getItem('username') || 'user');
   const [view, setView] = useState<'home' | 'canvas'>('home');
-  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   // ── Annotation AI suggestions ────────────────────────
@@ -1580,7 +1601,9 @@ export default function App() {
     <UserMenu
       username={username}
       onLogout={handleLogout}
-      sidebarOpen={assistantOpen}
+      sidebarOpen={showAssistant}
+      showAssistant={showAssistant}
+      onToggleAssistant={() => setShowAssistant(v => !v)}
       notifications={notifications}
       onRead={id => {
         fetch(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
@@ -1637,7 +1660,8 @@ export default function App() {
           onDismissSuggestion={handleDismissSuggestion}
           onApplySuggestion={handleApplySuggestion}
           revisionNodeRequest={revisionNodeRequest}
-          onAssistantChange={setAssistantOpen}
+          showAssistant={showAssistant}
+          onSetAssistant={setShowAssistant}
         />
       )}
     </ReactFlowProvider>
