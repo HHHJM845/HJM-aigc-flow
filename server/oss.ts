@@ -46,3 +46,19 @@ export async function uploadUrlToOss(url: string, folder: 'images' | 'videos'): 
 export async function uploadUrlsToOss(urls: string[], folder: 'images' | 'videos'): Promise<string[]> {
   return Promise.all(urls.map(url => uploadUrlToOss(url, folder)));
 }
+
+/**
+ * 把 base64 data URL（data:image/...;base64,...）上传到 OSS，返回公网 URL
+ */
+export async function uploadBase64ToOss(dataUrl: string, folder: 'images' | 'videos' = 'images'): Promise<string> {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error('无效的 base64 data URL');
+  const [, mimeType, base64Data] = match;
+  const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+  const buffer = Buffer.from(base64Data, 'base64');
+  const key = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  await getClient().put(key, buffer, { headers: { 'Content-Type': mimeType } });
+  const bucket = process.env.OSS_BUCKET || 'augc-flow';
+  const region = process.env.OSS_REGION || 'oss-cn-shenzhen';
+  return `https://${bucket}.${region}.aliyuncs.com/${key}`;
+}

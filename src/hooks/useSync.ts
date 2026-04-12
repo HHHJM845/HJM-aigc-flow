@@ -68,22 +68,44 @@ export function useSync(
       }
 
       if (msg.type === 'init') {
-        const serverProjects = Array.isArray(msg.projects) ? (msg.projects as Project[]).map(p => ({ members: [], tags: [], ...p })) : [];
-        const serverIds = new Set(serverProjects.map((p: Project) => p.id));
-
-        // Migrate any local projects that the server doesn't have yet.
-        // This recovers data from localStorage on first run or after a server reset.
+        const serverProjects = Array.isArray(msg.projects)
+          ? (msg.projects as Project[]).map(p => ({ members: [], tags: [], ...p }))
+          : [];
+        const serverMap = new Map(serverProjects.map(p => [p.id, p]));
         const localProjects = loadProjects();
-        const toUpload = localProjects.filter(p => !serverIds.has(p.id));
-        toUpload.forEach(p => {
-          ws.send(JSON.stringify({ type: 'project_save', project: p }));
-        });
+        const localMap = new Map(localProjects.map(p => [p.id, p]));
 
-        // Merge: server is authoritative for projects it knows; locals fill the rest
-        const merged = [...serverProjects, ...toUpload]
-          .sort((a, b) => b.updatedAt - a.updatedAt);
-        setProjects(merged);
-        serverProjects.forEach(localSave);
+        // 三路合并：以 updatedAt 时间戳为准，谁新谁赢
+        // 防止服务端空数据（重启/重置后）覆盖本地已有数据
+        const allIds = new Set([...serverMap.keys(), ...localMap.keys()]);
+        const resolved: Project[] = [];
+
+        for (const id of allIds) {
+          const sp = serverMap.get(id);
+          const lp = localMap.get(id);
+
+          if (sp && !lp) {
+            // 仅服务端有 → 写入本地
+            localSave(sp);
+            resolved.push(sp);
+          } else if (!sp && lp) {
+            // 仅本地有 → 上传服务端
+            ws.send(JSON.stringify({ type: 'project_save', project: lp }));
+            resolved.push(lp);
+          } else if (sp && lp) {
+            if (lp.updatedAt > sp.updatedAt) {
+              // 本地更新 → 上传服务端，保留本地（不覆盖）
+              ws.send(JSON.stringify({ type: 'project_save', project: lp }));
+              resolved.push(lp);
+            } else {
+              // 服务端更新 → 写入本地
+              localSave(sp);
+              resolved.push(sp);
+            }
+          }
+        }
+
+        setProjects(resolved.sort((a, b) => b.updatedAt - a.updatedAt));
       }
 
       if (msg.type === 'project_update') {

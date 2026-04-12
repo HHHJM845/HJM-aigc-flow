@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadUrlsToOss } from '../oss.js';
+import { uploadUrlsToOss, uploadBase64ToOss } from '../oss.js';
 
 const router = Router();
 
@@ -7,16 +7,27 @@ const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
 const MODEL = 'doubao-seedream-4-5-251128';
 
 // Ratio → pixel dimensions at each quality level
+// 所有尺寸须 ≥ 3,686,400 像素（API 最低要求）
 const SIZE_MAP: Record<string, Record<string, string>> = {
   '1K': {
-    '1:1': '1024x1024', '4:3': '1024x768',  '3:4': '768x1024',
-    '16:9': '1280x720', '9:16': '720x1280',
-    '3:2': '1152x768',  '2:3': '768x1152',  '21:9': '1344x576',
+    '1:1':  '1920x1920', // 3,686,400 px ✓
+    '4:3':  '2304x1728', // 3,981,312 px ✓
+    '3:4':  '1728x2304', // 3,981,312 px ✓
+    '16:9': '2560x1440', // 3,686,400 px ✓
+    '9:16': '1440x2560', // 3,686,400 px ✓
+    '3:2':  '2400x1600', // 3,840,000 px ✓
+    '2:3':  '1600x2400', // 3,840,000 px ✓
+    '21:9': '3024x1296', // 3,919,104 px ✓
   },
   '2K': {
-    '1:1': '2048x2048', '4:3': '2048x1536', '3:4': '1536x2048',
-    '16:9': '2560x1440', '9:16': '1440x2560',
-    '3:2': '2304x1536', '2:3': '1536x2304', '21:9': '2688x1152',
+    '1:1':  '2048x2048', // 4,194,304 px ✓
+    '4:3':  '2560x1920', // 4,915,200 px ✓
+    '3:4':  '1920x2560', // 4,915,200 px ✓
+    '16:9': '2560x1440', // 3,686,400 px ✓
+    '9:16': '1440x2560', // 3,686,400 px ✓
+    '3:2':  '2880x1920', // 5,529,600 px ✓
+    '2:3':  '1920x2880', // 5,529,600 px ✓
+    '21:9': '3360x1440', // 4,838,400 px ✓
   },
 };
 
@@ -59,7 +70,13 @@ router.post('/', async (req, res, next) => {
     }
 
     if (referenceImages && referenceImages.length > 0) {
-      body.image = referenceImages.length === 1 ? referenceImages[0] : referenceImages;
+      // base64 data URL 无法被 API 直接访问，先上传到 OSS 取得公网 URL
+      const resolvedRefImages = await Promise.all(
+        referenceImages.map(url =>
+          url.startsWith('data:') ? uploadBase64ToOss(url) : Promise.resolve(url)
+        )
+      );
+      body.image = resolvedRefImages.length === 1 ? resolvedRefImages[0] : resolvedRefImages;
     }
 
     console.log('[generate] model:', MODEL, 'size:', pixelSize, 'count:', count, 'stream:', isMultiple);

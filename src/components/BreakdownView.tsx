@@ -155,6 +155,7 @@ type AnnotationSuggestion = {
   suggestedPrompt: string;
   reason: string;
   comment: string;
+  rowIndex: number;
   status: 'pending' | 'dismissed';
 };
 
@@ -383,6 +384,62 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
             </button>
           </div>
         </div>
+
+        {/* AI 修改建议面板 — 显示没有对应 storyboard 行的画布节点建议 */}
+        {(() => {
+          if (!annotationSuggestions) return null;
+          const unmatched = Array.from(annotationSuggestions.entries()).filter(
+            ([rowId, s]) => s.status === 'pending' && !rows.find(r => r.id === rowId)
+          );
+          if (unmatched.length === 0) return null;
+          return (
+            <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+              <div style={{ padding: '10px 24px 4px', fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                AI 修改建议 · {unmatched.length} 条
+              </div>
+              <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {unmatched.map(([rowId, s]) => (
+                  <div key={rowId} style={{
+                    padding: '12px 14px', borderRadius: 8,
+                    background: 'rgba(124,58,237,0.08)',
+                    border: '1px solid rgba(124,58,237,0.25)',
+                    fontSize: 13,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: '#7c3aed', fontWeight: 600 }}>
+                      <span>✦</span>
+                      <span>AI 建议 · 第 {s.rowIndex} 镜</span>
+                    </div>
+                    {s.comment && (
+                      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginBottom: 6, fontStyle: 'italic' }}>
+                        批注：{s.comment}
+                      </div>
+                    )}
+                    <div style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, marginBottom: 4 }}>
+                      {s.suggestedPrompt}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginBottom: 10 }}>
+                      改动：{s.reason}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => onDismissSuggestion?.(rowId)}
+                        style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 12 }}
+                      >
+                        忽略
+                      </button>
+                      <button
+                        onClick={() => onApplySuggestion?.(rowId, s.suggestedPrompt, s.rowIndex)}
+                        style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}
+                      >
+                        导入画布
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {rows.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">

@@ -146,7 +146,7 @@ function Flow({
   initialTopicKeyword?: string;
   projectId?: string;
   annotations?: AnnotationData[];
-  annotationSuggestions?: Map<string, { suggestedPrompt: string; reason: string; comment: string; status: 'pending' | 'dismissed' }>;
+  annotationSuggestions?: Map<string, { suggestedPrompt: string; reason: string; comment: string; rowIndex: number; status: 'pending' | 'dismissed' }>;
   annotationSuggestionsLoading?: boolean;
   onDismissSuggestion?: (rowId: string) => void;
   onApplySuggestion?: (rowId: string, prompt: string, rowIndex: number) => void;
@@ -1054,6 +1054,7 @@ export default function App() {
     suggestedPrompt: string;
     reason: string;
     comment: string;
+    rowIndex: number;
     status: 'pending' | 'dismissed';
   };
   const [annotationSuggestions, setAnnotationSuggestions] = useState<Map<string, AnnotationSuggestion>>(new Map());
@@ -1131,19 +1132,16 @@ export default function App() {
     const project = currentProjectRef.current;
     if (!project) return;
 
-    const rows = pending
-      .map(p => {
-        const row = project.storyboardRows?.find(r => r.id === p.rowId);
-        if (!row) return null;
-        return {
-          rowId: p.rowId,
-          rowIndex: p.rowIndex,
-          shotType: row.shotType ?? '',
-          description: row.description ?? '',
-          comment: p.comment,
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
+    const rows = pending.map(p => {
+      const row = project.storyboardRows?.find(r => r.id === p.rowId);
+      return {
+        rowId: p.rowId,
+        rowIndex: p.rowIndex,
+        shotType: row?.shotType ?? '',
+        description: row?.description ?? '',
+        comment: p.comment,
+      };
+    });
 
     if (!rows.length) return;
 
@@ -1161,8 +1159,10 @@ export default function App() {
       setAnnotationSuggestions(prev => {
         const next = new Map(prev);
         for (const s of data.suggestions) {
-          const comment = pending.find(p => p.rowId === s.rowId)?.comment ?? '';
-          next.set(s.rowId, { suggestedPrompt: s.prompt, reason: s.reason, comment, status: 'pending' });
+          const pItem = pending.find(p => p.rowId === s.rowId);
+          const comment = pItem?.comment ?? '';
+          const rowIndex = pItem?.rowIndex ?? 0;
+          next.set(s.rowId, { suggestedPrompt: s.prompt, reason: s.reason, comment, rowIndex, status: 'pending' });
         }
         return next;
       });
