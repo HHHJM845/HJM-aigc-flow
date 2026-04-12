@@ -3,7 +3,9 @@ import { type NotificationItem } from './NotificationBell';
 
 interface Props {
   username: string;
+  role?: string;
   onLogout: () => void;
+  onNavigateAdmin?: () => void;
   notifications?: NotificationItem[];
   onRead?: (id: string) => void;
   onReadAll?: (projectId: string) => void;
@@ -25,7 +27,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 type Panel = 'main' | 'changelog' | 'notifications';
 
-export default function UserMenu({ username, onLogout, notifications = [], onRead, onReadAll, onNavigate, sidebarOpen = false, showAssistant = false, onToggleAssistant }: Props & { sidebarOpen?: boolean }) {
+export default function UserMenu({ username, role = 'user', onLogout, onNavigateAdmin, notifications = [], onRead, onReadAll, onNavigate, sidebarOpen = false, showAssistant = false, onToggleAssistant }: Props & { sidebarOpen?: boolean }) {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>('main');
   const menuRef = useRef<HTMLDivElement>(null);

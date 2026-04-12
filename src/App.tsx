@@ -53,6 +53,7 @@ import UserMenu from './components/UserMenu';
 import { type NotificationItem } from './components/NotificationBell';
 import type { AnnotationData } from './components/AnnotationBubble';
 import CanvasAssistantPanel, { type RefNode, type ChatMessage } from './components/CanvasAssistantPanel';
+import AdminView from './components/AdminView';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -1276,9 +1277,27 @@ function Flow({
 }
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem('loggedIn') === '1');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('token'));
   const [username, setUsername] = useState(() => sessionStorage.getItem('username') || 'user');
-  const [view, setView] = useState<'home' | 'canvas'>('home');
+  const [role, setRole] = useState(() => sessionStorage.getItem('role') || 'user');
+
+  // Verify token is still valid on mount (server restart clears sessions)
+  useEffect(() => {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => {
+      if (!res.ok) {
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('username');
+        sessionStorage.removeItem('role');
+        setIsLoggedIn(false);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const [view, setView] = useState<'home' | 'canvas' | 'admin'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -1581,10 +1600,11 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <LoginView
-        onLogin={(name) => {
-          sessionStorage.setItem('loggedIn', '1');
+        onLogin={(name, userRole) => {
           sessionStorage.setItem('username', name);
+          sessionStorage.setItem('role', userRole);
           setUsername(name);
+          setRole(userRole);
           setIsLoggedIn(true);
         }}
       />
@@ -1592,7 +1612,18 @@ export default function App() {
   }
 
   const handleLogout = () => {
+    const token = sessionStorage.getItem('token');
+    if (token) {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('username');
+    sessionStorage.removeItem('role');
     setIsLoggedIn(false);
+    setRole('user');
     setView('home');
   };
 
@@ -1600,7 +1631,9 @@ export default function App() {
     <>
     <UserMenu
       username={username}
+      role={role}
       onLogout={handleLogout}
+      onNavigateAdmin={() => setView('admin')}
       sidebarOpen={showAssistant}
       showAssistant={showAssistant}
       onToggleAssistant={() => setShowAssistant(v => !v)}
@@ -1619,7 +1652,12 @@ export default function App() {
       }}
     />
     <ReactFlowProvider>
-      {view === 'home' ? (
+      {view === 'admin' ? (
+        <AdminView
+          currentUsername={username}
+          onBack={() => setView('home')}
+        />
+      ) : view === 'home' ? (
         <HomePage
           projects={projects}
           onNewProject={handleNewProject}
