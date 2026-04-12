@@ -52,6 +52,7 @@ import { FileText } from 'lucide-react';
 import UserMenu from './components/UserMenu';
 import { type NotificationItem } from './components/NotificationBell';
 import type { AnnotationData } from './components/AnnotationBubble';
+import CanvasAssistantPanel, { type RefNode, type ChatMessage } from './components/CanvasAssistantPanel';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -164,6 +165,11 @@ function Flow({
   const [activeTool, setActiveTool] = useState<ActiveTool>(null);
   const [showAssets, setShowAssets] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // ── Canvas Assistant state ─────────────────────────────────
+  const [showAssistant, setShowAssistant] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState<ChatMessage[]>([]);
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantRefNodes, setAssistantRefNodes] = useState<RefNode[]>([]);
   const [assets, setAssets] = useState<AssetItem[]>(initialAssets);
   const [generationHistory, setGenerationHistory] = useState<HistoryItem[]>(initialHistory);
 
@@ -622,6 +628,186 @@ function Flow({
     });
   }, [onSaveAssets]);
 
+  // ── Canvas Assistant ─────────────────────────────────────
+  const showAssistantRef = useRef(false);
+  useEffect(() => { showAssistantRef.current = showAssistant; }, [showAssistant]);
+
+  const handleSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: Node[] }) => {
+    if (!showAssistantRef.current) return;
+    const imageNodes = selectedNodes.filter(n => n.type === 'imageNode');
+    if (imageNodes.length === 0) return;
+    setAssistantRefNodes(prev => {
+      const existingIds = new Set(prev.map(r => r.id));
+      const toAdd = imageNodes
+        .filter(n => !existingIds.has(n.id))
+        .map(n => ({
+          id: n.id,
+          label: String(n.data?.label ?? n.id),
+          imageUrl: Array.isArray(n.data?.content)
+            ? (n.data.content[0] as string | undefined)
+            : (n.data?.content as string | undefined),
+        }));
+      const combined = [...prev, ...toAdd];
+      return combined.slice(0, 4);
+    });
+  }, []);
+
+  const handleExecuteOperations = useCallback(async (
+    operations: Array<
+      | { op: 'update_prompt';  nodeId: string; newPrompt: string }
+      | { op: 'update_label';   nodeId: string; newLabel: string }
+      | { op: 'insert_node';    afterNodeId: string; label: string; prompt: string }
+      | { op: 'delete_node';    nodeId: string }
+      | { op: 'generate_image'; nodeId: string }
+    >,
+    onImageGenerated: (nodeId: string, url: string) => void,
+  ) => {
+    const idMap: Record<string, string> = {};
+    const resolveId = (id: string) => idMap[id] ?? id;
+
+    for (const op of operations) {
+      try {
+        if (op.op === 'update_prompt') {
+          handleUpdateNode(resolveId(op.nodeId), { initialPrompt: op.newPrompt });
+
+        } else if (op.op === 'update_label') {
+          handleUpdateNode(resolveId(op.nodeId), { label: op.newLabel });
+
+        } else if (op.op === 'insert_node') {
+          const afterId = resolveId(op.afterNodeId);
+          const newId = `canvas_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          idMap[`new_${op.afterNodeId}`] = newId;
+
+          const afterNode = nodesRef.current.find(n => n.id === afterId);
+          const baseX = (afterNode?.position?.x ?? 0) + (afterNode?.width ?? 380) + 32;
+          const baseY = afterNode?.position?.y ?? 100;
+
+          const newNode: Node = {
+            id: newId,
+            type: 'imageNode',
+            position: { x: baseX, y: baseY },
+            width: 380,
+            height: 214,
+            data: {
+              label: op.label,
+              initialPrompt: op.prompt,
+              content: null,
+              onPlusClick: handlePlusClick,
+              onUpdate: handleUpdateNode,
+              onAddAsset: handleAddAsset,
+            },
+          };
+          setNodes(nds => [...nds, newNode]);
+
+        } else if (op.op === 'delete_node') {
+          handleDeleteNode(resolveId(op.nodeId));
+
+        } else if (op.op === 'generate_image') {
+          const nodeId = resolveId(op.nodeId);
+          const targetNode = nodesRef.current.find(n => n.id === nodeId);
+          const prompt = String(targetNode?.data?.initialPrompt ?? targetNode?.data?.label ?? '');
+
+          handleUpdateNode(nodeId, { isGenerating: true });
+          try {
+            const resp = await fetch('/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt, count: 1, ratio: '16:9', quality: '2K' }),
+            });
+            const data = await resp.json() as { urls?: string[]; error?: string };
+            if (data.urls?.[0]) {
+              handleUpdateNode(nodeId, { content: data.urls[0], isGenerating: false });
+              onImageGenerated(nodeId, data.urls[0]);
+            } else {
+              handleUpdateNode(nodeId, { isGenerating: false });
+            }
+          } catch {
+            handleUpdateNode(nodeId, { isGenerating: false });
+          }
+        }
+      } catch (err) {
+        console.error('[canvas-assistant] op failed:', op, err);
+      }
+    }
+  }, [handleUpdateNode, handleDeleteNode, handlePlusClick, handleAddAsset, setNodes]);
+
+  const handleAssistantSend = useCallback(async (text: string) => {
+    const allNodes = nodesRef.current.filter(n => n.type === 'imageNode');
+    const refIds = new Set(assistantRefNodes.map(r => r.id));
+
+    const referencedNodes = assistantRefNodes.map(r => {
+      const node = allNodes.find(n => n.id === r.id);
+      return {
+        id: r.id,
+        label: r.label,
+        prompt: String(node?.data?.initialPrompt ?? node?.data?.label ?? ''),
+        imageUrl: r.imageUrl,
+      };
+    });
+
+    const otherNodes = allNodes.filter(n => !refIds.has(n.id));
+    let canvasNodes: { id: string; label: string; index: number }[] = [];
+    if (otherNodes.length <= 20) {
+      canvasNodes = otherNodes.map((n, i) => ({ id: n.id, label: String(n.data?.label ?? n.id), index: i }));
+    } else {
+      const refIndices = assistantRefNodes
+        .map(r => allNodes.findIndex(n => n.id === r.id))
+        .filter(i => i >= 0);
+      const neighborSet = new Set<number>();
+      refIndices.forEach(idx => {
+        for (let d = -3; d <= 3; d++) {
+          const ni = idx + d;
+          if (ni >= 0 && ni < allNodes.length && !refIds.has(allNodes[ni].id)) {
+            neighborSet.add(ni);
+          }
+        }
+      });
+      canvasNodes = [...neighborSet].sort((a, b) => a - b).map(i => ({
+        id: allNodes[i].id,
+        label: String(allNodes[i].data?.label ?? allNodes[i].id),
+        index: i,
+      }));
+    }
+
+    const userMsg: ChatMessage = {
+      role: 'user',
+      text,
+      refNodeLabels: assistantRefNodes.map(r => r.label),
+    };
+    setAssistantMessages(prev => [...prev, userMsg]);
+    setAssistantRefNodes([]);
+    setAssistantLoading(true);
+
+    try {
+      const resp = await fetch('/api/agent/canvas-command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, referencedNodes, canvasNodes }),
+      });
+      const result = await resp.json() as { reply: string; operations: Array<Record<string, unknown>> };
+
+      let lastGeneratedUrl: string | undefined;
+      await handleExecuteOperations(
+        result.operations as Parameters<typeof handleExecuteOperations>[0],
+        (_nodeId, url) => { lastGeneratedUrl = url; },
+      );
+
+      setAssistantMessages(prev => [...prev, {
+        role: 'assistant',
+        text: result.reply,
+        inlineImage: lastGeneratedUrl,
+      }]);
+    } catch (err) {
+      setAssistantMessages(prev => [...prev, {
+        role: 'assistant',
+        text: '抱歉，执行时遇到了问题，请稍后重试。',
+      }]);
+      console.error('[canvas-assistant] send error:', err);
+    } finally {
+      setAssistantLoading(false);
+    }
+  }, [assistantRefNodes, handleExecuteOperations]);
+
   const handleHistoryUse = useCallback((item: HistoryItem) => {
     const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     const newId = `from_hist_${Date.now()}`;
@@ -789,7 +975,8 @@ function Flow({
         onDragOver={e => e.preventDefault()}
         onDrop={handleCanvasDrop}
       >
-        <div className="w-full h-full relative">
+        <div className="w-full h-full" style={{ display: 'flex', flexDirection: 'row' }}>
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <ReactFlow
             nodes={nodesWithHandlers}
             edges={edgesWithHighlight}
@@ -801,6 +988,7 @@ function Flow({
             onPaneContextMenu={onPaneContextMenu}
             onMoveStart={closeMenu}
             onNodeDragStop={onNodeDragStop}
+            onSelectionChange={handleSelectionChange}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultEdgeOptions={{ type: 'custom' }}
@@ -837,6 +1025,30 @@ function Flow({
                     flexShrink: 0,
                   }}
                 />
+              </button>
+            </Panel>
+
+            {/* Top-right: canvas assistant toggle */}
+            <Panel position="top-right">
+              <button
+                onClick={() => setShowAssistant(v => !v)}
+                title="画布助手"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: showAssistant ? '#7c3aed' : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${showAssistant ? '#7c3aed' : 'rgba(255,255,255,0.1)'}`,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: showAssistant ? 'white' : 'rgba(255,255,255,0.6)',
+                  fontSize: 16,
+                  transition: 'all 0.15s',
+                }}
+              >
+                ✦
               </button>
             </Panel>
 
@@ -910,6 +1122,20 @@ function Flow({
             onClose={closeMenu}
             onAction={onAction}
           />
+
+          </div>{/* end inner flex-1 div */}
+
+          {/* Canvas Assistant Sidebar */}
+          {showAssistant && (
+            <CanvasAssistantPanel
+              onClose={() => setShowAssistant(false)}
+              referencedNodes={assistantRefNodes}
+              onRemoveRef={id => setAssistantRefNodes(prev => prev.filter(r => r.id !== id))}
+              messages={assistantMessages}
+              loading={assistantLoading}
+              onSend={handleAssistantSend}
+            />
+          )}
 
         </div>
       </div>
