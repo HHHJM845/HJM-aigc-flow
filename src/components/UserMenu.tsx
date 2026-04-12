@@ -23,7 +23,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 type Panel = 'main' | 'changelog' | 'notifications';
 
-export default function UserMenu({ username, onLogout, notifications = [], onRead, onReadAll, onNavigate }: Props) {
+export default function UserMenu({ username, onLogout, notifications = [], onRead, onReadAll, onNavigate, sidebarOpen = false }: Props & { sidebarOpen?: boolean }) {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>('main');
   const menuRef = useRef<HTMLDivElement>(null);
@@ -52,7 +52,7 @@ export default function UserMenu({ username, onLogout, notifications = [], onRea
   };
 
   return (
-    <div ref={menuRef} className="fixed top-4 right-4 z-[9999]" style={{ fontFamily: 'Inter' }}>
+    <div ref={menuRef} className="fixed top-4 z-[9999]" style={{ fontFamily: 'Inter', right: sidebarOpen ? 336 : 16, transition: 'right 0.2s ease' }}>
       {/* Avatar button */}
       <button
         onClick={() => { setOpen(v => !v); setPanel('main'); }}

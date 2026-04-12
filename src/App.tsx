@@ -122,6 +122,7 @@ function Flow({
   onDismissSuggestion,
   onApplySuggestion,
   revisionNodeRequest,
+  onAssistantChange,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -152,6 +153,7 @@ function Flow({
   onDismissSuggestion?: (rowId: string) => void;
   onApplySuggestion?: (rowId: string, prompt: string, rowIndex: number) => void;
   revisionNodeRequest?: { sourceNodeId: string; newNodeId: string; prompt: string; rowIndex: number; } | null;
+  onAssistantChange?: (open: boolean) => void;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
@@ -630,7 +632,10 @@ function Flow({
 
   // ── Canvas Assistant ─────────────────────────────────────
   const showAssistantRef = useRef(false);
-  useEffect(() => { showAssistantRef.current = showAssistant; }, [showAssistant]);
+  useEffect(() => {
+    showAssistantRef.current = showAssistant;
+    onAssistantChange?.(showAssistant);
+  }, [showAssistant, onAssistantChange]);
 
   const handleSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: Node[] }) => {
     if (!showAssistantRef.current) return;
@@ -913,6 +918,7 @@ function Flow({
           isInStoryboard: storyboardOrder.includes(node.id),
           onToggleStoryboard: handleToggleStoryboard,
           assets: assets,
+          onAddAsset: handleAddAsset,
           onNavigateToTemplates: () => setActiveView('templates'),
         } : {}),
         ...(node.type === 'videoNode' ? {
@@ -1028,29 +1034,6 @@ function Flow({
               </button>
             </Panel>
 
-            {/* Top-right: canvas assistant toggle */}
-            <Panel position="top-right">
-              <button
-                onClick={() => setShowAssistant(v => !v)}
-                title="画布助手"
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  background: showAssistant ? '#7c3aed' : 'rgba(255,255,255,0.06)',
-                  border: `1px solid ${showAssistant ? '#7c3aed' : 'rgba(255,255,255,0.1)'}`,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: showAssistant ? 'white' : 'rgba(255,255,255,0.6)',
-                  fontSize: 16,
-                  transition: 'all 0.15s',
-                }}
-              >
-                ✦
-              </button>
-            </Panel>
 
 <MiniMap nodeColor="#333333" maskColor="rgba(0, 0, 0, 0.8)" className="bg-[#0a0a0a] border-[#1a1a1a]" />
           </ReactFlow>
@@ -1092,9 +1075,11 @@ function Flow({
             activeTool={activeTool}
             showAssets={showAssets}
             showHistory={showHistory}
+            showAssistant={showAssistant}
             onToolChange={setActiveTool}
             onToggleAssets={() => { setShowAssets(v => !v); setShowHistory(false); }}
             onToggleHistory={() => { setShowHistory(v => !v); setShowAssets(false); }}
+            onToggleAssistant={() => setShowAssistant(v => !v)}
           />
 
           {/* Asset Panel */}
@@ -1273,6 +1258,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem('loggedIn') === '1');
   const [username, setUsername] = useState(() => sessionStorage.getItem('username') || 'user');
   const [view, setView] = useState<'home' | 'canvas'>('home');
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   // ── Annotation AI suggestions ────────────────────────
@@ -1594,6 +1580,7 @@ export default function App() {
     <UserMenu
       username={username}
       onLogout={handleLogout}
+      sidebarOpen={assistantOpen}
       notifications={notifications}
       onRead={id => {
         fetch(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
@@ -1650,6 +1637,7 @@ export default function App() {
           onDismissSuggestion={handleDismissSuggestion}
           onApplySuggestion={handleApplySuggestion}
           revisionNodeRequest={revisionNodeRequest}
+          onAssistantChange={setAssistantOpen}
         />
       )}
     </ReactFlowProvider>
