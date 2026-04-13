@@ -208,14 +208,14 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
         {/* Left: stats + video list */}
         <aside className="col-span-3 flex flex-col gap-4 overflow-hidden">
           {/* Stats */}
-          <div className="flex-shrink-0 rounded-xl p-5 space-y-4" style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex-shrink-0 rounded-xl p-5 space-y-4" style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}>
             <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>核心数据指标</h3>
             {[
               { label: '平均播放', value: results?.summary ? fmt(results.summary.avgViews) : '—', up: !!results },
               { label: '平均点赞', value: results?.summary ? fmt(results.summary.avgLikes) : '—', up: !!results },
               { label: '平均收藏', value: results?.summary ? fmt(results.summary.avgFavorites) : '—', up: false },
             ].map(({ label, value, up }) => (
-              <div key={label} className="p-3 bg-[#080808] rounded-lg border border-white/[0.06]">
+              <div key={label} className="p-3 bg-[#111113] rounded-lg border border-white/[0.08]">
                 <p className="text-[10px] text-white/40 mb-1" style={{ fontFamily: 'Inter' }}>{label}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>{value}</span>
@@ -226,7 +226,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
           </div>
 
           {/* Video list */}
-          <div className="flex-1 rounded-xl flex flex-col overflow-hidden min-h-0" style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex-1 rounded-xl flex flex-col overflow-hidden min-h-0" style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}>
             <div className="flex-shrink-0 px-5 pt-5 pb-2 flex justify-between items-center">
               <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>热门视频列表</h3>
               <span className="material-symbols-outlined text-white/20 text-[18px]">filter_list</span>
@@ -255,7 +255,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
         {/* Center: AI report + suggestions */}
         <section className="col-span-6 flex flex-col gap-4 overflow-y-auto">
           {/* Recipe / insight */}
-          <div className="flex-shrink-0 rounded-xl p-7" style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex-shrink-0 rounded-xl p-7" style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}>
             <div className="flex items-center gap-3 mb-5">
               <span className="material-symbols-outlined text-[#e0e0e0]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
               <h2 className="text-base font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>
@@ -300,7 +300,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
                 <div
                   key={i}
                   className="rounded-xl p-5 flex flex-col justify-between group hover:border-[#e0e0e0]/20 transition-all border border-transparent"
-                  style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}
+                  style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
@@ -335,7 +335,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
                 <div
                   key={title}
                   className="rounded-xl p-5 flex flex-col justify-between opacity-40"
-                  style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}
+                  style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">

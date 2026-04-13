@@ -103,108 +103,108 @@ export default function ProjectCard({
 
   return (
     <div
-      className="group relative aspect-[4/5] bg-black/40 backdrop-blur-sm rounded-2xl overflow-hidden flex flex-col transition-all duration-500 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-black/60 border border-white/15"
+      className="group relative aspect-[4/5] rounded-2xl transition-all duration-500 hover:-translate-y-1.5"
     >
-      {/* Thumbnail — top 62% */}
-      <button
-        onClick={onOpen}
-        className="relative h-[62%] w-full bg-black/30 overflow-hidden flex-shrink-0"
-      >
-        {project.thumbnail ? (
-          <img
-            src={project.thumbnail}
-            alt={project.name}
-            className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="material-symbols-outlined text-white/20 text-5xl">movie_creation</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
-        {project.projectType && (
-          <div className="absolute top-2 left-2 bg-white/7 border border-white/12 rounded-full px-2 py-0.5 text-[9px] text-white/45 leading-none">
-            {project.projectType}
-          </div>
-        )}
-        <div className="absolute bottom-3 left-4 flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-white/30 text-[12px]">folder</span>
-          <span className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-bold" style={{ fontFamily: 'Inter' }}>
-            {project.name.slice(0, 14).replace(/\s+/g, '_').toUpperCase() || 'PROJECT'}
-          </span>
-        </div>
-      </button>
-
-      {/* Info — bottom */}
-      <div className="p-5 flex flex-col justify-between flex-grow">
-        <div>
-          {editing ? (
-            <input
-              ref={inputRef}
-              value={nameInput}
-              onChange={e => setNameInput(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
-                if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
-              }}
-              className="w-full bg-white/10 text-[#fbf9f8] text-sm font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-white/30"
-              onClick={e => e.stopPropagation()}
-              style={{ fontFamily: 'Manrope' }}
+      {/* Card inner — clipped for rounded corners */}
+      <div className="absolute inset-0 bg-white/[0.07] backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 group-hover:bg-white/[0.11] group-hover:shadow-xl group-hover:shadow-black/60 transition-all duration-500 flex flex-col">
+        {/* Thumbnail — top 62% */}
+        <button
+          onClick={onOpen}
+          className="relative h-[62%] w-full bg-black/50 overflow-hidden flex-shrink-0"
+        >
+          {project.thumbnail ? (
+            <img
+              src={project.thumbnail}
+              alt={project.name}
+              className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700"
             />
           ) : (
-            <h3
-              className="text-[#fbf9f8] font-bold truncate group-hover:text-[#c6c6c7] transition-colors text-base cursor-pointer select-none"
-              onClick={handleNameClick}
-              style={{ fontFamily: 'Manrope' }}
-            >
-              {project.name}
-            </h3>
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="material-symbols-outlined text-white/20 text-5xl">movie_creation</span>
+            </div>
           )}
-          <p className="text-white/35 text-xs mt-1.5" style={{ fontFamily: 'Inter' }}>
-            {timeAgo(project.updatedAt)}编辑
-          </p>
-          <div className="flex flex-wrap gap-1 mt-2 min-h-[14px]">
-            {project.tags?.map(tag => (
-              <span
-                key={tag}
-                className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/6 text-white/35 leading-none"
-                style={{ fontFamily: 'Inter' }}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
+          {project.projectType && (
+            <div className="absolute top-2 left-2 bg-white/7 border border-white/12 rounded-full px-2 py-0.5 text-[9px] text-white/45 leading-none">
+              {project.projectType}
+            </div>
+          )}
+          <div className="absolute bottom-3 left-4 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-white/30 text-[12px]">folder</span>
+            <span className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-bold" style={{ fontFamily: 'Inter' }}>
+              {project.name.slice(0, 14).replace(/\s+/g, '_').toUpperCase() || 'PROJECT'}
+            </span>
+          </div>
+        </button>
+        {/* Info — bottom */}
+        <div className="p-5 flex flex-col justify-between flex-grow">
+          <div>
+            {editing ? (
+              <input
+                ref={inputRef}
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onBlur={commitEdit}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+                  if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                }}
+                className="w-full bg-white/10 text-[#fbf9f8] text-sm font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-white/30"
+                onClick={e => e.stopPropagation()}
+                style={{ fontFamily: 'Manrope' }}
+              />
+            ) : (
+              <h3
+                className="text-[#fbf9f8] font-bold truncate group-hover:text-[#c6c6c7] transition-colors text-base cursor-pointer select-none"
+                onClick={handleNameClick}
+                style={{ fontFamily: 'Manrope' }}
               >
-                {tag}
-              </span>
-            ))}
+                {project.name}
+              </h3>
+            )}
+            <p className="text-white/35 text-xs mt-1.5" style={{ fontFamily: 'Inter' }}>
+              {timeAgo(project.updatedAt)}编辑
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2 min-h-[14px]">
+              {project.tags?.map(tag => (
+                <span
+                  key={tag}
+                  className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/6 text-white/35 leading-none"
+                  style={{ fontFamily: 'Inter' }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="mt-3">
-          {/* Stage step dots */}
-          <div className="flex items-center mb-3">
-            {STAGES.map((s, i) => {
-              const done = i <= currentStageIdx;
-              return (
-                <React.Fragment key={s.key}>
-                  <div className="flex flex-col items-center gap-0.5">
-                    <div
-                      className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] text-white/90 flex-shrink-0"
-                      style={{ background: done ? 'rgba(200,190,220,0.7)' : 'rgba(255,255,255,0.07)', border: done ? 'none' : '1px solid rgba(255,255,255,0.15)' }}
-                    >
-                      {done && '✓'}
+          <div className="mt-3">
+            {/* Stage step dots */}
+            <div className="flex items-center mb-3">
+              {STAGES.map((s, i) => {
+                const done = i <= currentStageIdx;
+                return (
+                  <React.Fragment key={s.key}>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <div
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] text-white/90 flex-shrink-0"
+                        style={{ background: done ? 'rgba(200,190,220,0.7)' : 'rgba(255,255,255,0.07)', border: done ? 'none' : '1px solid rgba(255,255,255,0.15)' }}
+                      >
+                        {done && '✓'}
+                      </div>
+                      <span className="text-[6.5px] leading-none" style={{ color: done ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)', fontFamily: 'Inter' }}>
+                        {s.label}
+                      </span>
                     </div>
-                    <span className="text-[6.5px] leading-none" style={{ color: done ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)', fontFamily: 'Inter' }}>
-                      {s.label}
-                    </span>
-                  </div>
-                  {i < STAGES.length - 1 && (
-                    <div className="flex-1 h-px mb-2.5" style={{ background: done && i < currentStageIdx ? 'rgba(200,190,220,0.35)' : 'rgba(255,255,255,0.1)' }} />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
+                    {i < STAGES.length - 1 && (
+                      <div className="flex-1 h-px mb-2.5" style={{ background: done && i < currentStageIdx ? 'rgba(200,190,220,0.35)' : 'rgba(255,255,255,0.1)' }} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
 
-          {/* Avatars + menu */}
-          <div className="flex justify-between items-center">
+            {/* Avatars */}
             <div className="flex">
               {(project.members ?? []).length === 0 ? (
                 <div className="w-5 h-5 rounded-full border border-white/15 bg-white/5" />
@@ -227,108 +227,117 @@ export default function ProjectCard({
                 </>
               )}
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div className="relative" ref={menuRef}>
-              <button onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="material-symbols-outlined text-[#acabaa]/40 hover:text-[#fbf9f8] transition-colors text-[20px]">more_horiz</span>
+      {/* Menu button — outside overflow-hidden, absolute top-right */}
+      <div className="absolute top-3 right-3 z-20" ref={menuRef}>
+        <button
+          onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm border border-white/15 hover:bg-black/70 transition-all"
+        >
+          <span className="material-symbols-outlined text-white/70 hover:text-white transition-colors text-[18px]">more_vert</span>
+        </button>
+        {menuOpen && (
+          <div className="absolute right-0 top-10 bg-[#242424] border border-white/10 rounded-lg py-0.5 shadow-xl z-20 min-w-[148px] overflow-hidden">
+            <button onClick={() => { setMenuOpen(false); startEditing(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[#e7e5e4] hover:bg-white/5 text-[13px] transition-colors" style={{ fontFamily: 'Inter' }}>
+              <span className="material-symbols-outlined text-[15px] w-4 text-center flex-shrink-0">edit</span>
+              重命名
+            </button>
+
+            {/* 调整阶段 */}
+            <div className="relative">
+              <button
+                onClick={e => { e.stopPropagation(); setStageMenuOpen(v => !v); }}
+                className="w-full flex items-center justify-between gap-2.5 px-3 py-2 text-[#e7e5e4] hover:bg-white/5 text-[13px] transition-colors"
+                style={{ fontFamily: 'Inter' }}
+              >
+                <span className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-[15px] w-4 text-center flex-shrink-0">flag</span>
+                  调整阶段
+                </span>
+                <span className="text-white/30 text-[11px]">›</span>
               </button>
-              {menuOpen && (
-                <div className="absolute right-0 bottom-8 bg-[#242424] border border-white/10 rounded-xl py-1 shadow-xl z-20 min-w-[130px]">
-                  <button onClick={() => { setMenuOpen(false); startEditing(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors" style={{ fontFamily: 'Inter' }}>
-                    <Pencil size={11} /> 重命名
-                  </button>
-
-                  {/* 调整阶段 */}
-                  <div className="relative">
-                    <button
-                      onClick={e => { e.stopPropagation(); setStageMenuOpen(v => !v); }}
-                      className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors"
-                      style={{ fontFamily: 'Inter' }}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[12px]">flag</span> 调整阶段
-                      </span>
-                      <span className="text-white/30">›</span>
-                    </button>
-                    {stageMenuOpen && (
-                      <div className="absolute right-full top-0 mr-1 bg-[#2a2a2a] border border-white/10 rounded-xl py-1 shadow-xl z-30 min-w-[120px]">
-                        <p className="px-3 py-1 text-[9px] text-white/30 uppercase tracking-wide" style={{ fontFamily: 'Inter' }}>手动指定</p>
-                        {STAGES.map((s, i) => {
-                          const isCurrent = currentStageIdx === i;
-                          const isDone = i <= currentStageIdx;
-                          return (
-                            <button
-                              key={s.key}
-                              onClick={e => {
-                                e.stopPropagation();
-                                onUpdate({ stageOverride: s.key, updatedAt: Date.now() });
-                                setStageMenuOpen(false);
-                                setMenuOpen(false);
-                              }}
-                              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-white/5 ${isCurrent ? 'bg-white/6' : ''}`}
-                              style={{ color: isCurrent ? '#e8e6e4' : 'rgba(255,255,255,0.5)', fontFamily: 'Inter' }}
-                            >
-                              <div className="w-3 h-3 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: isDone ? 'rgba(200,190,220,0.7)' : 'rgba(255,255,255,0.08)', border: isDone ? 'none' : '1px solid rgba(255,255,255,0.15)' }}>
-                                {isDone && <span className="text-[6px] text-white/90">✓</span>}
-                              </div>
-                              {s.label}
-                              {isCurrent && <span className="ml-auto text-[9px] text-white/30">当前</span>}
-                            </button>
-                          );
-                        })}
-                        <div className="h-px bg-white/7 mx-2 my-1" />
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            onUpdate({ stageOverride: undefined, updatedAt: Date.now() });
-                            setStageMenuOpen(false);
-                            setMenuOpen(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] text-white/30 hover:text-white/50 hover:bg-white/5 transition-colors"
-                          style={{ fontFamily: 'Inter' }}
-                        >
-                          ↺ 恢复自动推断
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
+              {stageMenuOpen && (
+                <div className="absolute right-full top-0 mr-1 bg-[#2a2a2a] border border-white/10 rounded-xl py-1 shadow-xl z-30 min-w-[120px]">
+                  <p className="px-3 py-1 text-[9px] text-white/30 uppercase tracking-wide" style={{ fontFamily: 'Inter' }}>手动指定</p>
+                  {STAGES.map((s, i) => {
+                    const isCurrent = currentStageIdx === i;
+                    const isDone = i <= currentStageIdx;
+                    return (
+                      <button
+                        key={s.key}
+                        onClick={e => {
+                          e.stopPropagation();
+                          onUpdate({ stageOverride: s.key, updatedAt: Date.now() });
+                          setStageMenuOpen(false);
+                          setMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-white/5 ${isCurrent ? 'bg-white/6' : ''}`}
+                        style={{ color: isCurrent ? '#e8e6e4' : 'rgba(255,255,255,0.5)', fontFamily: 'Inter' }}
+                      >
+                        <div className="w-3 h-3 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: isDone ? 'rgba(200,190,220,0.7)' : 'rgba(255,255,255,0.08)', border: isDone ? 'none' : '1px solid rgba(255,255,255,0.15)' }}>
+                          {isDone && <span className="text-[6px] text-white/90">✓</span>}
+                        </div>
+                        {s.label}
+                        {isCurrent && <span className="ml-auto text-[9px] text-white/30">当前</span>}
+                      </button>
+                    );
+                  })}
+                  <div className="h-px bg-white/7 mx-2 my-1" />
                   <button
-                    onClick={() => {
-                      setMemberList(project.members ?? []);
-                      setMemberInput('');
-                      setMemberModalOpen(true);
+                    onClick={e => {
+                      e.stopPropagation();
+                      onUpdate({ stageOverride: undefined, updatedAt: Date.now() });
+                      setStageMenuOpen(false);
                       setMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] text-white/30 hover:text-white/50 hover:bg-white/5 transition-colors"
                     style={{ fontFamily: 'Inter' }}
                   >
-                    <span className="material-symbols-outlined text-[12px]">group</span> 管理成员
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMetaType(project.projectType);
-                      setMetaTags(project.tags ?? []);
-                      setMetaTagInput('');
-                      setMetaModalOpen(true);
-                      setMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[#e7e5e4] hover:bg-white/5 text-xs transition-colors"
-                    style={{ fontFamily: 'Inter' }}
-                  >
-                    <span className="material-symbols-outlined text-[12px]">label</span> 编辑标签/类型
-                  </button>
-
-                  <div className="h-px bg-white/7 mx-2 my-0.5" />
-                  <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-white/5 text-xs transition-colors" style={{ fontFamily: 'Inter' }}>
-                    <Trash2 size={11} /> 删除项目
+                    ↺ 恢复自动推断
                   </button>
                 </div>
               )}
             </div>
+
+            <button
+              onClick={() => {
+                setMemberList(project.members ?? []);
+                setMemberInput('');
+                setMemberModalOpen(true);
+                setMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[#e7e5e4] hover:bg-white/5 text-[13px] transition-colors"
+              style={{ fontFamily: 'Inter' }}
+            >
+              <span className="material-symbols-outlined text-[15px] w-4 text-center flex-shrink-0">group</span>
+              管理成员
+            </button>
+
+            <button
+              onClick={() => {
+                setMetaType(project.projectType);
+                setMetaTags(project.tags ?? []);
+                setMetaTagInput('');
+                setMetaModalOpen(true);
+                setMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[#e7e5e4] hover:bg-white/5 text-[13px] transition-colors"
+              style={{ fontFamily: 'Inter' }}
+            >
+              <span className="material-symbols-outlined text-[15px] w-4 text-center flex-shrink-0">label</span>
+              编辑标签/类型
+            </button>
+
+            <div className="h-px bg-white/[0.08] mx-2 my-0.5" />
+            <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-red-400 hover:bg-white/5 text-[13px] transition-colors" style={{ fontFamily: 'Inter' }}>
+              <span className="material-symbols-outlined text-[15px] w-4 text-center flex-shrink-0">delete</span>
+              删除项目
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
       {memberModalOpen && (

@@ -35,10 +35,10 @@ export default function TopicVideoCard({ video }: Props) {
   const p = PLATFORM_LABEL[video.platform] ?? PLATFORM_LABEL.bilibili;
 
   return (
-    <div className="group relative bg-[#0e0e0e] p-3 rounded-lg border border-[#484848]/10 hover:border-[#c6c6c7]/30 transition-all">
+    <div className="group relative bg-[#1c1c1e] p-3 rounded-lg border border-white/10 hover:border-[#c6c6c7]/40 transition-all">
       <div className="flex gap-3">
         {/* Portrait thumbnail */}
-        <div className="w-20 h-24 rounded bg-[#191a1a] overflow-hidden flex-shrink-0">
+        <div className="w-20 h-24 rounded bg-[#2a2a2e] overflow-hidden flex-shrink-0">
           {video.thumbnail ? (
             <img
               src={video.thumbnail}
@@ -87,7 +87,7 @@ export default function TopicVideoCard({ video }: Props) {
 
       {/* Expanded panel */}
       {expanded && (
-        <div className="mt-3 p-3 rounded-xl bg-[#191a1a] border border-[#484848]/15 space-y-2">
+        <div className="mt-3 p-3 rounded-xl bg-[#111113] border border-white/10 space-y-2">
           <div>
             <p className="text-[11px] text-[#c6c6c7] font-medium mb-1" style={{ fontFamily: 'Inter' }}>✦ 爆款原因</p>
             <p className="text-xs text-[#acabaa] leading-relaxed">{video.analysis}</p>

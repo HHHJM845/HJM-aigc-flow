@@ -125,7 +125,7 @@ export default function TemplateLibraryView() {
         {templates.map(t => (
           <div
             key={t.id}
-            className="bg-[#1c1c20] border border-white/8 rounded-2xl p-4 hover:border-white/15 transition-colors"
+            className="bg-[#252528] border border-white/12 rounded-2xl p-4 hover:border-white/22 transition-colors"
           >
             <div className="flex items-start justify-between mb-2">
               <span className="text-[13px] text-white font-medium leading-tight">{t.name}</span>
