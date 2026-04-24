@@ -54,6 +54,8 @@ import { type NotificationItem } from './components/NotificationBell';
 import type { AnnotationData } from './components/AnnotationBubble';
 import CanvasAssistantPanel, { type RefNode, type ChatMessage } from './components/CanvasAssistantPanel';
 import AdminView from './components/AdminView';
+import StageNode from './components/StageNode';
+import { createDefaultStageNodeData } from './lib/stageTypes';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -61,6 +63,7 @@ const nodeTypes = {
   videoNode: VideoNode,
   boardNode: BoardNode,
   commentNode: CommentNode,
+  stageNode: StageNode,
 };
 
 const edgeTypes = {
@@ -857,17 +860,29 @@ function Flow({
   const onAction = useCallback((action: string) => {
     const position = screenToFlowPosition({ x: menu.x, y: menu.y });
     const newNodeId = `${Date.now()}`;
-    const actionLabels: Record<string, string> = { text: '文本生成', image: '图片生成', video: '视频生成', editor: '图片编辑器' };
+    const actionLabels: Record<string, string> = { text: '文本生成', image: '图片生成', video: '视频生成', editor: '图片编辑器', stage: '导演工作区' };
     const nodeSizes: Record<string, { width: number; height: number }> = {
       image: { width: 380, height: 214 }, video: { width: 380, height: 214 }, text: { width: 380, height: 300 },
+      stage: { width: 240, height: 180 },
     };
     const { width: nw, height: nh } = nodeSizes[action] ?? { width: 380, height: 300 };
-    const newNode: Node = {
-      id: newNodeId,
-      type: action === 'text' ? 'textNode' : action === 'video' ? 'videoNode' : 'imageNode',
-      position, width: nw, height: nh,
-      data: { label: actionLabels[action] || '新节点', contentType: action, content: null, onPlusClick: handlePlusClick, onUpdate: handleUpdateNode },
-    };
+    const newNode: Node = action === 'stage'
+      ? {
+          id: newNodeId,
+          type: 'stageNode',
+          position, width: nw, height: nh,
+          data: {
+            ...createDefaultStageNodeData(),
+            onUpdate: handleUpdateNode,
+            onDelete: (nid: string) => setNodes(nds => nds.filter(n => n.id !== nid)),
+          },
+        }
+      : {
+          id: newNodeId,
+          type: action === 'text' ? 'textNode' : action === 'video' ? 'videoNode' : 'imageNode',
+          position, width: nw, height: nh,
+          data: { label: actionLabels[action] || '新节点', contentType: action, content: null, onPlusClick: handlePlusClick, onUpdate: handleUpdateNode },
+        };
     setNodes(nds => nds.concat(newNode));
     if (menu.sourceNodeId) {
       setEdges(eds => eds.concat({

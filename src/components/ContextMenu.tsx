@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Type, Image as ImageIcon, Video, PenTool } from 'lucide-react';
+import { Type, Image as ImageIcon, Video, PenTool, Clapperboard } from 'lucide-react';
 
 interface ContextMenuProps {
   x: number;
@@ -41,6 +41,9 @@ export default function ContextMenu({ x, y, visible, sourceNodeType, onClose, on
             )}
             {!isFromTextNode && !isFromVideoNode && (
               <MenuButton icon={<PenTool size={18} />} label="图片编辑器" onClick={() => onAction('editor')} />
+            )}
+            {!isFromTextNode && !isFromVideoNode && (
+              <MenuButton icon={<Clapperboard size={18} />} label="3D 导演台" onClick={() => onAction('stage')} />
             )}
           </div>
         </motion.div>
