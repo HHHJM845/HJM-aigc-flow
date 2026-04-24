@@ -40,23 +40,22 @@ export interface StageNodeData {
   onDelete?: (id: string) => void
 }
 
-export const DEFAULT_STAGE_SCENE: StageScene = {
-  bgColor: '#0d1b2a',
-  characters: [],
-  cameras: [
-    {
-      id: 'cam-a',
-      name: 'A机位',
-      position: [0, 3, 8],
-      target: [0, 1, 0],
-      fov: 50,
+export function createDefaultStageNodeData(): Omit<StageNodeData, 'onUpdate' | 'onDelete'> {
+  return {
+    label: '导演工作区',
+    activeCameraId: 'cam-a',
+    scene: {
+      bgColor: '#0d1b2a',
+      characters: [],
+      cameras: [
+        {
+          id: 'cam-a',
+          name: 'A机位',
+          position: [0, 3, 8],
+          target: [0, 1, 0],
+          fov: 50,
+        },
+      ],
     },
-  ],
-}
-
-export const DEFAULT_STAGE_NODE_DATA: Omit<StageNodeData, 'onUpdate' | 'onDelete'> = {
-  label: '导演工作区',
-  preview: undefined,
-  activeCameraId: 'cam-a',
-  scene: DEFAULT_STAGE_SCENE,
+  }
 }
