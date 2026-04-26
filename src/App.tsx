@@ -54,6 +54,7 @@ import { type NotificationItem } from './components/NotificationBell';
 import type { AnnotationData } from './components/AnnotationBubble';
 import CanvasAssistantPanel, { type RefNode, type ChatMessage } from './components/CanvasAssistantPanel';
 import AdminView from './components/AdminView';
+import AgentContextPanel from './components/AgentContextPanel';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -1131,6 +1132,14 @@ function Flow({
           />
 
           </div>{/* end inner flex-1 div */}
+
+          {/* Agent Context Panel */}
+          {projectId && (
+            <AgentContextPanel
+              projectId={projectId}
+              refreshTrigger={activeView === 'topic' ? 1 : activeView === 'breakdown' ? 2 : 0}
+            />
+          )}
 
           {/* Canvas Assistant Sidebar */}
           {showAssistant && (
