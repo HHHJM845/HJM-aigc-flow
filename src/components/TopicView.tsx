@@ -41,11 +41,12 @@ function fmt(n: number): string {
 interface Props {
   initialDraft?: string;
   initialKeyword?: string;
+  projectId?: string;
   onSaveDraft: (text: string) => void;
   onImportToBreakdown: (text: string) => void;
 }
 
-export default function TopicView({ initialDraft = '', initialKeyword = '', onSaveDraft, onImportToBreakdown }: Props) {
+export default function TopicView({ initialDraft = '', initialKeyword = '', projectId, onSaveDraft, onImportToBreakdown }: Props) {
   const [keyword, setKeyword] = useState(initialKeyword);
   const [platforms, setPlatforms] = useState<Platform[]>(['bilibili', 'xiaohongshu', 'douyin']);
   const [loading, setLoading] = useState(false);
@@ -96,7 +97,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', onSa
       const res = await fetch('/api/topic-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: kw, platforms }),
+        body: JSON.stringify({ keyword: kw, platforms, projectId }),
         signal: ctrl.signal,
       });
 

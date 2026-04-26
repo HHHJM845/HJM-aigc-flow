@@ -7,11 +7,11 @@ export interface StoryboardRow {
 }
 
 // ── 剧本拆解 ─────────────────────────────────────────
-export async function breakdownScript(scriptText: string): Promise<StoryboardRow[]> {
+export async function breakdownScript(scriptText: string, projectId?: string): Promise<StoryboardRow[]> {
   const res = await fetch('/api/breakdown', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ script: scriptText }),
+    body: JSON.stringify({ script: scriptText, projectId }),
   });
 
   if (!res.ok) {
@@ -164,4 +164,31 @@ export async function generateVideoPrompt(shotDescription: string): Promise<stri
 
   const { content } = await res.json() as { content: string };
   return content;
+}
+
+// ── Project Context ──────────────────────────────────────────
+export interface ProjectContext {
+  keyword?: string;
+  topicInsight?: string;
+  selectedTopic?: string;
+  scriptSummary?: string;
+  sceneCount?: number;
+  sceneDescriptions?: string;
+  updatedAt?: number;
+}
+
+export async function getProjectContext(projectId: string): Promise<ProjectContext> {
+  const res = await fetch(`/api/project-context/${projectId}`);
+  if (!res.ok) return {};
+  return res.json() as Promise<ProjectContext>;
+}
+
+export async function updateProjectContext(projectId: string, patch: Partial<ProjectContext>): Promise<ProjectContext> {
+  const res = await fetch(`/api/project-context/${projectId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) return patch;
+  return res.json() as Promise<ProjectContext>;
 }

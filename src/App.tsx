@@ -1255,6 +1255,7 @@ function Flow({
         <TopicView
           initialDraft={topicDraft}
           initialKeyword={initialTopicKeyword}
+          projectId={projectId}
           onSaveDraft={(text) => {
             setTopicDraft(text);
             onSaveTopicDraft(text);

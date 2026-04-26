@@ -222,7 +222,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
     if (!scriptText.trim() || isBreaking) return;
     setIsBreaking(true); setError('');
     try {
-      const result = await breakdownScript(scriptText);
+      const result = await breakdownScript(scriptText, projectId);
       setRows(result); setCommittedScript(scriptText); setChangedSegments([]);
     } catch (err: any) {
       setError(err.message || '拆解失败，请重试');
@@ -233,7 +233,7 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
     if (changedSegments.length === 0 || isBreaking) return;
     setIsBreaking(true); setError('');
     try {
-      const newRows = await breakdownScript(changedSegments.join('\n\n'));
+      const newRows = await breakdownScript(changedSegments.join('\n\n'), projectId);
       const merged = mergeRows(rows, newRows, changedSegments);
       setRows(merged);
       setNewlyUpdatedIds(new Set(newRows.map(r => r.id)));
