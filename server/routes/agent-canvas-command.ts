@@ -1,6 +1,7 @@
 // server/routes/agent-canvas-command.ts
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import { getProjectContext } from '../db.js';
 
 const router = Router();
 const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
@@ -31,6 +32,7 @@ interface CommandRequest {
   message: string;
   referencedNodes: ReferencedNode[];
   canvasNodes: CanvasNode[];
+  projectId?: string;
 }
 
 interface CommandResponse {
@@ -39,7 +41,10 @@ interface CommandResponse {
 }
 
 // ── System prompt ────────────────────────────────────────────
-function buildSystemPrompt(): string {
+function buildSystemPrompt(ctx?: { keyword?: string; topicInsight?: string; sceneCount?: number } | null): string {
+  const ctxSection = ctx?.keyword
+    ? `\n\n【项目背景】主题："${ctx.keyword}"${ctx.sceneCount ? `，共${ctx.sceneCount}个分镜` : ''}${ctx.topicInsight ? `，风格：${ctx.topicInsight.slice(0, 80)}` : ''}。操作时请与此背景保持一致。`
+    : '';
   return `你是一个画布操作助手，帮助用户通过自然语言控制 AI 图片生成画布。
 
 画布由若干"图片节点"组成，每个节点有唯一 id、label（镜头名）、prompt（生图提示词）。
@@ -56,7 +61,7 @@ function buildSystemPrompt(): string {
 2. reply 是给用户的简短自然语言回复（中文，50字以内）。
 3. 如果用户只是聊天不需要操作，operations 返回空数组 []。
 4. 修改提示词后如果用户没有明确说不生图，默认附加 generate_image 操作。
-5. insert_node 后默认附加 generate_image 操作（针对新节点的 id = "new_<afterNodeId>"，前端会用实际生成的 id 替换）。`;
+5. insert_node 后默认附加 generate_image 操作（针对新节点的 id = "new_<afterNodeId>"，前端会用实际生成的 id 替换）。` + ctxSection;
 }
 
 function buildUserMessage(req: CommandRequest): string {
@@ -86,6 +91,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     const apiKey = process.env.IMAGE_API_KEY;
     if (!apiKey) return res.status(500).json({ error: '服务端未配置 IMAGE_API_KEY' });
 
+    const ctx = body.projectId ? getProjectContext(body.projectId) : null;
+
     const upstream = await fetch(`${ARK_BASE}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -95,7 +102,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       body: JSON.stringify({
         model: TEXT_MODEL,
         messages: [
-          { role: 'system', content: buildSystemPrompt() },
+          { role: 'system', content: buildSystemPrompt(ctx) },
           { role: 'user',   content: buildUserMessage(body) },
         ],
         temperature: 0.4,
