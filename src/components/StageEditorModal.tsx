@@ -164,8 +164,8 @@ export default function StageEditorModal({ _nodeId: _nodeId, data, onClose }: St
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#0f1117]"
-      style={{ fontFamily: 'system-ui, sans-serif' }}
+      className="fixed z-50 flex flex-col bg-[#0f1117] rounded-xl shadow-2xl overflow-hidden border border-[#2a3a5c]"
+      style={{ fontFamily: 'system-ui, sans-serif', top: 52, left: 60, right: 16, bottom: 52 }}
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2.5 bg-[#1e2a3a] border-b border-[#2a3a5c] flex-shrink-0">

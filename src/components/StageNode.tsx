@@ -1,5 +1,6 @@
 // src/components/StageNode.tsx
 import { useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { type NodeProps } from '@xyflow/react'
 import type { StageNodeData } from '../lib/stageTypes'
 import StageEditorModal from './StageEditorModal'
@@ -84,12 +85,13 @@ export default function StageNode({ id, data }: NodeProps) {
         </div>
       </div>
 
-      {editorOpen && (
+      {editorOpen && createPortal(
         <StageEditorModal
           _nodeId={id}
           data={stageData}
           onClose={handleClose}
-        />
+        />,
+        document.body
       )}
     </>
   )
