@@ -1,5 +1,6 @@
 // server/routes/topic-research.ts
 import { Router, type Request, type Response } from 'express';
+import { upsertProjectContext } from '../db.js';
 
 const router = Router();
 const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
@@ -16,9 +17,10 @@ function sseWrite(res: Response, data: object) {
 }
 
 router.post('/', async (req: Request, res: Response) => {
-  const { keyword, platforms } = req.body as {
+  const { keyword, platforms, projectId } = req.body as {
     keyword?: string;
     platforms?: string[];
+    projectId?: string;
   };
 
   if (!keyword?.trim()) {
@@ -278,6 +280,15 @@ ${videosText}
           }
         }
       }
+    }
+
+    // 保存到项目上下文
+    if (projectId) {
+      const insightText = fullText.split('===SUGGESTIONS_JSON===')[0].trim();
+      upsertProjectContext(projectId, {
+        keyword: safeKeyword,
+        topicInsight: insightText.slice(0, 300),
+      });
     }
 
     res.write('data: [DONE]\n\n');

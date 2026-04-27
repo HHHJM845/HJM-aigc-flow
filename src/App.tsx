@@ -56,6 +56,7 @@ import CanvasAssistantPanel, { type RefNode, type ChatMessage } from './componen
 import AdminView from './components/AdminView';
 import StageNode from './components/StageNode';
 import { createDefaultStageNodeData } from './lib/stageTypes';
+import AgentContextPanel from './components/AgentContextPanel';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -1147,6 +1148,14 @@ function Flow({
 
           </div>{/* end inner flex-1 div */}
 
+          {/* Agent Context Panel */}
+          {projectId && (
+            <AgentContextPanel
+              projectId={projectId}
+              refreshTrigger={activeView === 'topic' ? 1 : activeView === 'breakdown' ? 2 : 0}
+            />
+          )}
+
           {/* Canvas Assistant Sidebar */}
           {showAssistant && (
             <CanvasAssistantPanel
@@ -1270,6 +1279,7 @@ function Flow({
         <TopicView
           initialDraft={topicDraft}
           initialKeyword={initialTopicKeyword}
+          projectId={projectId}
           onSaveDraft={(text) => {
             setTopicDraft(text);
             onSaveTopicDraft(text);

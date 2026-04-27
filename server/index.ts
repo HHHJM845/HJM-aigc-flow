@@ -23,6 +23,7 @@ import { attachWebSocketServer } from './ws.js';
 import { seedDefaultImageTemplates } from './db.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
+import projectContextRouter from './routes/project-context.js';
 import { seedAdminUser } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -62,6 +63,7 @@ app.use('/api/agent/canvas-command', agentCanvasCommandRouter);
 app.use('/api', reviewRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/project-context', projectContextRouter);
 
 // Serve uploaded files publicly
 import { fileURLToPath as fu } from 'url';

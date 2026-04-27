@@ -82,6 +82,12 @@ db.exec(`
     role          TEXT NOT NULL DEFAULT 'user',
     created_at    INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS project_context (
+    project_id  TEXT PRIMARY KEY,
+    data        TEXT NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
 `);
 
 export function getAllProjects(): Project[] {
@@ -378,4 +384,35 @@ export async function seedAdminUser(): Promise<void> {
   const id = 'user_admin';
   createUser(id, adminUsername, hash, 'admin');
   console.log(`[auth] Admin user '${adminUsername}' created`);
+}
+
+// ── Project Context functions ─────────────────────────────────
+
+export interface ProjectContext {
+  keyword?: string;
+  topicInsight?: string;
+  selectedTopic?: string;
+  scriptSummary?: string;
+  sceneCount?: number;
+  sceneDescriptions?: string;
+  updatedAt: number;
+}
+
+export function getProjectContext(projectId: string): ProjectContext | null {
+  const row = db.prepare('SELECT data FROM project_context WHERE project_id = ?').get(projectId) as { data: string } | undefined;
+  if (!row) return null;
+  try { return JSON.parse(row.data) as ProjectContext; } catch { return null; }
+}
+
+export function upsertProjectContext(projectId: string, patch: Partial<Omit<ProjectContext, 'updatedAt'>>): ProjectContext {
+  const existing = getProjectContext(projectId) ?? {};
+  const updated: ProjectContext = { ...existing, ...patch, updatedAt: Date.now() };
+  db.prepare(
+    'INSERT OR REPLACE INTO project_context (project_id, data, updated_at) VALUES (?, ?, ?)'
+  ).run(projectId, JSON.stringify(updated), updated.updatedAt);
+  return updated;
+}
+
+export function deleteProjectContext(projectId: string): void {
+  db.prepare('DELETE FROM project_context WHERE project_id = ?').run(projectId);
 }
