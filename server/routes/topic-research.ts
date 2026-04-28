@@ -182,36 +182,36 @@ router.post('/', async (req: Request, res: Response) => {
     sseWrite(res, { type: 'films', data: filmData });
 
     // ── Pass 2: Streaming insight + suggestions ───────────────
-    const videosText = filmData.films
+    const filmsText = filmData.films
       .map((f, i) =>
-        `影片${i + 1}：${f.title}（${f.source}）\n风格：${f.styleTags.join('、')}\n关联：${f.relevanceReason}`
+        `影片${i + 1}：《${f.title}》（${f.director}，${f.year}，来源：${f.source}）\n风格：${f.styleTags.join('、')}\n关联：${f.relevanceReason}`
       )
       .join('\n\n');
 
-    const insightPrompt = `根据以下关于"${safeKeyword}"题材的视频研究数据，请完成两个任务：
+    const insightPrompt = `你是一位影视创作顾问，正在帮助创作者围绕"${safeKeyword}"这一主题找到创作方向。以下是相关参考影片的研究数据：
 
-【视频研究数据】
-${videosText}
+【参考影片数据】
+${filmsText}
 
-【任务一：爆款配方】
-用简洁要点（每点一行，用•开头）总结该题材爆款内容的共同规律，涵盖：
-• 内容切入角度（观众最感兴趣的切入点）
-• 情绪钩子类型（触发共鸣/好奇/感动的方式）
-• 标题结构规律（高点击标题的写法特征）
-• 高频评论诉求（观众在评论区最常表达的需求或情感）
+【任务一：创作方向分析】
+基于以上参考影片，用简洁要点（每点一行，用•开头）分析该主题在影视创作中的规律，涵盖：
+• 叙事规律：该主题常见的故事结构（线性/非线性、单线/群像、时间跨度等）
+• 视觉基调：色彩、光线、景别、运镜的普遍倾向
+• 情感内核：驱动观众的核心情感张力，以及最容易触发共鸣的情绪类型
 
-请先输出爆款配方内容，然后在结尾另起一行输出如下格式的 JSON（不要有其他文字）：
+请先输出创作方向分析内容，然后在结尾另起一行输出如下格式的 JSON（不要有其他文字）：
 ===SUGGESTIONS_JSON===
 [
   {
-    "title": "<建议选题标题，10-20字，有吸引力>",
-    "reason": "<为什么这个角度容易引发共鸣，1-2句>",
-    "emotionTag": "<单个情绪标签，如：共鸣|感动|涨知识|好奇|争议>"
+    "title": "<选题标题，10-20字，有具体感，不是标题党>",
+    "coreConflict": "<核心冲突，一句话点明戏剧张力>",
+    "genreTag": "<片种：短片|纪录|品牌片|微电影>",
+    "referenceStyle": "<风格锚点，如：侯孝贤 / 《童年往事》>"
   }
 ]
 ===END===
 
-要求：给出 6-8 个选题建议，覆盖不同角度，避免重复。`;
+要求：给出 6-8 个选题建议，覆盖不同片种和角度，避免重复，每个选题都应有清晰的核心冲突。`;
 
     const streamResp = await fetch(`${ARK_BASE}/chat/completions`, {
       method: 'POST',
