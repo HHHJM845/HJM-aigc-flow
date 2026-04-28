@@ -169,7 +169,7 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
-    if (!filmData!.films?.length) {
+    if (!filmData?.films?.length) {
       sseWrite(res, {
         type: 'error',
         data: { message: '未找到相关影片参考，请尝试更换主题或来源' },
