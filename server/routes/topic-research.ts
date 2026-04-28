@@ -30,6 +30,10 @@ router.post('/', async (req: Request, res: Response) => {
   const selectedSources = (sources ?? ['cinema', 'streaming', 'festival'])
     .filter((s): s is string => typeof s === 'string');
 
+  if (selectedSources.length === 0) {
+    return res.status(400).json({ error: '请至少选择一个来源' });
+  }
+
   const ALLOWED_SOURCES = new Set(['cinema', 'streaming', 'festival']);
   const validSources = selectedSources.filter(s => ALLOWED_SOURCES.has(s));
   if (validSources.length === 0) {
