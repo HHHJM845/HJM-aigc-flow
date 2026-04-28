@@ -6,10 +6,10 @@ const router = Router();
 const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
 const MODEL = 'doubao-1-5-pro-32k-250115';
 
-const PLATFORM_NAMES: Record<string, string> = {
-  bilibili: 'B站（bilibili.com）',
-  xiaohongshu: '小红书（xiaohongshu.com）',
-  douyin: '抖音（douyin.com）',
+const SOURCE_NAMES: Record<string, string> = {
+  cinema:    '院线趋势（近期上映及热映影片）',
+  streaming: '流媒体热门（Netflix、爱奇艺、B站等平台）',
+  festival:  '国际影展（戛纳、柏林、圣丹斯等）',
 };
 
 function sseWrite(res: Response, data: object) {
@@ -17,9 +17,9 @@ function sseWrite(res: Response, data: object) {
 }
 
 router.post('/', async (req: Request, res: Response) => {
-  const { keyword, platforms, projectId } = req.body as {
+  const { keyword, sources, projectId } = req.body as {
     keyword?: string;
-    platforms?: string[];
+    sources?: string[];
     projectId?: string;
   };
 
@@ -27,13 +27,13 @@ router.post('/', async (req: Request, res: Response) => {
     return res.status(400).json({ error: '请提供关键词' });
   }
 
-  const selectedPlatforms = (platforms ?? ['bilibili', 'xiaohongshu', 'douyin'])
-    .filter((p): p is string => typeof p === 'string');
+  const selectedSources = (sources ?? ['cinema', 'streaming', 'festival'])
+    .filter((s): s is string => typeof s === 'string');
 
-  const ALLOWED_PLATFORMS = new Set(['bilibili', 'xiaohongshu', 'douyin']);
-  const validPlatforms = selectedPlatforms.filter(p => ALLOWED_PLATFORMS.has(p));
-  if (validPlatforms.length === 0) {
-    return res.status(400).json({ error: '请选择至少一个有效平台' });
+  const ALLOWED_SOURCES = new Set(['cinema', 'streaming', 'festival']);
+  const validSources = selectedSources.filter(s => ALLOWED_SOURCES.has(s));
+  if (validSources.length === 0) {
+    return res.status(400).json({ error: '请选择至少一个有效来源' });
   }
   const safeKeyword = keyword.trim().slice(0, 100);
 
@@ -50,33 +50,31 @@ router.post('/', async (req: Request, res: Response) => {
   res.flushHeaders();
 
   try {
-    const platformDesc = validPlatforms
-      .map(p => PLATFORM_NAMES[p] ?? p)
+    const sourceDesc = validSources
+      .map(s => SOURCE_NAMES[s] ?? s)
       .join('、');
 
     // ── Pass 1: Web search for video data ───────────────────
-    const searchPrompt = `你是资深的短视频内容研究专家，精通${platformDesc}平台的内容生态和爆款规律。请根据你的专业知识，分析"${safeKeyword}"这个题材在这些平台上的热门视频内容趋势。
+    const searchPrompt = `你是资深电影策划和选题顾问，精通全球影视内容趋势与创作规律。请根据你的专业知识，围绕"${safeKeyword}"这一主题，从以下来源中筛选最具参考价值的影片：${sourceDesc}。
 
-基于你对该平台内容生态的了解，构建 6 条最具代表性的热门视频案例（包含真实可能存在的标题风格、数据量级和内容模式），以纯 JSON 格式返回，不要有任何多余文字、注释或 markdown 代码块，直接返回 JSON：
+构建 6 部最具代表性的参考影片案例（可以是真实存在的影片，也可以是具有代表性的虚构案例），以纯 JSON 格式返回，不要有任何多余文字、注释或 markdown 代码块，直接返回 JSON：
 
 {
   "summary": {
-    "avgViews": <平均播放量数字>,
-    "avgLikes": <平均点赞量数字>,
-    "avgFavorites": <平均收藏量数字>
+    "filmCount": <影片数量，数字>,
+    "dominantMood": "<主流情感基调，如：孤独、反抗、成长、希望>",
+    "dominantGenre": "<高频题材类型，如：公路片、家庭剧情、伪纪录>"
   },
-  "videos": [
+  "films": [
     {
-      "title": "<视频标题>",
-      "platform": "<bilibili|xiaohongshu|douyin>",
-      "url": "<视频链接，如找不到填空字符串>",
-      "thumbnail": "<封面图URL，如找不到填空字符串>",
-      "views": <播放量数字，估算即可>,
-      "likes": <点赞量数字，估算即可>,
-      "favorites": <收藏量数字，估算即可>,
-      "brief": "<视频内容简介，2-3句>",
-      "topComments": ["<评论1>", "<评论2>", "<评论3>"],
-      "analysis": "<这条视频爆火的核心原因，重点分析内容切入角度、情绪触发点、标题技巧，2-4句>"
+      "title": "<片名>",
+      "director": "<导演姓名>",
+      "year": <上映年份，数字>,
+      "source": "<cinema|streaming|festival>",
+      "externalUrl": "<豆瓣或IMDb链接，找不到填空字符串>",
+      "styleTags": ["<风格标签1>", "<风格标签2>"],
+      "relevanceReason": "<与"${safeKeyword}"主题的关联，说明为何值得参考，2-3句>",
+      "learnDimensions": ["<可借鉴维度，如：结构、视觉、人物、主题>"]
     }
   ]
 }`;
@@ -118,17 +116,17 @@ router.post('/', async (req: Request, res: Response) => {
       rawContent = rawContent.slice(jsonStart, jsonEnd + 1);
     }
 
-    type VideoData = {
-      summary: { avgViews: number; avgLikes: number; avgFavorites: number };
-      videos: {
-        title: string; platform: string; url: string; thumbnail: string;
-        views: number; likes: number; favorites: number;
-        brief: string; topComments: string[]; analysis: string;
+    type FilmData = {
+      summary: { filmCount: number; dominantMood: string; dominantGenre: string };
+      films: {
+        title: string; director: string; year: number;
+        source: string; externalUrl: string;
+        styleTags: string[]; relevanceReason: string; learnDimensions: string[];
       }[];
     };
 
-    const tryParse = (s: string): VideoData | null => {
-      try { return JSON.parse(s) as VideoData; } catch { return null; }
+    const tryParse = (s: string): FilmData | null => {
+      try { return JSON.parse(s) as FilmData; } catch { return null; }
     };
 
     // Repair common model-output errors:
@@ -142,20 +140,20 @@ router.post('/', async (req: Request, res: Response) => {
         .replace(/("[\w]+"\s*:\s*)("(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")+)(\s*[\n,}])/g,
           (_, key, vals, trailing) => `${key}[${vals}]${trailing}`);
 
-    let videoData: VideoData | null =
+    let filmData: FilmData | null =
       tryParse(rawContent) ?? tryParse(repairMissingArrayBracket(rawContent));
 
-    if (!videoData) {
+    if (!filmData) {
       // Try to repair truncated JSON by trimming back to the last complete video entry
       const lastCompleteIdx = rawContent.lastIndexOf('}\n    }');
-      let repaired: typeof videoData | null = null;
+      let repaired: typeof filmData | null = null;
       if (lastCompleteIdx !== -1) {
         const candidate = rawContent.slice(0, lastCompleteIdx + '}\n    }'.length) + '\n  ]\n}';
         repaired = tryParse(candidate) ?? tryParse(repairMissingArrayBracket(candidate));
       }
       if (repaired) {
-        console.warn('[topic-research] Recovered from truncated JSON. Videos:', repaired.videos?.length);
-        videoData = repaired;
+        console.warn('[topic-research] Recovered from truncated JSON. Films:', repaired.films?.length);
+        filmData = repaired;
       } else {
         console.error('[topic-research] JSON parse failed. Length:', rawContent.length, 'Tail:', rawContent.slice(-300));
         sseWrite(res, {
@@ -167,22 +165,22 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
-    if (!videoData!.videos?.length) {
+    if (!filmData!.films?.length) {
       sseWrite(res, {
         type: 'error',
-        data: { message: '未找到相关视频内容，请尝试更换关键词或平台' },
+        data: { message: '未找到相关影片参考，请尝试更换主题或来源' },
       });
       res.write('data: [DONE]\n\n');
       return res.end();
     }
 
     // Send Phase 1
-    sseWrite(res, { type: 'videos', data: videoData });
+    sseWrite(res, { type: 'films', data: filmData });
 
     // ── Pass 2: Streaming insight + suggestions ───────────────
-    const videosText = videoData.videos
-      .map((v, i) =>
-        `视频${i + 1}：${v.title}（${v.platform}，播放${v.views}，点赞${v.likes}）\n分析：${v.analysis}\n代表评论：${v.topComments.join(' / ')}`
+    const videosText = filmData.films
+      .map((f, i) =>
+        `影片${i + 1}：${f.title}（${f.source}）\n风格：${f.styleTags.join('、')}\n关联：${f.relevanceReason}`
       )
       .join('\n\n');
 
