@@ -13,8 +13,8 @@ export default function TopicIdeaEditor({ value, onChange, onSave, onImportToBre
       {/* Header */}
       <div className="p-5 border-b border-white/[0.06]">
         <h3 className="text-[#e0e0e0] font-bold text-base flex items-center gap-2" style={{ fontFamily: 'Manrope' }}>
-          <span className="material-symbols-outlined text-[#e0e0e0]">lightbulb</span>
-          我的选题想法
+          <span className="material-symbols-outlined text-[#e0e0e0]">edit_note</span>
+          导演手记
         </h3>
       </div>
 
@@ -23,7 +23,7 @@ export default function TopicIdeaEditor({ value, onChange, onSave, onImportToBre
         <textarea
           value={value}
           onChange={e => onChange(e.target.value)}
-          placeholder="在这里记录你的灵感碎片..."
+          placeholder="在这里记录你的创作思路，采用灵感后自动追加…"
           className="w-full h-full bg-transparent border-none resize-none text-[#e0e0e0] text-sm focus:ring-0 focus:outline-none leading-relaxed placeholder:text-white/20"
           style={{ fontFamily: 'Manrope', minHeight: '120px' }}
         />
