@@ -259,7 +259,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
             <div className="flex items-center gap-3 mb-5">
               <span className="material-symbols-outlined text-[#e0e0e0]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
               <h2 className="text-base font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>
-                {hasResults ? 'AI 洞察报告' : '今日爆款配方'}
+                {hasResults ? 'AI 创作方向分析' : '创作方向分析'}
               </h2>
             </div>
 
@@ -279,17 +279,9 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
                 )}
               </div>
             ) : (
-              <div>
-                <p className="text-lg leading-relaxed text-[#e0e0e0]/90 font-light italic" style={{ fontFamily: 'Manrope' }}>
-                  「技术焦虑」+「具体解决方案」+「可视化冲突」是当前的流量密码。
-                  <span className="text-[#e0e0e0] font-medium not-italic"> 建议采用：第一人称叙事 + 宏大命题的小切口进入。</span>
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2.5">
-                  {['#视觉对比', '#硬核科普', '#沉浸式音效'].map(tag => (
-                    <span key={tag} className="px-3.5 py-1.5 bg-[#1a1a1a] rounded-full text-[11px] border border-white/[0.06] text-white/40" style={{ fontFamily: 'Inter' }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
+              <p className="text-lg leading-relaxed text-[#e0e0e0]/90 font-light italic" style={{ fontFamily: 'Manrope' }}>
+                探索一个主题，AI 将为你提炼影视创作方向，包括叙事规律、视觉基调与情感内核。
+              </p>
             )}
           </div>
 
@@ -299,7 +291,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
               {results.suggestions.map((s, i) => (
                 <div
                   key={i}
-                  className="rounded-xl p-5 flex flex-col justify-between group hover:border-[#e0e0e0]/20 transition-all border border-transparent"
+                  className="rounded-xl p-5 flex flex-col justify-between group hover:border-[#e0e0e0]/20 transition-all"
                   style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}
                 >
                   <div>
@@ -307,19 +299,22 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
                       <span className="bg-[#e0e0e0]/10 text-[#e0e0e0] px-2 py-0.5 rounded text-[10px] font-bold" style={{ fontFamily: 'Inter' }}>
                         {s.genreTag}
                       </span>
-                      <span className="material-symbols-outlined text-white/20 group-hover:text-[#e0e0e0] transition-colors text-[18px]">tips_and_updates</span>
+                      <span className="material-symbols-outlined text-white/20 group-hover:text-[#e0e0e0] transition-colors text-[18px]">movie_creation</span>
                     </div>
                     <h4 className="font-bold text-[#e0e0e0] mb-2 text-sm" style={{ fontFamily: 'Manrope' }}>{s.title}</h4>
                     <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2" style={{ fontFamily: 'Inter' }}>{s.coreConflict}</p>
                   </div>
-                  <button
-                    onClick={() => handleAdopt(s.title)}
-                    className="mt-5 w-full py-2 bg-[#1a1a1a] hover:bg-[#e0e0e0] hover:text-[#1a1a1a] rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-2 text-[#e0e0e0]"
-                    style={{ fontFamily: 'Inter' }}
-                  >
-                    <span className="material-symbols-outlined text-[16px]">add_task</span>
-                    采用该建议
-                  </button>
+                  <div>
+                    <p className="text-[10px] text-white/20 mt-3 mb-3" style={{ fontFamily: 'Inter' }}>参考风格：{s.referenceStyle}</p>
+                    <button
+                      onClick={() => handleAdopt(s.title)}
+                      className="w-full py-2 bg-[#1a1a1a] hover:bg-[#e0e0e0] hover:text-[#1a1a1a] rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-2 text-[#e0e0e0]"
+                      style={{ fontFamily: 'Inter' }}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add_task</span>
+                      采用该建议
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -327,11 +322,11 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
             /* Empty state suggestion skeleton cards */
             <div className="grid grid-cols-2 gap-4">
               {[
-                { tag: '高成功率', icon: 'tips_and_updates', title: '2024 AI 工具完全指南', desc: '针对普通用户的生产力提升，对比主流工具的真实体验。' },
-                { tag: '潜力黑马', icon: 'trending_up', title: '极简数字生活挑战', desc: '记录移除社交媒体7天后的心理与生活变化，主打情感共鸣。' },
-                { tag: '话题常青', icon: 'history', title: '重访：十年前的技术预测', desc: '挖掘老内容，对比当今现实，探讨技术发展的必然性。' },
-                { tag: '互动率高', icon: 'forum', title: '评论区由你决定下一期', desc: '建立博主与粉丝的深度联结，通过投票确定下一期选题。' },
-              ].map(({ tag, icon, title, desc }) => (
+                { genreTag: '短片',   icon: 'movie',             title: '父亲的最后一卷胶片',  coreConflict: '儿子整理遗物时发现从未冲洗的胶卷，面对是否打开的两难' },
+                { genreTag: '纪录',   icon: 'video_camera_front', title: '消失的方言',          coreConflict: '一个孩子试图用录音机记录只剩三位老人会说的语言' },
+                { genreTag: '品牌片', icon: 'campaign',           title: '凌晨四点的城市工人',  coreConflict: '他们在城市沉睡时劳动，却在城市醒来后隐形' },
+                { genreTag: '微电影', icon: 'theaters',           title: '最后一次见她',         coreConflict: '男人准备好了道歉，却发现她早已不在意' },
+              ].map(({ genreTag, icon, title, coreConflict }) => (
                 <div
                   key={title}
                   className="rounded-xl p-5 flex flex-col justify-between opacity-40"
@@ -339,14 +334,14 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
-                      <span className="bg-[#e0e0e0]/10 text-[#e0e0e0] px-2 py-0.5 rounded text-[10px] font-bold" style={{ fontFamily: 'Inter' }}>{tag}</span>
+                      <span className="bg-[#e0e0e0]/10 text-[#e0e0e0] px-2 py-0.5 rounded text-[10px] font-bold" style={{ fontFamily: 'Inter' }}>{genreTag}</span>
                       <span className="material-symbols-outlined text-white/20 text-[18px]">{icon}</span>
                     </div>
                     <h4 className="font-bold text-[#e0e0e0] mb-2 text-sm" style={{ fontFamily: 'Manrope' }}>{title}</h4>
-                    <p className="text-[11px] text-white/40 leading-relaxed" style={{ fontFamily: 'Inter' }}>{desc}</p>
+                    <p className="text-[11px] text-white/40 leading-relaxed" style={{ fontFamily: 'Inter' }}>{coreConflict}</p>
                   </div>
                   <div className="mt-5 w-full py-2 bg-[#1a1a1a] rounded-lg text-[11px] font-semibold text-center text-white/40" style={{ fontFamily: 'Inter' }}>
-                    {loading ? <Loader2 size={12} className="animate-spin mx-auto" /> : '搜索后解锁'}
+                    {loading ? <Loader2 size={12} className="animate-spin mx-auto" /> : '探索后解锁'}
                   </div>
                 </div>
               ))}
