@@ -1,42 +1,36 @@
 // src/components/TopicView.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import TopicVideoCard, { type VideoItem } from './TopicVideoCard';
+import TopicVideoCard, { type FilmItem } from './TopicVideoCard';
 import TopicIdeaEditor from './TopicIdeaEditor';
 
-export interface TopicSuggestion {
+export interface FilmIdeaSuggestion {
   title: string;
-  reason: string;
-  emotionTag: string;
+  coreConflict: string;
+  genreTag: string;
+  referenceStyle: string;
 }
 
-export interface VideoSummary {
-  avgViews: number;
-  avgLikes: number;
-  avgFavorites: number;
+export interface FilmSummary {
+  filmCount: number;
+  dominantMood: string;
+  dominantGenre: string;
 }
 
-interface TopicResults {
-  summary: VideoSummary;
-  videos: VideoItem[];
+interface FilmResults {
+  summary: FilmSummary;
+  films: FilmItem[];
   insight: string;
-  suggestions: TopicSuggestion[];
+  suggestions: FilmIdeaSuggestion[];
 }
 
-type Platform = 'bilibili' | 'xiaohongshu' | 'douyin';
+type Source = 'cinema' | 'streaming' | 'festival';
 
-const PLATFORMS: { key: Platform; label: string }[] = [
-  { key: 'bilibili',    label: 'B站' },
-  { key: 'xiaohongshu', label: '小红书' },
-  { key: 'douyin',      label: '抖音' },
+const SOURCES: { key: Source; label: string }[] = [
+  { key: 'cinema',    label: '院线趋势' },
+  { key: 'streaming', label: '流媒体热门' },
+  { key: 'festival',  label: '国际影展' },
 ];
-
-const SUGGESTION_TAGS = ['高成功率', '潜力黑马', '话题常青', '互动率高', '高潜力', '长尾型'];
-
-function fmt(n: number): string {
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}w`;
-  return n.toLocaleString();
-}
 
 interface Props {
   initialDraft?: string;
@@ -48,10 +42,10 @@ interface Props {
 
 export default function TopicView({ initialDraft = '', initialKeyword = '', projectId, onSaveDraft, onImportToBreakdown }: Props) {
   const [keyword, setKeyword] = useState(initialKeyword);
-  const [platforms, setPlatforms] = useState<Platform[]>(['bilibili', 'xiaohongshu', 'douyin']);
+  const [sources, setSources] = useState<Source[]>(['cinema', 'streaming', 'festival']);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
-  const [results, setResults] = useState<TopicResults | null>(null);
+  const [results, setResults] = useState<FilmResults | null>(null);
   const [error, setError] = useState('');
   const [draft, setDraft] = useState(initialDraft);
   const abortRef = useRef<AbortController | null>(null);
@@ -73,16 +67,16 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialKeyword]);
 
-  const togglePlatform = (p: Platform) => {
-    setPlatforms(prev =>
-      prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+  const toggleSource = (s: Source) => {
+    setSources(prev =>
+      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
     );
   };
 
   const handleAnalyze = async (kwOverride?: string) => {
     const kw = (kwOverride ?? keyword).trim();
     if (!kw || loading) return;
-    if (platforms.length === 0) { setError('请至少选择一个平台'); return; }
+    if (sources.length === 0) { setError('请至少选择一个来源'); return; }
 
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -91,13 +85,13 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
     setLoading(true);
     setError('');
     setResults(null);
-    setLoadingMsg('正在联网搜索相关内容…');
+    setLoadingMsg('正在检索影视参考…');
 
     try {
       const res = await fetch('/api/topic-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: kw, platforms, projectId }),
+        body: JSON.stringify({ keyword: kw, sources, projectId }),
         signal: ctrl.signal,
       });
 
@@ -126,15 +120,15 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
           let msg: { type: string; data: unknown };
           try { msg = JSON.parse(payload); } catch { continue; }
 
-          if (msg.type === 'videos') {
-            const d = msg.data as { summary: VideoSummary; videos: VideoItem[] };
-            setResults({ summary: d.summary, videos: d.videos, insight: '', suggestions: [] });
-            setLoadingMsg('正在分析爆款规律…');
+          if (msg.type === 'films') {
+            const d = msg.data as { summary: FilmSummary; films: FilmItem[] };
+            setResults({ summary: d.summary, films: d.films, insight: '', suggestions: [] });
+            setLoadingMsg('正在提炼创作方向…');
           } else if (msg.type === 'insight_chunk') {
             insightAccum += msg.data as string;
             setResults(prev => prev ? { ...prev, insight: insightAccum } : null);
           } else if (msg.type === 'suggestions') {
-            const suggestions = msg.data as TopicSuggestion[];
+            const suggestions = msg.data as FilmIdeaSuggestion[];
             setResults(prev => prev ? { ...prev, suggestions } : null);
           } else if (msg.type === 'error') {
             throw new Error((msg.data as { message: string }).message);
@@ -163,12 +157,12 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
       <div className="flex-shrink-0 flex flex-col items-center gap-4 px-8 pt-6 pb-5 border-b border-white/[0.06]">
         {/* Platform toggles */}
         <div className="flex bg-[#0d0d0d] p-1 rounded-full border border-white/[0.06]">
-          {PLATFORMS.map(({ key, label }) => (
+          {SOURCES.map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => togglePlatform(key)}
+              onClick={() => toggleSource(key)}
               className={`px-7 py-2 rounded-full text-sm transition-all ${
-                platforms.includes(key)
+                sources.includes(key)
                   ? 'bg-[#e0e0e0]/10 text-[#e0e0e0] border border-[#e0e0e0]/20'
                   : 'text-white/40 hover:text-[#e0e0e0]'
               }`}
@@ -186,7 +180,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAnalyze()}
-            placeholder="输入关键词、博主名或话题趋势..."
+            placeholder="输入主题、情绪、人物原型或社会议题..."
             className="w-full bg-[#0d0d0d] border-none rounded-xl py-4 pl-14 pr-32 text-base focus:ring-1 focus:ring-white focus:outline-none placeholder:text-white/20 text-[#e0e0e0] transition-all"
             style={{ fontFamily: 'Manrope' }}
           />
@@ -197,7 +191,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
             style={{ fontFamily: 'Inter' }}
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-            {loading ? (loadingMsg || '分析中…') : '开始分析'}
+            {loading ? (loadingMsg || '探索中…') : '探索灵感'}
           </button>
         </div>
         {error && <p className="text-red-400 text-xs" style={{ fontFamily: 'Inter' }}>{error}</p>}
@@ -210,26 +204,31 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
         <aside className="col-span-3 flex flex-col gap-4 overflow-hidden">
           {/* Stats */}
           <div className="flex-shrink-0 rounded-xl p-5 space-y-4" style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}>
-            <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>核心数据指标</h3>
-            {[
-              { label: '平均播放', value: results?.summary ? fmt(results.summary.avgViews) : '—', up: !!results },
-              { label: '平均点赞', value: results?.summary ? fmt(results.summary.avgLikes) : '—', up: !!results },
-              { label: '平均收藏', value: results?.summary ? fmt(results.summary.avgFavorites) : '—', up: false },
-            ].map(({ label, value, up }) => (
-              <div key={label} className="p-3 bg-[#111113] rounded-lg border border-white/[0.08]">
-                <p className="text-[10px] text-white/40 mb-1" style={{ fontFamily: 'Inter' }}>{label}</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>{value}</span>
-                  {results && up && <span className="text-[10px] text-emerald-500" style={{ fontFamily: 'Inter' }}>↑</span>}
-                </div>
-              </div>
-            ))}
+            <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>题材温度</h3>
+            <div className="p-3 bg-[#111113] rounded-lg border border-white/[0.08]">
+              <p className="text-[10px] text-white/40 mb-1" style={{ fontFamily: 'Inter' }}>近期参考作品数</p>
+              <span className="text-2xl font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>
+                {results?.summary ? results.summary.filmCount : '—'}
+              </span>
+            </div>
+            <div className="p-3 bg-[#111113] rounded-lg border border-white/[0.08]">
+              <p className="text-[10px] text-white/40 mb-1" style={{ fontFamily: 'Inter' }}>主流情感基调</p>
+              <span className="text-lg font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>
+                {results?.summary ? results.summary.dominantMood : '—'}
+              </span>
+            </div>
+            <div className="p-3 bg-[#111113] rounded-lg border border-white/[0.08]">
+              <p className="text-[10px] text-white/40 mb-1" style={{ fontFamily: 'Inter' }}>高频题材类型</p>
+              <span className="text-lg font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>
+                {results?.summary ? results.summary.dominantGenre : '—'}
+              </span>
+            </div>
           </div>
 
           {/* Video list */}
           <div className="flex-1 rounded-xl flex flex-col overflow-hidden min-h-0" style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}>
             <div className="flex-shrink-0 px-5 pt-5 pb-2 flex justify-between items-center">
-              <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>热门视频列表</h3>
+              <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>参考影片</h3>
               <span className="material-symbols-outlined text-white/20 text-[18px]">filter_list</span>
             </div>
 
@@ -237,7 +236,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
               {!hasResults && !loading && (
                 <div className="flex flex-col items-center justify-center h-32 gap-3">
                   <span className="material-symbols-outlined text-4xl text-white/20">travel_explore</span>
-                  <p className="text-white/20 text-xs text-center" style={{ fontFamily: 'Inter' }}>输入关键词后<br />热门视频将显示在这里</p>
+                  <p className="text-white/20 text-xs text-center" style={{ fontFamily: 'Inter' }}>输入主题后<br />参考影片将显示在这里</p>
                 </div>
               )}
               {loading && !hasResults && (
@@ -246,8 +245,8 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
                   <p className="text-[#767575] text-xs" style={{ fontFamily: 'Inter' }}>{loadingMsg}</p>
                 </div>
               )}
-              {results?.videos?.map((v, i) => (
-                <TopicVideoCard key={i} video={v} />
+              {results?.films?.map((f, i) => (
+                <TopicVideoCard key={i} film={f} />
               ))}
             </div>
           </div>
@@ -306,12 +305,12 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
                   <div>
                     <div className="flex justify-between items-start mb-4">
                       <span className="bg-[#e0e0e0]/10 text-[#e0e0e0] px-2 py-0.5 rounded text-[10px] font-bold" style={{ fontFamily: 'Inter' }}>
-                        {SUGGESTION_TAGS[i % SUGGESTION_TAGS.length]}
+                        {s.genreTag}
                       </span>
                       <span className="material-symbols-outlined text-white/20 group-hover:text-[#e0e0e0] transition-colors text-[18px]">tips_and_updates</span>
                     </div>
                     <h4 className="font-bold text-[#e0e0e0] mb-2 text-sm" style={{ fontFamily: 'Manrope' }}>{s.title}</h4>
-                    <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2" style={{ fontFamily: 'Inter' }}>{s.reason}</p>
+                    <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2" style={{ fontFamily: 'Inter' }}>{s.coreConflict}</p>
                   </div>
                   <button
                     onClick={() => handleAdopt(s.title)}
