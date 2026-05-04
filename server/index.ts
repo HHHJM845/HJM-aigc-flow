@@ -92,9 +92,12 @@ httpServer.listen(PORT, () => {
   console.log(`[server] running on http://localhost:${PORT}`);
 });
 
-// Graceful shutdown: close WS connections before stopping the HTTP server
+// Graceful shutdown: force-close all connections so the port is released immediately
 function shutdown() {
-  wss.close(() => httpServer.close(() => process.exit(0)));
+  httpServer.closeAllConnections();
+  wss.close();
+  httpServer.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5000).unref();
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
