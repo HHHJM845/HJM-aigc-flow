@@ -74,7 +74,7 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
   const [isQualityOpen, setIsQualityOpen] = useState(false);
 
   // ── Reference images ───────────────────────────────
-  const [uploadedRefImages, setUploadedRefImages] = useState<string[]>([]);
+  const uploadedRefImages: string[] = data.uploadedRefImages ?? [];
   const refImageInputRef = useRef<HTMLInputElement>(null);
   const allRefImages = [
     ...(data.referenceImage ? [data.referenceImage] : []),
@@ -174,38 +174,51 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
   };
 
   // ── File upload ────────────────────────────────────
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      data.onUpdate?.(id, { content: [ev.target?.result as string] });
+    e.target.value = '';
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!resp.ok) return;
+      const result = await resp.json() as { url: string };
+      data.onUpdate?.(id, { content: [result.url] });
       setCurrentIndex(0);
-    };
-    reader.readAsDataURL(file);
+    } catch { /* ignore */ }
   };
 
-  const handleRefImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files ?? []).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setUploadedRefImages(prev => [...prev, ev.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleRefImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = '';
+    const urls: string[] = [];
+    await Promise.all(files.map(async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!resp.ok) return;
+        const result = await resp.json() as { url: string };
+        urls.push(result.url);
+      } catch { /* ignore */ }
+    }));
+    if (urls.length > 0) {
+      const next = [...(data.uploadedRefImages ?? []), ...urls];
+      data.onUpdate?.(id, { uploadedRefImages: next });
+    }
   };
 
   const removeUploadedRef = (index: number) => {
-    setUploadedRefImages(prev => prev.filter((_, i) => i !== index));
+    data.onUpdate?.(id, { uploadedRefImages: uploadedRefImages.filter((_, i) => i !== index) });
   };
 
   // ── Asset click → add as reference ────────────────
   const handleAssetClick = (src: string) => {
     if (uploadedRefImages.includes(src)) {
-      setUploadedRefImages(prev => prev.filter(s => s !== src));
+      data.onUpdate?.(id, { uploadedRefImages: uploadedRefImages.filter(s => s !== src) });
     } else if (allRefImages.length < 4) {
-      setUploadedRefImages(prev => [...prev, src]);
+      data.onUpdate?.(id, { uploadedRefImages: [...uploadedRefImages, src] });
     }
   };
 
