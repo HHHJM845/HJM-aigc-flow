@@ -161,7 +161,10 @@ type AnnotationSuggestion = {
 
 interface Props {
   initialRows?: StoryboardRow[];
+  initialScriptText?: string;
   onImport: (rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => void;
+  onRowsChange?: (rows: StoryboardRow[]) => void;
+  onScriptChange?: (text: string) => void;
   externalInitText?: string;
   projectId?: string;
   projectName?: string;
@@ -175,8 +178,8 @@ interface Props {
 }
 
 // ── Main Component ────────────────────────────────────
-export default function BreakdownView({ initialRows, onImport, externalInitText, projectId, projectName, annotations = [], onSnapshotRestore, onSaveSnapshot, annotationSuggestions, annotationSuggestionsLoading = false, onDismissSuggestion, onApplySuggestion }: Props) {
-  const [scriptText, setScriptText] = useState('');
+export default function BreakdownView({ initialRows, initialScriptText, onImport, onRowsChange, onScriptChange, externalInitText, projectId, projectName, annotations = [], onSnapshotRestore, onSaveSnapshot, annotationSuggestions, annotationSuggestionsLoading = false, onDismissSuggestion, onApplySuggestion }: Props) {
+  const [scriptText, setScriptText] = useState(initialScriptText ?? '');
   const [committedScript, setCommittedScript] = useState('');
   const [rows, setRows] = useState<StoryboardRow[]>(initialRows ?? []);
   const [isBreaking, setIsBreaking] = useState(false);
@@ -190,6 +193,18 @@ export default function BreakdownView({ initialRows, onImport, externalInitText,
   const [selectedLens, setSelectedLens] = useState(LENS_OPTIONS[0]);
   const [promptText, setPromptText] = useState('');
   const hasUnsavedChanges = false; // Phase 2 baseline; can be enhanced later with savedRowsHash
+
+  useEffect(() => {
+    if (!onRowsChange) return;
+    const timer = setTimeout(() => onRowsChange(rows), 500);
+    return () => clearTimeout(timer);
+  }, [rows, onRowsChange]);
+
+  useEffect(() => {
+    if (!onScriptChange) return;
+    const timer = setTimeout(() => onScriptChange(scriptText), 500);
+    return () => clearTimeout(timer);
+  }, [scriptText, onScriptChange]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));

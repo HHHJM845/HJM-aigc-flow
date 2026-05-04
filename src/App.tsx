@@ -136,6 +136,8 @@ function Flow({
   revisionNodeRequest,
   showAssistant,
   onSetAssistant,
+  initialScriptText,
+  onSaveScript,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -171,6 +173,8 @@ function Flow({
   revisionNodeRequest?: { sourceNodeId: string; newNodeId: string; prompt: string; rowIndex: number; } | null;
   showAssistant: boolean;
   onSetAssistant: (open: boolean) => void;
+  initialScriptText?: string;
+  onSaveScript?: (text: string) => void;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
@@ -1195,7 +1199,10 @@ function Flow({
       >
         <BreakdownView
           initialRows={storyboardRows}
+          initialScriptText={initialScriptText}
           onImport={handleImportFromBreakdown}
+          onRowsChange={onSaveRows}
+          onScriptChange={onSaveScript}
           externalInitText={breakdownInitText}
           projectId={projectId}
           projectName={projectName}
@@ -1372,6 +1379,7 @@ export default function App() {
   const [canvasInitialHistory, setCanvasInitialHistory] = useState<HistoryItem[]>([]);
   const [canvasInitialStoryboardOrder, setCanvasInitialStoryboardOrder] = useState<string[]>([]);
   const [canvasInitialVideoOrder, setCanvasInitialVideoOrder] = useState<VideoOrderItem[]>([]);
+  const [canvasInitialScriptText, setCanvasInitialScriptText] = useState('');
   const [canvasInitialTopicDraft, setCanvasInitialTopicDraft] = useState('');
   const [canvasInitialTopicKeyword, setCanvasInitialTopicKeyword] = useState('');
   const [canvasInitialTopicHistory, setCanvasInitialTopicHistory] = useState<TopicHistoryEntry[]>([]);
@@ -1537,6 +1545,7 @@ export default function App() {
     setCanvasInitialNodes(project.nodes);
     setCanvasInitialEdges(project.edges);
     setCanvasInitialRows(project.storyboardRows);
+    setCanvasInitialScriptText(project.scriptText ?? '');
     setCanvasInitialAssets(project.assets || []);
     setCanvasInitialHistory(project.generationHistory || []);
     setCanvasInitialStoryboardOrder(project.storyboardOrder || []);
@@ -1592,6 +1601,13 @@ export default function App() {
   const handleRowsSave = (rows: StoryboardRow[]) => {
     if (!currentProject) return;
     const updated = { ...currentProject, storyboardRows: rows, updatedAt: Date.now() };
+    setCurrentProject(updated);
+    wsSaveProject(updated);
+  };
+
+  const handleScriptSave = (text: string) => {
+    if (!currentProject) return;
+    const updated = { ...currentProject, scriptText: text, updatedAt: Date.now() };
     setCurrentProject(updated);
     wsSaveProject(updated);
   };
@@ -1719,6 +1735,8 @@ export default function App() {
           onGoHome={handleGoHome}
           onSave={handleCanvasSave}
           onSaveRows={handleRowsSave}
+          initialScriptText={canvasInitialScriptText}
+          onSaveScript={handleScriptSave}
           onSaveAssets={handleAssetsSave}
           onSaveHistory={handleHistorySave}
           initialStoryboardOrder={canvasInitialStoryboardOrder}

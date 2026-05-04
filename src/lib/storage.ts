@@ -38,6 +38,7 @@ export interface Project {
   createdAt: number;
   updatedAt: number;
   storyboardRows: StoryboardRow[];
+  scriptText?: string;
   nodes: Node[];
   edges: Edge[];
   assets: AssetItem[];
