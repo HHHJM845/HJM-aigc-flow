@@ -3,28 +3,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import TopicVideoCard, { type FilmItem } from './TopicVideoCard';
 import TopicIdeaEditor from './TopicIdeaEditor';
+import {
+  appendTopicHistoryEntry,
+  createTopicHistoryEntry,
+  type FilmIdeaSuggestion,
+  type FilmResults,
+  type FilmSummary,
+  type TopicHistoryEntry,
+  type TopicSource,
+} from '../lib/topicHistory';
 
-export interface FilmIdeaSuggestion {
-  title: string;
-  coreConflict: string;
-  genreTag: string;
-  referenceStyle: string;
-}
-
-export interface FilmSummary {
-  filmCount: number;
-  dominantMood: string;
-  dominantGenre: string;
-}
-
-interface FilmResults {
-  summary: FilmSummary;
-  films: FilmItem[];
-  insight: string;
-  suggestions: FilmIdeaSuggestion[];
-}
-
-type Source = 'cinema' | 'streaming' | 'festival';
+type Source = TopicSource;
 
 const SOURCES: { key: Source; label: string }[] = [
   { key: 'cinema',    label: '院线趋势' },
@@ -35,17 +24,30 @@ const SOURCES: { key: Source; label: string }[] = [
 interface Props {
   initialDraft?: string;
   initialKeyword?: string;
+  initialHistory?: TopicHistoryEntry[];
   projectId?: string;
   onSaveDraft: (text: string) => void;
+  onSaveHistory: (history: TopicHistoryEntry[]) => void;
   onImportToBreakdown: (text: string) => void;
 }
 
-export default function TopicView({ initialDraft = '', initialKeyword = '', projectId, onSaveDraft, onImportToBreakdown }: Props) {
+export default function TopicView({
+  initialDraft = '',
+  initialKeyword = '',
+  initialHistory = [],
+  projectId,
+  onSaveDraft,
+  onSaveHistory,
+  onImportToBreakdown,
+}: Props) {
+  const initialHistoryEntry = initialKeyword ? null : initialHistory[0] ?? null;
   const [keyword, setKeyword] = useState(initialKeyword);
   const [sources, setSources] = useState<Source[]>(['cinema', 'streaming', 'festival']);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
-  const [results, setResults] = useState<FilmResults | null>(null);
+  const [results, setResults] = useState<FilmResults | null>(initialHistoryEntry?.results ?? null);
+  const [history, setHistory] = useState<TopicHistoryEntry[]>(initialHistory);
+  const [selectedHistoryId, setSelectedHistoryId] = useState(initialHistoryEntry?.id ?? '');
   const [error, setError] = useState('');
   const [draft, setDraft] = useState(initialDraft);
   const abortRef = useRef<AbortController | null>(null);
@@ -55,6 +57,19 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
   useEffect(() => {
     autoTriggered.current = false;
   }, [initialKeyword]);
+
+  useEffect(() => {
+    setHistory(initialHistory);
+    if (!initialKeyword && initialHistory[0]) {
+      setKeyword(initialHistory[0].keyword);
+      setSources(initialHistory[0].sources);
+      setResults(initialHistory[0].results);
+      setSelectedHistoryId(initialHistory[0].id);
+    } else if (!initialKeyword && initialHistory.length === 0) {
+      setResults(null);
+      setSelectedHistoryId('');
+    }
+  }, [initialHistory, initialKeyword]);
 
   // Auto-trigger search when navigated from homepage with a keyword
   useEffect(() => {
@@ -77,6 +92,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
     const kw = (kwOverride ?? keyword).trim();
     if (!kw || loading) return;
     if (sources.length === 0) { setError('请至少选择一个来源'); return; }
+    const selectedSources = [...sources];
 
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -85,13 +101,14 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
     setLoading(true);
     setError('');
     setResults(null);
+    setSelectedHistoryId('');
     setLoadingMsg('正在检索影视参考…');
 
     try {
       const res = await fetch('/api/topic-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: kw, sources, projectId }),
+        body: JSON.stringify({ keyword: kw, sources: selectedSources, projectId }),
         signal: ctrl.signal,
       });
 
@@ -105,6 +122,7 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
       const decoder = new TextDecoder();
       let buffer = '';
       let insightAccum = '';
+      let finalResults: FilmResults | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -122,18 +140,35 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
 
           if (msg.type === 'films') {
             const d = msg.data as { summary: FilmSummary; films: FilmItem[] };
-            setResults({ summary: d.summary, films: d.films, insight: '', suggestions: [] });
+            finalResults = { summary: d.summary, films: d.films, insight: '', suggestions: [] };
+            setResults(finalResults);
             setLoadingMsg('正在提炼创作方向…');
           } else if (msg.type === 'insight_chunk') {
             insightAccum += msg.data as string;
+            if (finalResults) finalResults = { ...finalResults, insight: insightAccum };
             setResults(prev => prev ? { ...prev, insight: insightAccum } : null);
           } else if (msg.type === 'suggestions') {
             const suggestions = msg.data as FilmIdeaSuggestion[];
+            if (finalResults) finalResults = { ...finalResults, suggestions };
             setResults(prev => prev ? { ...prev, suggestions } : null);
           } else if (msg.type === 'error') {
             throw new Error((msg.data as { message: string }).message);
           }
         }
+      }
+
+      if (finalResults && !ctrl.signal.aborted) {
+        const entry = createTopicHistoryEntry({
+          keyword: kw,
+          sources: selectedSources,
+          results: finalResults,
+        });
+        setSelectedHistoryId(entry.id);
+        setHistory(prev => {
+          const next = appendTopicHistoryEntry(prev, entry);
+          onSaveHistory(next);
+          return next;
+        });
       }
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
@@ -147,6 +182,25 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
   const handleAdopt = (title: string) => {
     setDraft(prev => prev ? `${prev}\n\n${title}` : title);
   };
+
+  const handleSelectHistory = (entry: TopicHistoryEntry) => {
+    abortRef.current?.abort();
+    setLoading(false);
+    setLoadingMsg('');
+    setError('');
+    setKeyword(entry.keyword);
+    setSources(entry.sources);
+    setResults(entry.results);
+    setSelectedHistoryId(entry.id);
+  };
+
+  const formatHistoryTime = (createdAt: number) =>
+    new Date(createdAt).toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   const hasResults = results !== null;
 
@@ -222,6 +276,45 @@ export default function TopicView({ initialDraft = '', initialKeyword = '', proj
               <span className="text-lg font-bold text-[#e0e0e0]" style={{ fontFamily: 'Manrope' }}>
                 {results?.summary ? results.summary.dominantGenre : '—'}
               </span>
+            </div>
+          </div>
+
+          {/* Generation history */}
+          <div className="flex-shrink-0 rounded-xl overflow-hidden" style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.10)' }}>
+            <div className="px-5 pt-5 pb-3 flex justify-between items-center">
+              <h3 className="text-[10px] uppercase tracking-widest text-white/40" style={{ fontFamily: 'Inter' }}>生成记录</h3>
+              <span className="text-[10px] text-white/25" style={{ fontFamily: 'Inter' }}>{history.length}</span>
+            </div>
+            <div className="max-h-48 overflow-y-auto px-3 pb-3 space-y-2">
+              {history.length === 0 ? (
+                <div className="px-3 py-4 text-center text-xs text-white/20" style={{ fontFamily: 'Inter' }}>
+                  每次生成完成后会自动保留在这里
+                </div>
+              ) : history.map(entry => {
+                const active = selectedHistoryId === entry.id;
+                return (
+                  <button
+                    key={entry.id}
+                    onClick={() => handleSelectHistory(entry)}
+                    className={`w-full text-left rounded-lg px-3 py-2.5 border transition-all ${
+                      active
+                        ? 'bg-[#e0e0e0]/10 border-[#e0e0e0]/25 text-[#e0e0e0]'
+                        : 'bg-[#111113] border-white/[0.06] text-white/45 hover:text-[#e0e0e0] hover:border-white/15'
+                    }`}
+                    style={{ fontFamily: 'Inter' }}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-semibold truncate">{entry.keyword}</span>
+                      <span className="text-[10px] text-white/30 flex-shrink-0">{formatHistoryTime(entry.createdAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-white/30">
+                      <span>{entry.results.suggestions.length} 个建议</span>
+                      <span>·</span>
+                      <span>{entry.results.films.length} 部参考</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

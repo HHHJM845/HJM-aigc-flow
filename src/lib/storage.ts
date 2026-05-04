@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { StoryboardRow } from './api';
+import type { TopicHistoryEntry } from './topicHistory';
 
 export type ProjectStage = 'script' | 'storyboard' | 'generation' | 'review';
 export type ProjectType = '短片' | '广告' | 'MV' | '教程' | '其他';
@@ -44,6 +45,7 @@ export interface Project {
   storyboardOrder: string[];
   videoOrder: VideoOrderItem[];
   topicDraft?: string;
+  topicHistory: TopicHistoryEntry[];
   stageOverride?: ProjectStage;
   members: string[];
   projectType?: ProjectType;
@@ -55,7 +57,7 @@ const STORAGE_KEY = 'hjm_aigc_projects';
 export function loadProjects(): Project[] {
   try {
     const raw: Project[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return raw.map(p => ({ members: [], tags: [], ...p }));
+    return raw.map(p => ({ members: [], tags: [], topicHistory: [], ...p }));
   } catch {
     return [];
   }
@@ -74,6 +76,7 @@ export function saveProject(project: Project): void {
       thumbnail: undefined,
       assets: [],
       generationHistory: project.generationHistory.slice(0, 20),
+      topicHistory: project.topicHistory.slice(0, 20),
       nodes: project.nodes.map(n => ({
         ...n,
         data: { ...n.data, content: null, uploadedImages: [] },
@@ -104,6 +107,7 @@ export function createProject(name = '未命名项目'): Project {
     generationHistory: [],
     storyboardOrder: [],
     videoOrder: [],
+    topicHistory: [],
     members: [],
     tags: [],
   };

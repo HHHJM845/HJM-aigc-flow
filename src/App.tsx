@@ -35,7 +35,7 @@ import AssetManagerView from './components/AssetManagerView';
 import HistoryPanel from './components/HistoryPanel';
 import BottomTabBar, { type ActiveView } from './components/BottomTabBar';
 import StoryboardView from './components/StoryboardView';
-import { type StoryboardRow, generateVideoPrompt } from './lib/api';
+import { type StoryboardRow } from './lib/api';
 import {
   createProject,
   extractThumbnail,
@@ -44,6 +44,7 @@ import {
   type HistoryItem,
   type VideoOrderItem,
 } from './lib/storage';
+import type { TopicHistoryEntry } from './lib/topicHistory';
 import VideoView from './components/VideoView';
 import TopicView from './components/TopicView';
 import TemplateLibraryView from './components/TemplateLibraryView';
@@ -57,6 +58,9 @@ import AdminView from './components/AdminView';
 import StageNode from './components/StageNode';
 import { createDefaultStageNodeData } from './lib/stageTypes';
 import AgentContextPanel from './components/AgentContextPanel';
+import { initialActiveViewForProjectEntry } from './lib/initialActiveView';
+import { getFirstImageFromNode, resolveReferenceImageForNode } from './lib/nodeReferenceImage';
+import { createStoryboardVideoNodeData } from './lib/storyboardVideoExport';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -120,6 +124,9 @@ function Flow({
   initialTopicDraft,
   onSaveTopicDraft,
   initialTopicKeyword,
+  initialActiveView,
+  initialTopicHistory,
+  onSaveTopicHistory,
   projectId,
   annotations = [],
   annotationSuggestions,
@@ -152,6 +159,9 @@ function Flow({
   initialTopicDraft: string;
   onSaveTopicDraft: (draft: string) => void;
   initialTopicKeyword?: string;
+  initialActiveView: ActiveView;
+  initialTopicHistory: TopicHistoryEntry[];
+  onSaveTopicHistory: (history: TopicHistoryEntry[]) => void;
   projectId?: string;
   annotations?: AnnotationData[];
   annotationSuggestions?: Map<string, { suggestedPrompt: string; reason: string; comment: string; rowIndex: number; status: 'pending' | 'dismissed' }>;
@@ -164,7 +174,7 @@ function Flow({
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
-  const [activeView, setActiveView] = useState<ActiveView>(initialTopicKeyword ? 'topic' : 'canvas');
+  const [activeView, setActiveView] = useState<ActiveView>(initialActiveView);
   const [topicDraft, setTopicDraft] = useState(initialTopicDraft);
   const [breakdownInitText, setBreakdownInitText] = useState('');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
@@ -403,18 +413,11 @@ function Flow({
       return { nodeId, imageSrc, shotDesc, index: i + 1 };
     });
 
-    // 并行调 AI 生成视频提示词，单个失败不阻断
-    const promptResults = await Promise.allSettled(
-      items.map(item => generateVideoPrompt(item.shotDesc))
-    );
-
     const newNodes: Node[] = items.map((item, i) => {
       const col = i % COLS;
       const row = Math.floor(i / COLS);
       const x = startX + col * (NODE_W + GAP_X);
       const y = startY + row * (NODE_H + GAP_Y);
-      const optimizedPrompt =
-        promptResults[i].status === 'fulfilled' ? promptResults[i].value : '';
 
       return {
         id: `export_${item.nodeId}_${Date.now()}_${i}`,
@@ -423,11 +426,11 @@ function Flow({
         width: NODE_W,
         height: NODE_H,
         data: {
-          label: `分镜 ${String(item.index).padStart(2, '0')}`,
-          contentType: 'video',
-          content: null,
-          referenceImage: item.imageSrc || undefined,
-          initialPrompt: optimizedPrompt,
+          ...createStoryboardVideoNodeData({
+            index: item.index,
+            imageSrc: item.imageSrc,
+            shotDescription: item.shotDesc,
+          }),
           onPlusClick: handlePlusClick,
           onUpdate: handleUpdateNode,
         },
@@ -897,21 +900,7 @@ function Flow({
 
   // ── Node data enrichment ─────────────────────────────
   const nodesWithHandlers = nodes.map(node => {
-    const getFirstImageFromNode = (n: Node) => {
-      if (n.type !== 'imageNode' || !n.data.content) return undefined;
-      const contents = Array.isArray(n.data.content) ? n.data.content : [n.data.content];
-      return contents[0] || undefined;
-    };
-
-    const referenceImage = (() => {
-      if (node.type !== 'imageNode' && node.type !== 'videoNode') return undefined;
-      for (const edge of edges) {
-        if (edge.target !== node.id) continue;
-        const sourceNode = nodes.find(n => n.id === edge.source);
-        if (sourceNode) { const img = getFirstImageFromNode(sourceNode); if (img) return img; }
-      }
-      return undefined;
-    })();
+    const referenceImage = resolveReferenceImageForNode(node, nodes, edges);
 
     const sourceImage = (() => {
       if (node.type !== 'textNode') return undefined;
@@ -1279,11 +1268,13 @@ function Flow({
         <TopicView
           initialDraft={topicDraft}
           initialKeyword={initialTopicKeyword}
+          initialHistory={initialTopicHistory}
           projectId={projectId}
           onSaveDraft={(text) => {
             setTopicDraft(text);
             onSaveTopicDraft(text);
           }}
+          onSaveHistory={onSaveTopicHistory}
           onImportToBreakdown={(text) => {
             setBreakdownInitText('');
             setTimeout(() => {
@@ -1383,6 +1374,10 @@ export default function App() {
   const [canvasInitialVideoOrder, setCanvasInitialVideoOrder] = useState<VideoOrderItem[]>([]);
   const [canvasInitialTopicDraft, setCanvasInitialTopicDraft] = useState('');
   const [canvasInitialTopicKeyword, setCanvasInitialTopicKeyword] = useState('');
+  const [canvasInitialTopicHistory, setCanvasInitialTopicHistory] = useState<TopicHistoryEntry[]>([]);
+  const [canvasInitialActiveView, setCanvasInitialActiveView] = useState<ActiveView>(
+    initialActiveViewForProjectEntry('new')
+  );
 
   // External canvas update: when a remote client saves the currently-open project,
   // push updated nodes/edges into the live Flow canvas.
@@ -1519,6 +1514,8 @@ export default function App() {
     setCanvasInitialVideoOrder([]);
     setCanvasInitialTopicDraft('');
     setCanvasInitialTopicKeyword('');
+    setCanvasInitialTopicHistory([]);
+    setCanvasInitialActiveView(initialActiveViewForProjectEntry('new'));
     setView('canvas');
   };
 
@@ -1546,6 +1543,8 @@ export default function App() {
     setCanvasInitialVideoOrder(project.videoOrder || []);
     setCanvasInitialTopicDraft(project.topicDraft ?? '');
     setCanvasInitialTopicKeyword('');
+    setCanvasInitialTopicHistory(project.topicHistory ?? []);
+    setCanvasInitialActiveView(initialActiveViewForProjectEntry('open'));
     // 拉取该项目的批注通知
     fetch(`/api/projects/${project.id}/notifications`)
       .then(r => r.ok ? r.json() : [])
@@ -1577,6 +1576,8 @@ export default function App() {
     setCanvasInitialVideoOrder([]);
     setCanvasInitialTopicDraft('');
     setCanvasInitialTopicKeyword(keyword);
+    setCanvasInitialTopicHistory([]);
+    setCanvasInitialActiveView(initialActiveViewForProjectEntry('topicKeyword'));
     setView('canvas');
   };
 
@@ -1620,6 +1621,14 @@ export default function App() {
     if (!currentProject) return;
     const updated = { ...currentProject, topicDraft: draft, updatedAt: Date.now() };
     setCurrentProject(updated);
+    wsSaveProject(updated);
+  };
+
+  const handleTopicHistorySave = (topicHistory: TopicHistoryEntry[]) => {
+    if (!currentProject) return;
+    const updated = { ...currentProject, topicHistory, updatedAt: Date.now() };
+    setCurrentProject(updated);
+    setCanvasInitialTopicHistory(topicHistory);
     wsSaveProject(updated);
   };
 
@@ -1724,6 +1733,9 @@ export default function App() {
           initialTopicDraft={canvasInitialTopicDraft}
           onSaveTopicDraft={handleTopicDraftSave}
           initialTopicKeyword={canvasInitialTopicKeyword}
+          initialActiveView={canvasInitialActiveView}
+          initialTopicHistory={canvasInitialTopicHistory}
+          onSaveTopicHistory={handleTopicHistorySave}
           projectId={currentProject?.id}
           annotations={projectAnnotations}
           annotationSuggestions={annotationSuggestions}

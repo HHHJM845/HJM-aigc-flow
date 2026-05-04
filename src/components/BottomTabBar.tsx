@@ -1,5 +1,6 @@
 // src/components/BottomTabBar.tsx
 import React from 'react';
+import { BOTTOM_TABS } from '../lib/bottomTabs';
 
 export type ActiveView = 'topic' | 'canvas' | 'assets' | 'storyboard' | 'breakdown' | 'video' | 'templates';
 
@@ -8,22 +9,6 @@ interface Props {
   onViewChange: (view: ActiveView) => void;
   onGoHome: () => void;
 }
-
-interface TabItem {
-  key: ActiveView;
-  icon: string;
-  label: string;
-}
-
-const TABS: TabItem[] = [
-  { key: 'topic',      icon: 'lightbulb',     label: '选题' },
-  { key: 'assets',     icon: 'inventory_2',   label: '资产管理' },
-  { key: 'breakdown',  icon: 'description',   label: '剧本拆解' },
-  { key: 'canvas',     icon: 'architecture',  label: '无限画布' },
-  { key: 'storyboard', icon: 'movie_edit',    label: '分镜管理' },
-  { key: 'video',      icon: 'video_library', label: '视频管理' },
-  { key: 'templates',  icon: 'bookmark_manager', label: '模板库' },
-];
 
 export default function BottomTabBar({ activeView, onViewChange, onGoHome }: Props) {
   return (
@@ -41,7 +26,7 @@ export default function BottomTabBar({ activeView, onViewChange, onGoHome }: Pro
       </button>
 
       {/* Tab 项 */}
-      {TABS.map(({ key, icon, label }) => {
+      {BOTTOM_TABS.map(({ key, icon, label }) => {
         const isActive = activeView === key;
         return (
           <button
