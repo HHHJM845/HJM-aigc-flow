@@ -61,6 +61,7 @@ import AgentContextPanel from './components/AgentContextPanel';
 import { initialActiveViewForProjectEntry } from './lib/initialActiveView';
 import { getFirstImageFromNode, resolveReferenceImageForNode } from './lib/nodeReferenceImage';
 import { createStoryboardVideoNodeData } from './lib/storyboardVideoExport';
+import { applyProjectPatch } from './lib/projectPatch';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -1590,69 +1591,51 @@ export default function App() {
     setView('canvas');
   };
 
-  const handleCanvasSave = (nodes: Node[], edges: Edge[]) => {
-    if (!currentProject) return;
-    const thumbnail = extractThumbnail(nodes);
-    const updated = { ...currentProject, nodes, edges, thumbnail, updatedAt: Date.now() };
+  const saveCurrentProjectPatch = useCallback((patch: Partial<Project>) => {
+    const project = currentProjectRef.current;
+    if (!project) return null;
+    const updated = applyProjectPatch(project, patch);
     setCurrentProject(updated);
     wsSaveProject(updated);
+    return updated;
+  }, [wsSaveProject]);
+
+  const handleCanvasSave = (nodes: Node[], edges: Edge[]) => {
+    const thumbnail = extractThumbnail(nodes);
+    saveCurrentProjectPatch({ nodes, edges, thumbnail });
   };
 
   const handleRowsSave = (rows: StoryboardRow[]) => {
-    if (!currentProject) return;
-    const updated = { ...currentProject, storyboardRows: rows, updatedAt: Date.now() };
-    setCurrentProject(updated);
-    wsSaveProject(updated);
+    saveCurrentProjectPatch({ storyboardRows: rows });
   };
 
   const handleScriptSave = (text: string) => {
-    if (!currentProject) return;
-    const updated = { ...currentProject, scriptText: text, updatedAt: Date.now() };
-    setCurrentProject(updated);
-    wsSaveProject(updated);
+    saveCurrentProjectPatch({ scriptText: text });
   };
 
   const handleAssetsSave = (assets: AssetItem[]) => {
-    if (!currentProject) return;
-    const updated = { ...currentProject, assets, updatedAt: Date.now() };
-    setCurrentProject(updated);
-    wsSaveProject(updated);
+    saveCurrentProjectPatch({ assets });
   };
 
   const handleHistorySave = (history: HistoryItem[]) => {
-    if (!currentProject) return;
-    const updated = { ...currentProject, generationHistory: history, updatedAt: Date.now() };
-    setCurrentProject(updated);
-    wsSaveProject(updated);
+    saveCurrentProjectPatch({ generationHistory: history });
   };
 
   const handleStoryboardOrderSave = (order: string[]) => {
-    if (!currentProject) return;
-    const updated = { ...currentProject, storyboardOrder: order, updatedAt: Date.now() };
-    setCurrentProject(updated);
-    wsSaveProject(updated);
+    saveCurrentProjectPatch({ storyboardOrder: order });
   };
 
   const handleTopicDraftSave = (draft: string) => {
-    if (!currentProject) return;
-    const updated = { ...currentProject, topicDraft: draft, updatedAt: Date.now() };
-    setCurrentProject(updated);
-    wsSaveProject(updated);
+    saveCurrentProjectPatch({ topicDraft: draft });
   };
 
   const handleTopicHistorySave = (topicHistory: TopicHistoryEntry[]) => {
-    if (!currentProject) return;
-    const updated = { ...currentProject, topicHistory, updatedAt: Date.now() };
-    setCurrentProject(updated);
+    saveCurrentProjectPatch({ topicHistory });
     setCanvasInitialTopicHistory(topicHistory);
-    wsSaveProject(updated);
   };
 
   const handleVideoOrderSave = (order: VideoOrderItem[]) => {
-    if (!currentProject) return;
-    const updated = { ...currentProject, videoOrder: order, updatedAt: Date.now() };
-    setCurrentProject(updated);
-    wsSaveProject(updated);
+    saveCurrentProjectPatch({ videoOrder: order });
   };
 
   if (!isLoggedIn) {
