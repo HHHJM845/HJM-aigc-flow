@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { StoryboardRow } from './api';
+import type { AssetWorkbenchCard } from './assetWorkbench';
 import type { TopicHistoryEntry } from './topicHistory';
 
 export type ProjectStage = 'script' | 'storyboard' | 'generation' | 'review';
@@ -47,6 +48,7 @@ export interface Project {
   videoOrder: VideoOrderItem[];
   topicDraft?: string;
   topicHistory: TopicHistoryEntry[];
+  assetWorkbenchCards: AssetWorkbenchCard[];
   stageOverride?: ProjectStage;
   members: string[];
   projectType?: ProjectType;
@@ -58,7 +60,7 @@ const STORAGE_KEY = 'hjm_aigc_projects';
 export function loadProjects(): Project[] {
   try {
     const raw: Project[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return raw.map(p => ({ members: [], tags: [], topicHistory: [], ...p }));
+    return raw.map(p => ({ members: [], tags: [], topicHistory: [], assetWorkbenchCards: [], ...p }));
   } catch {
     return [];
   }
@@ -78,6 +80,11 @@ export function saveProject(project: Project): void {
       assets: [],
       generationHistory: project.generationHistory.slice(0, 20),
       topicHistory: project.topicHistory.slice(0, 20),
+      assetWorkbenchCards: project.assetWorkbenchCards.map(card => ({
+        ...card,
+        referenceImage: undefined,
+        generatedImage: card.generatedImage?.startsWith('data:image') ? undefined : card.generatedImage,
+      })),
       nodes: project.nodes.map(n => ({
         ...n,
         data: { ...n.data, content: null, uploadedImages: [] },
@@ -109,6 +116,7 @@ export function createProject(name = '未命名项目'): Project {
     storyboardOrder: [],
     videoOrder: [],
     topicHistory: [],
+    assetWorkbenchCards: [],
     members: [],
     tags: [],
   };

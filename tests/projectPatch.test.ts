@@ -23,6 +23,23 @@ const project = {
       createdAt: 100,
     },
   ],
+  assetWorkbenchCards: [
+    {
+      id: 'workbench-1',
+      kind: 'character',
+      name: '莱恩',
+      roleTag: '主角',
+      description: '少年主角',
+      styleId: 'vintage-comic',
+      ratio: '1:1',
+      quality: '2K',
+      status: 'saved',
+      generatedImage: '/uploads/ryan.png',
+      assetId: 'asset-ryan',
+      createdAt: 100,
+      updatedAt: 120,
+    },
+  ],
 };
 
 const nodes = [{ id: 'image-a', type: 'imageNode', data: {}, position: { x: 0, y: 0 } }] as Node[];
@@ -41,6 +58,7 @@ assert.deepEqual(updated.videoOrder, [
   },
 ]);
 assert.deepEqual(updated.topicHistory, project.topicHistory);
+assert.deepEqual(updated.assetWorkbenchCards, project.assetWorkbenchCards);
 assert.equal(updated.updatedAt, 200);
 
 console.log('project patch behavior ok');
