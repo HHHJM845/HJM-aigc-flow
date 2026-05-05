@@ -9,6 +9,10 @@ import {
 
 const RECONNECT_DELAY = 3000;
 
+function normalizeProject(project: Project): Project {
+  return { members: [], tags: [], topicHistory: [], assetWorkbenchCards: [], ...project };
+}
+
 function getWsUrl(): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   // In Vite dev mode (port 3000), the Express server is on port 3001.
@@ -69,7 +73,7 @@ export function useSync(
 
       if (msg.type === 'init') {
         const serverProjects = Array.isArray(msg.projects)
-          ? (msg.projects as Project[]).map(p => ({ members: [], tags: [], ...p }))
+          ? (msg.projects as Project[]).map(normalizeProject)
           : [];
         const serverMap = new Map(serverProjects.map(p => [p.id, p]));
         const localProjects = loadProjects();
@@ -109,7 +113,7 @@ export function useSync(
       }
 
       if (msg.type === 'project_update') {
-        const updated = { members: [], tags: [], ...(msg.project as Project) };
+        const updated = normalizeProject(msg.project as Project);
         setProjects(prev => {
           const idx = prev.findIndex(p => p.id === updated.id);
           const next =

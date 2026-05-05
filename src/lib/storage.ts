@@ -80,9 +80,9 @@ export function saveProject(project: Project): void {
       assets: [],
       generationHistory: project.generationHistory.slice(0, 20),
       topicHistory: project.topicHistory.slice(0, 20),
-      assetWorkbenchCards: project.assetWorkbenchCards.map(card => ({
+      assetWorkbenchCards: (Array.isArray(project.assetWorkbenchCards) ? project.assetWorkbenchCards : []).map(card => ({
         ...card,
-        referenceImage: undefined,
+        referenceImage: card.referenceImage?.startsWith('data:image') ? undefined : card.referenceImage,
         generatedImage: card.generatedImage?.startsWith('data:image') ? undefined : card.generatedImage,
       })),
       nodes: project.nodes.map(n => ({

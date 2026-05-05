@@ -18,9 +18,18 @@ const project = {
     {
       id: 'topic-1',
       keyword: '雨夜',
-      topics: ['雨夜归人'],
-      selectedTopic: '雨夜归人',
+      sources: ['cinema'],
       createdAt: 100,
+      results: {
+        summary: {
+          filmCount: 0,
+          dominantMood: '悬疑',
+          dominantGenre: '剧情',
+        },
+        films: [],
+        insight: '雨夜人物关系可强化视觉对比。',
+        suggestions: [],
+      },
     },
   ],
   assetWorkbenchCards: [
