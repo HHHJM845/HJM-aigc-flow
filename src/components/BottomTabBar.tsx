@@ -2,7 +2,15 @@
 import React from 'react';
 import { BOTTOM_TABS } from '../lib/bottomTabs';
 
-export type ActiveView = 'topic' | 'canvas' | 'assets' | 'storyboard' | 'breakdown' | 'video' | 'templates';
+export type ActiveView =
+  | 'topic'
+  | 'breakdown'
+  | 'assetWorkbench'
+  | 'canvas'
+  | 'assets'
+  | 'storyboard'
+  | 'video'
+  | 'templates';
 
 interface Props {
   activeView: ActiveView;

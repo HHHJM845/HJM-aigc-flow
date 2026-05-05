@@ -9,6 +9,7 @@ export interface BottomTabItem {
 export const BOTTOM_TABS: BottomTabItem[] = [
   { key: 'topic',      icon: 'lightbulb',     label: '选题' },
   { key: 'breakdown',  icon: 'description',   label: '剧本拆解' },
+  { key: 'assetWorkbench', icon: 'recent_actors', label: '角色场景' },
   { key: 'canvas',     icon: 'architecture',  label: '无限画布' },
   { key: 'storyboard', icon: 'movie_edit',    label: '分镜管理' },
   { key: 'video',      icon: 'video_library', label: '视频管理' },
