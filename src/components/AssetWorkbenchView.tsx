@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ASSET_WORKBENCH_STYLES,
   buildAssetWorkbenchPrompt,
@@ -25,6 +25,17 @@ const KIND_OPTIONS: { kind: AssetWorkbenchKind; label: string; icon: string }[] 
 ];
 
 const RATIO_OPTIONS: AssetWorkbenchRatio[] = ['1:1', '16:9', '9:16', '4:3'];
+const STALE_ASSET_FIELDS = new Set<keyof AssetWorkbenchCard>([
+  'kind',
+  'name',
+  'roleTag',
+  'description',
+  'referenceImage',
+  'styleId',
+  'ratio',
+  'quality',
+  'generatedImage',
+]);
 
 const STATUS_LABELS: Record<AssetWorkbenchCard['status'], { label: string; cls: string; icon: string }> = {
   draft: { label: '草稿', cls: 'bg-white/[0.06] text-white/45 border-white/10', icon: 'edit' },
@@ -60,6 +71,12 @@ export default function AssetWorkbenchView({
 }: Props) {
   const [activeKind, setActiveKind] = useState<AssetWorkbenchKind>('character');
   const [selectedId, setSelectedId] = useState<string | null>(cards[0]?.id ?? null);
+  const cardsRef = useRef(cards);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    cardsRef.current = cards;
+  }, [cards]);
 
   const filteredCards = useMemo(
     () => cards.filter(card => card.kind === activeKind),
@@ -72,18 +89,40 @@ export default function AssetWorkbenchView({
   const canGenerate = Boolean(selectedCard) && !isGenerating;
   const canUseImage = Boolean(selectedCard?.generatedImage);
 
-  const saveCard = (card: AssetWorkbenchCard) => {
-    const exists = cards.some(item => item.id === card.id);
-    const next = exists
-      ? cards.map(item => (item.id === card.id ? card : item))
-      : [card, ...cards];
+  const commitCards = (next: AssetWorkbenchCard[]) => {
+    cardsRef.current = next;
     onSaveCards(next);
+  };
+
+  const saveCard = (card: AssetWorkbenchCard) => {
+    const currentCards = cardsRef.current;
+    const exists = currentCards.some(item => item.id === card.id);
+    const next = exists
+      ? currentCards.map(item => (item.id === card.id ? card : item))
+      : [card, ...currentCards];
+    commitCards(next);
     setSelectedId(card.id);
+  };
+
+  const updateCardById = (
+    cardId: string,
+    updater: (card: AssetWorkbenchCard) => AssetWorkbenchCard,
+    selectCard = false
+  ): AssetWorkbenchCard | null => {
+    const currentCards = cardsRef.current;
+    const index = currentCards.findIndex(card => card.id === cardId);
+    if (index < 0) return null;
+
+    const updated = updater(currentCards[index]);
+    const next = currentCards.map(card => (card.id === cardId ? updated : card));
+    commitCards(next);
+    if (selectCard) setSelectedId(cardId);
+    return updated;
   };
 
   const addCard = (kind: AssetWorkbenchKind) => {
     const card = createAssetWorkbenchCard(kind);
-    onSaveCards([card, ...cards]);
+    commitCards([card, ...cardsRef.current]);
     setActiveKind(kind);
     setSelectedId(card.id);
   };
@@ -92,24 +131,34 @@ export default function AssetWorkbenchView({
     if (!selectedCard) return;
     const hasStatus = Object.prototype.hasOwnProperty.call(patch, 'status');
     const hasGeneratedImage = Object.prototype.hasOwnProperty.call(patch, 'generatedImage');
-    const status = hasStatus
-      ? patch.status
-      : hasGeneratedImage
-        ? (patch.generatedImage ? 'generated' : 'draft')
-        : selectedCard.status;
+    const hasStaleAssetField = Object.keys(patch).some(key =>
+      STALE_ASSET_FIELDS.has(key as keyof AssetWorkbenchCard)
+    );
 
-    saveCard({
-      ...selectedCard,
-      ...patch,
-      status: status ?? selectedCard.status,
-      updatedAt: Date.now(),
-    });
+    updateCardById(selectedCard.id, latest => {
+      const nextGeneratedImage = hasGeneratedImage ? patch.generatedImage : latest.generatedImage;
+      const status = hasStatus
+        ? patch.status
+        : hasGeneratedImage
+          ? (patch.generatedImage ? 'generated' : 'draft')
+          : hasStaleAssetField && latest.status === 'saved'
+            ? (nextGeneratedImage ? 'generated' : 'draft')
+          : latest.status;
+
+      return {
+        ...latest,
+        ...patch,
+        ...(hasStaleAssetField ? { assetId: undefined } : {}),
+        status: status ?? latest.status,
+        updatedAt: Date.now(),
+      };
+    }, true);
   };
 
   const deleteSelected = () => {
     if (!selectedCard) return;
-    const next = cards.filter(card => card.id !== selectedCard.id);
-    onSaveCards(next);
+    const next = cardsRef.current.filter(card => card.id !== selectedCard.id);
+    commitCards(next);
     const nextSelected = next.find(card => card.kind === activeKind) ?? next[0] ?? null;
     setSelectedId(nextSelected?.id ?? null);
     if (nextSelected) setActiveKind(nextSelected.kind);
@@ -128,14 +177,14 @@ export default function AssetWorkbenchView({
       createdAt: now,
       updatedAt: now,
     };
-    onSaveCards([duplicate, ...cards]);
+    commitCards([duplicate, ...cardsRef.current]);
     setActiveKind(duplicate.kind);
     setSelectedId(duplicate.id);
   };
 
   const handleKindChange = (kind: AssetWorkbenchKind) => {
     setActiveKind(kind);
-    const first = cards.find(card => card.kind === kind);
+    const first = cardsRef.current.find(card => card.kind === kind);
     setSelectedId(first?.id ?? null);
   };
 
@@ -173,6 +222,7 @@ export default function AssetWorkbenchView({
     const cardAtStart = selectedCard;
     const prompt = buildAssetWorkbenchPrompt(cardAtStart);
     updateSelected({
+      assetId: undefined,
       status: 'generating',
       errorMessage: undefined,
     });
@@ -200,22 +250,21 @@ export default function AssetWorkbenchView({
       const generatedImage = data.urls?.[0] ?? data.url;
       if (!generatedImage) throw new Error('生成接口没有返回图片。');
 
-      const latest = cards.find(card => card.id === cardAtStart.id) ?? cardAtStart;
-      saveCard({
+      updateCardById(cardAtStart.id, latest => ({
         ...latest,
         generatedImage,
+        assetId: undefined,
         status: 'generated',
         errorMessage: undefined,
         updatedAt: Date.now(),
-      });
+      }));
     } catch (error) {
-      const latest = cards.find(card => card.id === cardAtStart.id) ?? cardAtStart;
-      saveCard({
+      updateCardById(cardAtStart.id, latest => ({
         ...latest,
         status: 'error',
         errorMessage: error instanceof Error ? error.message : '生成失败，请稍后重试。',
         updatedAt: Date.now(),
-      });
+      }));
     }
   };
 
@@ -437,8 +486,18 @@ export default function AssetWorkbenchView({
                       </button>
                     )}
                   </div>
-                  <label className="relative block rounded-2xl border border-dashed border-white/15 bg-black/35 min-h-[144px] overflow-hidden cursor-pointer hover:border-[#8ab4f8]/45 transition-all">
+                  <label
+                    className="relative block rounded-2xl border border-dashed border-white/15 bg-black/35 min-h-[144px] overflow-hidden cursor-pointer hover:border-[#8ab4f8]/45 focus:outline-none focus:border-[#8ab4f8]/60 focus:ring-2 focus:ring-[#8ab4f8]/20 transition-all"
+                    tabIndex={0}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        referenceInputRef.current?.click();
+                      }
+                    }}
+                  >
                     <input
+                      ref={referenceInputRef}
                       type="file"
                       accept="image/*"
                       className="hidden"
