@@ -32,10 +32,12 @@ import BoardNode from './components/BoardNode';
 import CommentNode from './components/CommentNode';
 import AssetPanel from './components/AssetPanel';
 import AssetManagerView from './components/AssetManagerView';
+import AssetWorkbenchView from './components/AssetWorkbenchView';
 import HistoryPanel from './components/HistoryPanel';
 import BottomTabBar, { type ActiveView } from './components/BottomTabBar';
 import StoryboardView from './components/StoryboardView';
 import { type StoryboardRow } from './lib/api';
+import type { AssetWorkbenchCard } from './lib/assetWorkbench';
 import {
   createProject,
   extractThumbnail,
@@ -107,11 +109,13 @@ function Flow({
   initialEdges,
   initialStoryboardRows,
   initialAssets,
+  initialAssetWorkbenchCards,
   initialHistory,
   onGoHome,
   onSave,
   onSaveRows,
   onSaveAssets,
+  onSaveAssetWorkbenchCards,
   onSaveHistory,
   initialStoryboardOrder,
   onSaveStoryboardOrder,
@@ -144,11 +148,13 @@ function Flow({
   initialEdges: Edge[];
   initialStoryboardRows: StoryboardRow[];
   initialAssets: AssetItem[];
+  initialAssetWorkbenchCards: AssetWorkbenchCard[];
   initialHistory: HistoryItem[];
   onGoHome: () => void;
   onSave: (nodes: Node[], edges: Edge[]) => void;
   onSaveRows: (rows: StoryboardRow[]) => void;
   onSaveAssets: (assets: AssetItem[]) => void;
+  onSaveAssetWorkbenchCards: (cards: AssetWorkbenchCard[]) => void;
   onSaveHistory: (history: HistoryItem[]) => void;
   initialStoryboardOrder: string[];
   onSaveStoryboardOrder: (order: string[]) => void;
@@ -195,6 +201,7 @@ function Flow({
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantRefNodes, setAssistantRefNodes] = useState<RefNode[]>([]);
   const [assets, setAssets] = useState<AssetItem[]>(initialAssets);
+  const [assetWorkbenchCards, setAssetWorkbenchCards] = useState<AssetWorkbenchCard[]>(initialAssetWorkbenchCards);
   const [generationHistory, setGenerationHistory] = useState<HistoryItem[]>(initialHistory);
 
   // Board drag-create state (screen coordinates)
@@ -645,6 +652,11 @@ function Flow({
     });
   }, [onSaveAssets]);
 
+  const handleSaveAssetWorkbenchCards = useCallback((cards: AssetWorkbenchCard[]) => {
+    setAssetWorkbenchCards(cards);
+    onSaveAssetWorkbenchCards(cards);
+  }, [onSaveAssetWorkbenchCards]);
+
   // ── Canvas Assistant ─────────────────────────────────────
   const showAssistantRef = useRef(false);
   useEffect(() => {
@@ -841,6 +853,29 @@ function Flow({
     setNodes(nds => [...nds, newNode]);
     setShowHistory(false);
   }, [screenToFlowPosition, setNodes, handlePlusClick, handleUpdateNode]);
+
+  const handleAddWorkbenchAssetToCanvas = useCallback((asset: AssetItem) => {
+    const center = screenToFlowPosition({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    });
+    const newNode: Node = {
+      id: `asset-node-${Date.now()}`,
+      type: 'imageNode',
+      position: { x: center.x - 190, y: center.y - 107 },
+      width: 380,
+      height: 214,
+      data: {
+        label: asset.name || '素材',
+        contentType: 'image',
+        content: [asset.src],
+        onPlusClick: handlePlusClick,
+        onUpdate: handleUpdateNode,
+      },
+    };
+    setNodes(nds => [...nds, newNode]);
+    setActiveView('canvas');
+  }, [screenToFlowPosition, setNodes, setActiveView, handlePlusClick, handleUpdateNode]);
 
   // ── Asset drag-to-canvas ─────────────────────────────
   const handleCanvasDrop = useCallback((e: React.DragEvent) => {
@@ -1243,6 +1278,24 @@ function Flow({
         />
       </div>
 
+      {/* Asset workbench view */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: activeView === 'assetWorkbench' ? 1 : 0,
+          transform: activeView === 'assetWorkbench' ? 'translateY(0)' : 'translateY(8px)',
+          transition: 'opacity 300ms ease-out, transform 300ms ease-out',
+          pointerEvents: activeView === 'assetWorkbench' ? 'auto' : 'none',
+        }}
+      >
+        <AssetWorkbenchView
+          cards={assetWorkbenchCards}
+          onSaveCards={handleSaveAssetWorkbenchCards}
+          onAddAsset={handleAddAsset}
+          onAddImageNode={handleAddWorkbenchAssetToCanvas}
+        />
+      </div>
+
       {/* Asset manager view */}
       <div
         className="absolute inset-0"
@@ -1377,6 +1430,7 @@ export default function App() {
   const [canvasInitialEdges, setCanvasInitialEdges] = useState<Edge[]>([]);
   const [canvasInitialRows, setCanvasInitialRows] = useState<StoryboardRow[]>([]);
   const [canvasInitialAssets, setCanvasInitialAssets] = useState<AssetItem[]>([]);
+  const [canvasInitialAssetWorkbenchCards, setCanvasInitialAssetWorkbenchCards] = useState<AssetWorkbenchCard[]>([]);
   const [canvasInitialHistory, setCanvasInitialHistory] = useState<HistoryItem[]>([]);
   const [canvasInitialStoryboardOrder, setCanvasInitialStoryboardOrder] = useState<string[]>([]);
   const [canvasInitialVideoOrder, setCanvasInitialVideoOrder] = useState<VideoOrderItem[]>([]);
@@ -1518,6 +1572,7 @@ export default function App() {
     setCanvasInitialEdges([]);
     setCanvasInitialRows([]);
     setCanvasInitialAssets([]);
+    setCanvasInitialAssetWorkbenchCards([]);
     setCanvasInitialHistory([]);
     setCanvasInitialStoryboardOrder([]);
     setCanvasInitialVideoOrder([]);
@@ -1548,6 +1603,7 @@ export default function App() {
     setCanvasInitialRows(project.storyboardRows);
     setCanvasInitialScriptText(project.scriptText ?? '');
     setCanvasInitialAssets(project.assets || []);
+    setCanvasInitialAssetWorkbenchCards(project.assetWorkbenchCards || []);
     setCanvasInitialHistory(project.generationHistory || []);
     setCanvasInitialStoryboardOrder(project.storyboardOrder || []);
     setCanvasInitialVideoOrder(project.videoOrder || []);
@@ -1581,6 +1637,7 @@ export default function App() {
     setCanvasInitialEdges([]);
     setCanvasInitialRows([]);
     setCanvasInitialAssets([]);
+    setCanvasInitialAssetWorkbenchCards([]);
     setCanvasInitialHistory([]);
     setCanvasInitialStoryboardOrder([]);
     setCanvasInitialVideoOrder([]);
@@ -1615,6 +1672,10 @@ export default function App() {
 
   const handleAssetsSave = (assets: AssetItem[]) => {
     saveCurrentProjectPatch({ assets });
+  };
+
+  const handleAssetWorkbenchCardsSave = (assetWorkbenchCards: AssetWorkbenchCard[]) => {
+    saveCurrentProjectPatch({ assetWorkbenchCards });
   };
 
   const handleHistorySave = (history: HistoryItem[]) => {
@@ -1714,6 +1775,7 @@ export default function App() {
           initialEdges={canvasInitialEdges}
           initialStoryboardRows={canvasInitialRows}
           initialAssets={canvasInitialAssets}
+          initialAssetWorkbenchCards={canvasInitialAssetWorkbenchCards}
           initialHistory={canvasInitialHistory}
           onGoHome={handleGoHome}
           onSave={handleCanvasSave}
@@ -1721,6 +1783,7 @@ export default function App() {
           initialScriptText={canvasInitialScriptText}
           onSaveScript={handleScriptSave}
           onSaveAssets={handleAssetsSave}
+          onSaveAssetWorkbenchCards={handleAssetWorkbenchCardsSave}
           onSaveHistory={handleHistorySave}
           initialStoryboardOrder={canvasInitialStoryboardOrder}
           onSaveStoryboardOrder={handleStoryboardOrderSave}
