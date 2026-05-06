@@ -204,6 +204,10 @@ function Flow({
   const [assetWorkbenchCards, setAssetWorkbenchCards] = useState<AssetWorkbenchCard[]>(initialAssetWorkbenchCards);
   const [generationHistory, setGenerationHistory] = useState<HistoryItem[]>(initialHistory);
 
+  useEffect(() => {
+    setAssetWorkbenchCards(initialAssetWorkbenchCards);
+  }, [initialAssetWorkbenchCards]);
+
   // Board drag-create state (screen coordinates)
   const [boardDraft, setBoardDraft] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const isDraggingBoard = useRef(false);
@@ -1652,6 +1656,7 @@ export default function App() {
     const project = currentProjectRef.current;
     if (!project) return null;
     const updated = applyProjectPatch(project, patch);
+    currentProjectRef.current = updated;
     setCurrentProject(updated);
     wsSaveProject(updated);
     return updated;
