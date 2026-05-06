@@ -125,6 +125,7 @@ function Flow({
   externalNodes,
   externalEdges,
   externalHistory,
+  externalAssetWorkbenchCards,
   connected = true,
   initialTopicDraft,
   onSaveTopicDraft,
@@ -164,6 +165,7 @@ function Flow({
   externalNodes?: Node[] | null;
   externalEdges?: Edge[] | null;
   externalHistory?: HistoryItem[] | null;
+  externalAssetWorkbenchCards?: AssetWorkbenchCard[] | null;
   connected?: boolean;
   initialTopicDraft: string;
   onSaveTopicDraft: (draft: string) => void;
@@ -207,6 +209,12 @@ function Flow({
   useEffect(() => {
     setAssetWorkbenchCards(initialAssetWorkbenchCards);
   }, [initialAssetWorkbenchCards]);
+
+  useEffect(() => {
+    if (externalAssetWorkbenchCards) {
+      setAssetWorkbenchCards(externalAssetWorkbenchCards);
+    }
+  }, [externalAssetWorkbenchCards]);
 
   // Board drag-create state (screen coordinates)
   const [boardDraft, setBoardDraft] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
@@ -1452,6 +1460,7 @@ export default function App() {
     nodes: Node[];
     edges: Edge[];
     history: HistoryItem[];
+    assetWorkbenchCards: AssetWorkbenchCard[];
   } | null>(null);
 
   // Stable ref so the useSync callback can always read the latest currentProject
@@ -1467,6 +1476,7 @@ export default function App() {
         nodes: project.nodes,
         edges: project.edges,
         history: project.generationHistory || [],
+        assetWorkbenchCards: project.assetWorkbenchCards || [],
       });
       // Clear after one tick so Flow sees a fresh object reference next time
       setTimeout(() => setExternalCanvasUpdate(null), 0);
@@ -1798,6 +1808,7 @@ export default function App() {
           externalNodes={externalCanvasUpdate?.nodes ?? null}
           externalEdges={externalCanvasUpdate?.edges ?? null}
           externalHistory={externalCanvasUpdate?.history ?? null}
+          externalAssetWorkbenchCards={externalCanvasUpdate?.assetWorkbenchCards ?? null}
           connected={connected}
           initialTopicDraft={canvasInitialTopicDraft}
           onSaveTopicDraft={handleTopicDraftSave}

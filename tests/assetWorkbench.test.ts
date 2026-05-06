@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import {
   ASSET_WORKBENCH_STYLES,
+  ASSET_WORKBENCH_QUALITIES,
   buildAssetWorkbenchPrompt,
   createAssetWorkbenchCard,
   createAssetFromWorkbenchCard,
   markWorkbenchCardSaved,
+  normalizeAssetWorkbenchQuality,
   type AssetWorkbenchCard,
 } from '../src/lib/assetWorkbench';
 
@@ -18,6 +20,10 @@ assert.equal(character.status, 'draft');
 assert.equal(character.createdAt, 1000);
 assert.equal(character.updatedAt, 1000);
 assert.ok(ASSET_WORKBENCH_STYLES.some(style => style.id === character.styleId));
+assert.deepEqual(ASSET_WORKBENCH_QUALITIES, ['1K', '2K']);
+assert.equal(normalizeAssetWorkbenchQuality('1K'), '1K');
+assert.equal(normalizeAssetWorkbenchQuality('2K'), '2K');
+assert.equal(normalizeAssetWorkbenchQuality('4K'), '2K');
 
 const scene = createAssetWorkbenchCard('scene', 1100);
 assert.equal(scene.kind, 'scene');

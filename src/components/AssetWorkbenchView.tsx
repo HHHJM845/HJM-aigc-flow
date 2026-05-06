@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ASSET_WORKBENCH_STYLES,
+  ASSET_WORKBENCH_QUALITIES,
   buildAssetWorkbenchPrompt,
   createAssetFromWorkbenchCard,
   createAssetWorkbenchCard,
   getAssetWorkbenchStyle,
   markWorkbenchCardSaved,
+  normalizeAssetWorkbenchQuality,
   type AssetWorkbenchCard,
   type AssetWorkbenchKind,
   type AssetWorkbenchRatio,
@@ -188,8 +190,9 @@ export default function AssetWorkbenchView({
     setSelectedId(first?.id ?? null);
   };
 
-  const handleReferenceUpload = (file: File | null | undefined) => {
+  const handleReferenceUpload = async (file: File | null | undefined) => {
     if (!selectedCard || !file) return;
+    const cardId = selectedCard.id;
     if (!file.type.startsWith('image/')) {
       updateSelected({
         status: 'error',
@@ -198,23 +201,44 @@ export default function AssetWorkbenchView({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = event => {
-      const dataUrl = event.target?.result;
-      if (typeof dataUrl === 'string') {
-        updateSelected({
-          referenceImage: dataUrl,
-          errorMessage: undefined,
-        });
+    updateCardById(cardId, latest => ({
+      ...latest,
+      errorMessage: undefined,
+      updatedAt: Date.now(),
+    }), true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await response.json().catch(() => ({})) as { url?: string; error?: string };
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || '参考图上传失败，请重新选择文件。');
       }
-    };
-    reader.onerror = () => {
-      updateSelected({
+
+      updateCardById(cardId, latest => {
+        const nextGeneratedImage = latest.generatedImage;
+        const status = latest.status === 'saved'
+          ? (nextGeneratedImage ? 'generated' : 'draft')
+          : latest.status;
+
+        return {
+          ...latest,
+          referenceImage: data.url,
+          assetId: undefined,
+          status,
+          errorMessage: undefined,
+          updatedAt: Date.now(),
+        };
+      }, true);
+    } catch (error) {
+      updateCardById(cardId, latest => ({
+        ...latest,
         status: 'error',
-        errorMessage: '参考图读取失败，请重新选择文件。',
-      });
-    };
-    reader.readAsDataURL(file);
+        errorMessage: error instanceof Error ? error.message : '参考图上传失败，请重新选择文件。',
+        updatedAt: Date.now(),
+      }), true);
+    }
   };
 
   const handleGenerate = async () => {
@@ -231,7 +255,7 @@ export default function AssetWorkbenchView({
       const body: Record<string, unknown> = {
         prompt,
         ratio: cardAtStart.ratio,
-        quality: cardAtStart.quality,
+        quality: normalizeAssetWorkbenchQuality(cardAtStart.quality),
         count: 1,
       };
       if (cardAtStart.referenceImage) body.referenceImages = [cardAtStart.referenceImage];
@@ -762,8 +786,8 @@ export default function AssetWorkbenchView({
 
               <section className="rounded-2xl bg-[#151518] border border-white/[0.08] p-4">
                 <span className="text-[11px] text-white/35">清晰度</span>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {(['1K', '2K', '4K'] as const).map(quality => {
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {ASSET_WORKBENCH_QUALITIES.map(quality => {
                     const active = selectedCard.quality === quality;
                     return (
                       <button

@@ -3,7 +3,7 @@ import type { AssetItem } from './storage';
 export type AssetWorkbenchKind = 'character' | 'scene';
 export type AssetWorkbenchStatus = 'draft' | 'generating' | 'generated' | 'saved' | 'error';
 export type AssetWorkbenchRatio = '1:1' | '16:9' | '9:16' | '4:3';
-export type AssetWorkbenchQuality = '1K' | '2K' | '4K';
+export type AssetWorkbenchQuality = '1K' | '2K';
 
 export interface AssetWorkbenchStyle {
   id: string;
@@ -92,6 +92,12 @@ export const ASSET_WORKBENCH_STYLES: AssetWorkbenchStyle[] = [
     thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=240&q=80',
   },
 ];
+
+export const ASSET_WORKBENCH_QUALITIES: AssetWorkbenchQuality[] = ['1K', '2K'];
+
+export function normalizeAssetWorkbenchQuality(quality: unknown): AssetWorkbenchQuality {
+  return quality === '1K' || quality === '2K' ? quality : '2K';
+}
 
 export function getAssetWorkbenchStyle(styleId: string): AssetWorkbenchStyle {
   return ASSET_WORKBENCH_STYLES.find(style => style.id === styleId) ?? ASSET_WORKBENCH_STYLES[0];
