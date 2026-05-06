@@ -1,5 +1,17 @@
 // src/components/BottomTabBar.tsx
 import React from 'react';
+import {
+  Bookmark,
+  Clapperboard,
+  DraftingCompass,
+  FileText,
+  Home,
+  Lightbulb,
+  Package,
+  UserRound,
+  Video,
+  type LucideIcon,
+} from 'lucide-react';
 import { BOTTOM_TABS } from '../lib/bottomTabs';
 
 export type ActiveView =
@@ -18,6 +30,17 @@ interface Props {
   onGoHome: () => void;
 }
 
+const TAB_ICONS: Record<(typeof BOTTOM_TABS)[number]['iconKey'], LucideIcon> = {
+  Lightbulb,
+  FileText,
+  UserRound,
+  DraftingCompass,
+  Clapperboard,
+  Video,
+  Package,
+  Bookmark,
+};
+
 export default function BottomTabBar({ activeView, onViewChange, onGoHome }: Props) {
   return (
     <nav
@@ -28,31 +51,29 @@ export default function BottomTabBar({ activeView, onViewChange, onGoHome }: Pro
       <button
         onClick={onGoHome}
         title="返回首页"
+        aria-label="返回首页"
         className="w-12 h-12 flex items-center justify-center rounded-full text-[#9f9d9d] hover:text-[#fbf9f8] hover:bg-white/5 transition-all"
       >
-        <span className="material-symbols-outlined">home</span>
+        <Home className="h-5 w-5" strokeWidth={2.2} />
       </button>
 
       {/* Tab 项 */}
-      {BOTTOM_TABS.map(({ key, icon, label }) => {
+      {BOTTOM_TABS.map(({ key, iconKey, label }) => {
         const isActive = activeView === key;
+        const Icon = TAB_ICONS[iconKey];
         return (
           <button
             key={key}
             onClick={() => onViewChange(key)}
             title={label}
+            aria-label={label}
             className={`w-12 h-12 flex items-center justify-center rounded-full transition-all ${
               isActive
                 ? 'bg-[#c6c6c7] text-[#1a1a1a] shadow-lg scale-110'
                 : 'text-[#9f9d9d] hover:text-[#fbf9f8] hover:bg-white/5'
             }`}
           >
-            <span
-              className="material-symbols-outlined"
-              style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
-            >
-              {icon}
-            </span>
+            <Icon className="h-5 w-5" strokeWidth={isActive ? 2.7 : 2.2} />
           </button>
         );
       })}

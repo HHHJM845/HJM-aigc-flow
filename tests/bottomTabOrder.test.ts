@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { BOTTOM_TABS } from '../src/lib/bottomTabs';
 
 const labels = BOTTOM_TABS.map(tab => tab.label);
+const iconKeys = BOTTOM_TABS.map(tab => tab.iconKey);
 
 assert.deepEqual(labels, [
   '选题',
@@ -18,5 +19,15 @@ assert.equal(labels.indexOf('角色场景'), labels.indexOf('剧本拆解') + 1)
 assert.equal(labels.indexOf('角色场景'), labels.indexOf('无限画布') - 1);
 assert.equal(labels.indexOf('资产管理'), labels.indexOf('视频管理') + 1);
 assert.equal(labels.indexOf('资产管理'), labels.indexOf('模板库') - 1);
+assert.deepEqual(iconKeys, [
+  'Lightbulb',
+  'FileText',
+  'UserRound',
+  'DraftingCompass',
+  'Clapperboard',
+  'Video',
+  'Package',
+  'Bookmark',
+]);
 
 console.log('bottom tab order behavior ok');
