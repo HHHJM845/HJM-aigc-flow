@@ -99,18 +99,25 @@ router.post('/', async (req, res, next) => {
         if (urls.length === 0) {
           return res.status(502).json({ error: 'API 未返回视频 URL' });
         }
-        // 转存到 OSS，返回永久链接
+        // 转存到 OSS，返回永久链接（失败时回退到原始 URL，避免整个流程 500）
         console.log('[video] uploading', urls.length, 'video(s) to OSS...');
-        const ossUrls = await uploadUrlsToOss(urls, 'videos');
-        console.log('[video] OSS upload done:', ossUrls);
-        return res.json({ urls: ossUrls });
+        try {
+          const ossUrls = await uploadUrlsToOss(urls, 'videos');
+          console.log('[video] OSS upload done:', ossUrls);
+          return res.json({ urls: ossUrls });
+        } catch (ossErr) {
+          console.error('[video] OSS upload failed, returning original URL:', ossErr);
+          return res.json({ urls });
+        }
       }
       // queued / running → 继续轮询
     }
 
     return res.status(504).json({ error: '视频生成超时（5 分钟）' });
   } catch (err) {
-    next(err);
+    console.error('[video] route error:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ error: `视频生成异常: ${msg}` });
   }
 });
 
