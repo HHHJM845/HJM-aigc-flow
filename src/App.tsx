@@ -308,6 +308,10 @@ function Flow({
     onGoHome();
   };
 
+  const handleGoToAssets = useCallback(() => {
+    setActiveView('assetWorkbench');
+  }, []);
+
   const handleImportFromBreakdown = useCallback(async (rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => {
     setStoryboardRows(rows);
     onSaveRows(rows);
@@ -344,6 +348,10 @@ function Flow({
       }
     }
   }, [setNodes, setEdges, onSaveRows, assets]);
+
+  const handleImportFromAssetWorkbench = useCallback(async () => {
+    await handleImportFromBreakdown(storyboardRows, '16:9', 380, 214);
+  }, [storyboardRows, handleImportFromBreakdown]);
 
   const handleUpdateNode = useCallback((id: string, newData: any) => {
     // Record generated content to history
@@ -1261,6 +1269,7 @@ function Flow({
           annotationSuggestionsLoading={annotationSuggestionsLoading}
           onDismissSuggestion={onDismissSuggestion}
           onApplySuggestion={onApplySuggestion}
+          onGoToAssets={handleGoToAssets}
         />
       </div>
 
