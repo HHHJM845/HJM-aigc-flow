@@ -4,13 +4,14 @@ import {
   loadProjects,
   saveProject as localSave,
   deleteProject as localDelete,
+  sanitizeProject,
   type Project,
 } from '../lib/storage';
 
 const RECONNECT_DELAY = 3000;
 
 function normalizeProject(project: Project): Project {
-  return { members: [], tags: [], topicHistory: [], assetWorkbenchCards: [], ...project };
+  return sanitizeProject(project);
 }
 
 function getWsUrl(): string {

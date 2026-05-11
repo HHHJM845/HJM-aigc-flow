@@ -57,16 +57,63 @@ export interface Project {
 
 const STORAGE_KEY = 'hjm_aigc_projects';
 
+function finiteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+export function sanitizeNodes(nodes: Node[]): Node[] {
+  if (!Array.isArray(nodes)) return [];
+  return nodes.map((node, index) => {
+    const fallbackX = 80 + (index % 5) * 440;
+    const fallbackY = 80 + Math.floor(index / 5) * 400;
+    const width = finiteNumber(node.width, node.type === 'textNode' ? 380 : 380);
+    const height = finiteNumber(node.height, node.type === 'textNode' ? 300 : 214);
+
+    return {
+      ...node,
+      position: {
+        x: finiteNumber(node.position?.x, fallbackX),
+        y: finiteNumber(node.position?.y, fallbackY),
+      },
+      width,
+      height,
+      data: node.data || {},
+    };
+  });
+}
+
+export function sanitizeEdges(edges: Edge[], nodes: Node[]): Edge[] {
+  if (!Array.isArray(edges)) return [];
+  const nodeIds = new Set(nodes.map(node => node.id));
+  return edges
+    .filter(edge => edge?.id && nodeIds.has(edge.source) && nodeIds.has(edge.target))
+    .map(edge => ({ ...edge, type: edge.type || 'custom' }));
+}
+
+export function sanitizeProject(project: Project): Project {
+  const nodes = sanitizeNodes(project.nodes || []);
+  return {
+    members: [],
+    tags: [],
+    topicHistory: [],
+    assetWorkbenchCards: [],
+    ...project,
+    nodes,
+    edges: sanitizeEdges(project.edges || [], nodes),
+  };
+}
+
 export function loadProjects(): Project[] {
   try {
     const raw: Project[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return raw.map(p => ({ members: [], tags: [], topicHistory: [], assetWorkbenchCards: [], ...p }));
+    return raw.map(sanitizeProject);
   } catch {
     return [];
   }
 }
 
 export function saveProject(project: Project): void {
+  project = sanitizeProject(project);
   const all = loadProjects();
   const idx = all.findIndex(p => p.id === project.id);
   if (idx >= 0) all[idx] = project;

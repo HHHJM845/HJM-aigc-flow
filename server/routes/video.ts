@@ -104,6 +104,9 @@ router.post('/', async (req, res, next) => {
     if (!submitRes.ok) {
       const text = await submitRes.text();
       console.error('[video] submit failed', submitRes.status, text);
+      if (submitRes.status === 403 && text.includes('AccountOverdueError')) {
+        return res.status(403).json({ error: '视频生成账号欠费或余额不足，请先处理火山引擎/豆包账户余额。' });
+      }
       return res.status(submitRes.status).json({ error: `提交任务失败: ${text}` });
     }
 

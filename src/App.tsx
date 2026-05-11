@@ -41,6 +41,8 @@ import type { AssetWorkbenchCard } from './lib/assetWorkbench';
 import {
   createProject,
   extractThumbnail,
+  sanitizeEdges,
+  sanitizeNodes,
   type Project,
   type AssetItem,
   type HistoryItem,
@@ -235,8 +237,10 @@ function Flow({
     sourceNodeId: null, sourceNodeType: null, sourceHandleId: null,
   });
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const safeInitialNodes = sanitizeNodes(initialNodes);
+  const safeInitialEdges = sanitizeEdges(initialEdges, safeInitialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState(safeInitialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(safeInitialEdges);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -249,9 +253,10 @@ function Flow({
   // Apply remote canvas updates pushed from App (another client edited the project)
   useEffect(() => {
     if (!externalNodes || !externalEdges) return;
+    const safeNodes = sanitizeNodes(externalNodes);
     isApplyingExternal.current = true;
-    setNodes(externalNodes);
-    setEdges(externalEdges);
+    setNodes(safeNodes);
+    setEdges(sanitizeEdges(externalEdges, safeNodes));
     if (externalHistory) setGenerationHistory(externalHistory);
     const t = setTimeout(() => { isApplyingExternal.current = false; }, 200);
     return () => clearTimeout(t);
