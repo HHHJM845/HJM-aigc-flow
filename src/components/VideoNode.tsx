@@ -183,12 +183,12 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
 
   // ── Generate ───────────────────────────────────────
   const handleGenerate = async () => {
-    if (!prompt || isGenerating) return;
+    if (!prompt.trim() || isGenerating) return;
     setIsGenerating(true);
     setGenError('');
     try {
       const urls = await generateVideo(
-        prompt,
+        prompt.trim(),
         activeRefImage,
         duration === -1 ? 5 : duration,
         audio,
@@ -632,7 +632,7 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
               {/* 生成按钮 */}
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating || !prompt}
+                disabled={isGenerating || !prompt.trim()}
                 className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white text-[13px] font-medium shadow-lg shadow-orange-900/40 transition-all active:scale-95"
               >
                 {isGenerating
