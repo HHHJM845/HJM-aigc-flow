@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { uploadUrlsToOss } from '../oss.js';
+import type { Request } from 'express';
+import { uploadBase64ToOss, uploadUrlToOss, uploadUrlsToOss } from '../oss.js';
 
 const router = Router();
 
@@ -7,6 +8,51 @@ const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
 const MODEL = 'doubao-seedance-1-5-pro-251215';
 const POLL_INTERVAL = 3000; // ms
 const POLL_TIMEOUT = 300000; // 5 min
+
+function buildOrigin(req: Request): string {
+  const configured = process.env.PUBLIC_BASE_URL || process.env.APP_PUBLIC_URL || process.env.SERVER_PUBLIC_URL;
+  if (configured) return configured.replace(/\/$/, '');
+  return `${req.protocol}://${req.get('host')}`;
+}
+
+function isValidHttpImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    const isHttp = url.protocol === 'http:' || url.protocol === 'https:';
+    return isHttp && url.pathname !== '/' && !url.pathname.endsWith('/undefined') && !url.pathname.endsWith('/null');
+  } catch {
+    return false;
+  }
+}
+
+async function resolveReferenceImage(referenceImage: string | undefined, origin: string): Promise<string | undefined> {
+  const raw = referenceImage?.trim();
+  if (!raw) return undefined;
+
+  if (raw.startsWith('data:image/')) {
+    return uploadBase64ToOss(raw, 'images');
+  }
+
+  const absoluteUrl = raw.startsWith('/uploads/')
+    ? `${origin}${raw}`
+    : raw;
+
+  if (!isValidHttpImageUrl(absoluteUrl)) {
+    console.warn('[video] ignored invalid reference image:', raw.slice(0, 120));
+    return undefined;
+  }
+
+  if (absoluteUrl.startsWith(origin) || raw.startsWith('/uploads/')) {
+    try {
+      return await uploadUrlToOss(absoluteUrl, 'images');
+    } catch (err) {
+      console.warn('[video] failed to mirror reference image to OSS, using public URL:', err);
+      return absoluteUrl;
+    }
+  }
+
+  return absoluteUrl;
+}
 
 router.post('/', async (req, res, next) => {
   try {
@@ -36,8 +82,9 @@ router.post('/', async (req, res, next) => {
 
     // 构建 content 数组：text 在前，参考图在后
     const content: object[] = [{ type: 'text', text: fullText }];
-    if (referenceImage) {
-      content.push({ type: 'image_url', image_url: { url: referenceImage } });
+    const resolvedReferenceImage = await resolveReferenceImage(referenceImage, buildOrigin(req));
+    if (resolvedReferenceImage) {
+      content.push({ type: 'image_url', image_url: { url: resolvedReferenceImage } });
     }
 
     // 1. 提交任务
