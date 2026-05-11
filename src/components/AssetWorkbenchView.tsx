@@ -78,8 +78,10 @@ export default function AssetWorkbenchView({
   const [activeKind, setActiveKind] = useState<AssetWorkbenchKind>('character');
   const [selectedId, setSelectedId] = useState<string | null>(cards[0]?.id ?? null);
   const [threeViewGeneratingId, setThreeViewGeneratingId] = useState<string | null>(null);
+  const [isUploadingCard, setIsUploadingCard] = useState(false);
   const cardsRef = useRef(cards);
   const referenceInputRef = useRef<HTMLInputElement>(null);
+  const cardUploadInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     cardsRef.current = cards;
@@ -200,6 +202,34 @@ export default function AssetWorkbenchView({
     setActiveKind(kind);
     const first = cardsRef.current.find(card => card.kind === kind);
     setSelectedId(first?.id ?? null);
+  };
+
+  const handleCardImageUpload = async (file: File | null | undefined) => {
+    if (!file || isUploadingCard) return;
+    if (!file.type.startsWith('image/')) return;
+
+    const kind = activeKind;
+    setIsUploadingCard(true);
+    try {
+      const uploaded = await uploadFile(file);
+      const now = Date.now();
+      const card: AssetWorkbenchCard = {
+        ...createAssetWorkbenchCard(kind, now),
+        name: file.name.replace(/\.[^/.]+$/, '') || (kind === 'character' ? '上传角色' : '上传场景'),
+        description: kind === 'character'
+          ? '由上传图片创建的人物形象卡。'
+          : '由上传图片创建的场景资产卡。',
+        generatedImage: uploaded.url,
+        status: 'generated',
+        updatedAt: now,
+      };
+
+      commitCards([card, ...cardsRef.current]);
+      setActiveKind(kind);
+      setSelectedId(card.id);
+    } finally {
+      setIsUploadingCard(false);
+    }
   };
 
   const handleReferenceUpload = async (file: File | null | undefined) => {
@@ -408,12 +438,32 @@ export default function AssetWorkbenchView({
         </div>
 
         <div className="px-5 py-4">
+          <input
+            ref={cardUploadInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={event => {
+              handleCardImageUpload(event.target.files?.[0]);
+              event.target.value = '';
+            }}
+          />
           <button
             onClick={() => addCard(activeKind)}
             className="w-full h-11 rounded-full bg-[#1f1f22] border border-white/10 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#2a2a2e] hover:border-white/20 transition-all"
           >
             <span className="material-symbols-outlined text-[18px]" style={iconStyle(true)}>add</span>
             新建{activeKind === 'character' ? '角色' : '场景'}卡
+          </button>
+          <button
+            onClick={() => !isUploadingCard && cardUploadInputRef.current?.click()}
+            disabled={isUploadingCard}
+            className="mt-3 w-full h-11 rounded-full bg-white text-black text-sm font-extrabold flex items-center justify-center gap-2 hover:bg-[#8ab4f8] transition-all disabled:opacity-45 disabled:cursor-not-allowed"
+          >
+            <span className={`material-symbols-outlined text-[18px] ${isUploadingCard ? 'animate-spin' : ''}`} style={iconStyle(true)}>
+              {isUploadingCard ? 'progress_activity' : 'upload'}
+            </span>
+            {isUploadingCard ? '上传中' : `上传${activeKind === 'character' ? '角色图' : '场景图'}`}
           </button>
         </div>
 
