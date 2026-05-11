@@ -1760,31 +1760,34 @@ export default function App() {
   };
 
   const isOnCanvas = view === 'canvas' && innerActiveView === 'canvas';
+  const showUserMenu = view === 'home' || isOnCanvas;
 
   return (
     <>
-    <UserMenu
-      username={username}
-      role={role}
-      onLogout={handleLogout}
-      onNavigateAdmin={() => setView('admin')}
-      sidebarOpen={showAssistant}
-      showAssistant={showAssistant}
-      onToggleAssistant={isOnCanvas ? () => setShowAssistant(v => !v) : undefined}
-      notifications={notifications}
-      onRead={id => {
-        fetch(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: 1 } : n));
-      }}
-      onReadAll={projectId => {
-        fetch(`/api/projects/${projectId}/notifications/read-all`, { method: 'POST' }).catch(() => {});
-        setNotifications(prev => prev.map(n => n.projectId === projectId ? { ...n, read: 1 } : n));
-      }}
-      onNavigate={(projectId, _rowId) => {
-        const proj = projects.find(p => p.id === projectId);
-        if (proj) handleOpenProject(proj);
-      }}
-    />
+    {showUserMenu && (
+      <UserMenu
+        username={username}
+        role={role}
+        onLogout={handleLogout}
+        onNavigateAdmin={() => setView('admin')}
+        sidebarOpen={showAssistant}
+        showAssistant={showAssistant}
+        onToggleAssistant={isOnCanvas ? () => setShowAssistant(v => !v) : undefined}
+        notifications={notifications}
+        onRead={id => {
+          fetch(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
+          setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: 1 } : n));
+        }}
+        onReadAll={projectId => {
+          fetch(`/api/projects/${projectId}/notifications/read-all`, { method: 'POST' }).catch(() => {});
+          setNotifications(prev => prev.map(n => n.projectId === projectId ? { ...n, read: 1 } : n));
+        }}
+        onNavigate={(projectId, _rowId) => {
+          const proj = projects.find(p => p.id === projectId);
+          if (proj) handleOpenProject(proj);
+        }}
+      />
+    )}
     <ReactFlowProvider>
       {view === 'admin' ? (
         <AdminView
