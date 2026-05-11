@@ -1759,18 +1759,18 @@ export default function App() {
     setView('home');
   };
 
-  const showUserMenu = view === 'canvas' && innerActiveView === 'canvas';
+  const isOnCanvas = view === 'canvas' && innerActiveView === 'canvas';
 
   return (
     <>
-    {showUserMenu && <UserMenu
+    <UserMenu
       username={username}
       role={role}
       onLogout={handleLogout}
       onNavigateAdmin={() => setView('admin')}
       sidebarOpen={showAssistant}
       showAssistant={showAssistant}
-      onToggleAssistant={() => setShowAssistant(v => !v)}
+      onToggleAssistant={isOnCanvas ? () => setShowAssistant(v => !v) : undefined}
       notifications={notifications}
       onRead={id => {
         fetch(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
@@ -1784,7 +1784,7 @@ export default function App() {
         const proj = projects.find(p => p.id === projectId);
         if (proj) handleOpenProject(proj);
       }}
-    />}
+    />
     <ReactFlowProvider>
       {view === 'admin' ? (
         <AdminView
