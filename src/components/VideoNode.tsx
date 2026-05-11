@@ -73,7 +73,7 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
   // ── Reference image (image-to-video mode) ─────────
   const [manualRefImage, setManualRefImage] = useState<string | null>(null);
   const [isRefUploading, setIsRefUploading] = useState(false);
-  const activeRefImage = mode === 'image' ? (data.referenceImage || manualRefImage) : undefined;
+  const activeRefImage = mode === 'image' ? (manualRefImage || data.referenceImage) : undefined;
 
   // ── File inputs ────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -182,6 +182,7 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
     try {
       const uploaded = await uploadFile(file, { fallbackToServer: false });
       setManualRefImage(uploaded.url);
+      data.onUpdate?.(id, { referenceImage: uploaded.url });
     } catch (err) {
       setGenError(err instanceof Error ? err.message : '参考图上传失败，请检查 OSS CORS 配置');
     } finally {
@@ -404,14 +405,27 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
                       {data.referenceImage && (
                         <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[8px] text-white/70 py-0.5">链接</div>
                       )}
-                      {!data.referenceImage && (
-                        <button
-                          onClick={() => setManualRefImage(null)}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                        >
-                          <X size={14} className="text-white" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => refImageInputRef.current?.click()}
+                        disabled={isRefUploading}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-medium"
+                        title="替换参考图"
+                      >
+                        替换
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setManualRefImage(null);
+                          data.onUpdate?.(id, { referenceImage: undefined });
+                        }}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                        title="移除参考图"
+                      >
+                        <X size={12} className="text-white" />
+                      </button>
                     </div>
                   ) : (
                     <button
