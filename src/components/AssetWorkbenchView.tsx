@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ASSET_WORKBENCH_STYLES,
   ASSET_WORKBENCH_QUALITIES,
+  buildCharacterTurnaroundPrompt,
   buildAssetWorkbenchPrompt,
   createAssetFromWorkbenchCard,
   createAssetWorkbenchCard,
@@ -75,6 +76,7 @@ export default function AssetWorkbenchView({
 }: Props) {
   const [activeKind, setActiveKind] = useState<AssetWorkbenchKind>('character');
   const [selectedId, setSelectedId] = useState<string | null>(cards[0]?.id ?? null);
+  const [threeViewGeneratingId, setThreeViewGeneratingId] = useState<string | null>(null);
   const cardsRef = useRef(cards);
   const referenceInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,8 +92,15 @@ export default function AssetWorkbenchView({
   const selectedStyle = selectedCard ? getAssetWorkbenchStyle(selectedCard.styleId) : ASSET_WORKBENCH_STYLES[0];
   const promptPreview = selectedCard ? buildAssetWorkbenchPrompt(selectedCard) : '';
   const isGenerating = selectedCard?.status === 'generating';
+  const isThreeViewGenerating = Boolean(selectedCard && threeViewGeneratingId === selectedCard.id);
   const canGenerate = Boolean(selectedCard) && !isGenerating;
   const canUseImage = Boolean(selectedCard?.generatedImage);
+  const canGenerateThreeView = Boolean(
+    selectedCard?.kind === 'character' &&
+    selectedCard.generatedImage &&
+    !isGenerating &&
+    !isThreeViewGenerating
+  );
 
   const commitCards = (next: AssetWorkbenchCard[]) => {
     cardsRef.current = next;
@@ -291,6 +300,68 @@ export default function AssetWorkbenchView({
         errorMessage: error instanceof Error ? error.message : '生成失败，请稍后重试。',
         updatedAt: Date.now(),
       }));
+    }
+  };
+
+  const handleGenerateThreeView = async () => {
+    if (!selectedCard || selectedCard.kind !== 'character' || !selectedCard.generatedImage || isThreeViewGenerating) return;
+    const cardAtStart = selectedCard;
+    const prompt = buildCharacterTurnaroundPrompt(cardAtStart);
+    setThreeViewGeneratingId(cardAtStart.id);
+    updateCardById(cardAtStart.id, latest => ({
+      ...latest,
+      errorMessage: undefined,
+      updatedAt: Date.now(),
+    }), true);
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          referenceImages: [cardAtStart.generatedImage],
+          ratio: '16:9',
+          quality: normalizeAssetWorkbenchQuality(cardAtStart.quality),
+          count: 1,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({})) as { urls?: string[]; url?: string; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || `生成失败：HTTP ${response.status}`);
+      }
+
+      const generatedImage = data.urls?.[0] ?? data.url;
+      if (!generatedImage) throw new Error('生成接口没有返回图片。');
+
+      const now = Date.now();
+      const threeViewCard: AssetWorkbenchCard = {
+        ...cardAtStart,
+        id: `workbench_${now}_${Math.random().toString(36).slice(2, 8)}`,
+        name: `${cardAtStart.name || '未命名角色'} 三视图`,
+        description: `${cardAtStart.description}${cardAtStart.description ? '\n' : ''}三视图设定：正面、侧面、背面，保持角色造型一致。`,
+        referenceImage: cardAtStart.generatedImage,
+        ratio: '16:9',
+        generatedImage,
+        assetId: undefined,
+        status: 'generated',
+        errorMessage: undefined,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      saveCard(threeViewCard);
+      setActiveKind('character');
+    } catch (error) {
+      updateCardById(cardAtStart.id, latest => ({
+        ...latest,
+        status: latest.generatedImage ? latest.status : 'error',
+        errorMessage: error instanceof Error ? error.message : '三视图生成失败，请稍后重试。',
+        updatedAt: Date.now(),
+      }), true);
+    } finally {
+      setThreeViewGeneratingId(null);
     }
   };
 
@@ -634,6 +705,19 @@ export default function AssetWorkbenchView({
                       >
                         <span className="material-symbols-outlined text-[19px]">inventory_2</span>
                       </button>
+                      {selectedCard.kind === 'character' && (
+                        <button
+                          onClick={handleGenerateThreeView}
+                          disabled={!canGenerateThreeView}
+                          className="w-9 h-9 rounded-full bg-white/[0.09] text-white/70 hover:text-white hover:bg-white/[0.16] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                          aria-label="生成三视图"
+                          title="生成三视图"
+                        >
+                          <span className={`material-symbols-outlined text-[19px] ${isThreeViewGenerating ? 'animate-spin' : ''}`}>
+                            {isThreeViewGenerating ? 'progress_activity' : 'view_in_ar'}
+                          </span>
+                        </button>
+                      )}
                       <button
                         onClick={handleAddToCanvas}
                         disabled={!canUseImage}
@@ -658,6 +742,18 @@ export default function AssetWorkbenchView({
                       {selectedCard.generatedImage ? '重新生成' : 'AI 生成'}
                     </button>
                     <div className="flex items-center gap-2">
+                      {selectedCard.kind === 'character' && (
+                        <button
+                          onClick={handleGenerateThreeView}
+                          disabled={!canGenerateThreeView}
+                          className="h-10 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 px-4 text-xs font-bold text-white/70 hover:text-white hover:border-white/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                        >
+                          <span className={`material-symbols-outlined text-[16px] ${isThreeViewGenerating ? 'animate-spin' : ''}`}>
+                            {isThreeViewGenerating ? 'progress_activity' : 'view_in_ar'}
+                          </span>
+                          {isThreeViewGenerating ? '生成三视图中' : '生成三视图'}
+                        </button>
+                      )}
                       <button
                         onClick={handleSaveAsset}
                         disabled={!canUseImage || selectedCard.status === 'saved'}

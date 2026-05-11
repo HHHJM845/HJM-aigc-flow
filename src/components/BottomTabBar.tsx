@@ -62,19 +62,26 @@ export default function BottomTabBar({ activeView, onViewChange, onGoHome }: Pro
         const isActive = activeView === key;
         const Icon = TAB_ICONS[iconKey];
         return (
-          <button
-            key={key}
-            onClick={() => onViewChange(key)}
-            title={label}
-            aria-label={label}
-            className={`w-12 h-12 flex items-center justify-center rounded-full transition-all ${
-              isActive
-                ? 'bg-[#c6c6c7] text-[#1a1a1a] shadow-lg scale-110'
-                : 'text-[#9f9d9d] hover:text-[#fbf9f8] hover:bg-white/5'
-            }`}
-          >
-            <Icon className="h-5 w-5" strokeWidth={isActive ? 2.7 : 2.2} />
-          </button>
+          <React.Fragment key={key}>
+            {key === 'assets' && (
+              <div
+                aria-hidden="true"
+                className="mx-1 h-9 w-px rounded-full bg-gradient-to-b from-transparent via-white/18 to-transparent"
+              />
+            )}
+            <button
+              onClick={() => onViewChange(key)}
+              title={label}
+              aria-label={label}
+              className={`w-12 h-12 flex items-center justify-center rounded-full transition-all ${
+                isActive
+                  ? 'bg-[#c6c6c7] text-[#1a1a1a] shadow-lg scale-110'
+                  : 'text-[#9f9d9d] hover:text-[#fbf9f8] hover:bg-white/5'
+              }`}
+            >
+              <Icon className="h-5 w-5" strokeWidth={isActive ? 2.7 : 2.2} />
+            </button>
+          </React.Fragment>
         );
       })}
     </nav>

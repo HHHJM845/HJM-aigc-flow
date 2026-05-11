@@ -137,6 +137,18 @@ export function buildAssetWorkbenchPrompt(card: AssetWorkbenchCard): string {
   ].filter(Boolean).join(', ');
 }
 
+export function buildCharacterTurnaroundPrompt(card: AssetWorkbenchCard): string {
+  const style = getAssetWorkbenchStyle(card.styleId);
+
+  return [
+    `three-view character turnaround sheet for ${card.name}${card.roleTag ? `, role tag: ${card.roleTag}` : ''}`,
+    card.description.trim(),
+    style.promptPreset,
+    'front view, side view, back view, same character identity, same costume, consistent proportions and colors',
+    'neutral standing pose, full body, clean production model sheet, white or light gray background, no extra characters',
+  ].filter(Boolean).join(', ');
+}
+
 export function createAssetFromWorkbenchCard(
   card: AssetWorkbenchCard,
   assetId: string,
