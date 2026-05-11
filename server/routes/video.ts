@@ -52,6 +52,7 @@ router.post('/', async (req, res, next) => {
 
     if (!submitRes.ok) {
       const text = await submitRes.text();
+      console.error('[video] submit failed', submitRes.status, text);
       return res.status(submitRes.status).json({ error: `提交任务失败: ${text}` });
     }
 
