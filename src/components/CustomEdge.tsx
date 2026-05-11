@@ -16,6 +16,11 @@ export default function CustomEdge({
 }: EdgeProps) {
   const { setEdges } = useReactFlow();
   const isHighlighted = selected || (data as any)?.isHighlighted;
+  const hasValidCoordinates = [sourceX, sourceY, targetX, targetY].every(Number.isFinite);
+
+  if (!hasValidCoordinates) {
+    return null;
+  }
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,

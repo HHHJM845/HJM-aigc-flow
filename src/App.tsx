@@ -385,8 +385,8 @@ function Flow({
       if (node.id !== id) return node;
       const { _width, _height, ...rest } = newData;
       const updated = { ...node, data: { ...node.data, ...rest } };
-      if (_width != null) updated.width = _width;
-      if (_height != null) updated.height = _height;
+      if (typeof _width === 'number' && Number.isFinite(_width)) updated.width = _width;
+      if (typeof _height === 'number' && Number.isFinite(_height)) updated.height = _height;
       return updated;
     }));
   }, [setNodes, onSaveHistory]);
