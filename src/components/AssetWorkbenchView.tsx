@@ -705,7 +705,8 @@ export default function AssetWorkbenchView({
         )}
       </main>
 
-      <aside className="w-[340px] min-w-[320px] border-l border-white/[0.08] bg-[#0b0b0c] overflow-y-auto pb-28">
+      <aside className="w-[340px] min-w-[320px] border-l border-white/[0.08] bg-[#0b0b0c] flex flex-col">
+        <div className="flex-1 overflow-y-auto pb-6">
         <div className="p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -826,18 +827,19 @@ export default function AssetWorkbenchView({
             </div>
           )}
         </div>
-      </aside>
-      {onImportToCanvas && (
-        <div className="px-4 pb-6 pt-2">
-          <button
-            onClick={onImportToCanvas}
-            className="w-full py-4 rounded-xl bg-[#e0e0e0] text-[#0a0a0a] font-bold tracking-tight glow-button flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98] font-label"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_fix_high</span>
-            完成 → 导入画布
-          </button>
         </div>
-      )}
+        {onImportToCanvas && (
+          <div className="px-4 pb-6 pt-2 flex-shrink-0">
+            <button
+              onClick={onImportToCanvas}
+              className="w-full py-4 rounded-xl bg-[#e0e0e0] text-[#0a0a0a] font-bold tracking-tight glow-button flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98] font-label"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_fix_high</span>
+              完成 → 导入画布
+            </button>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }

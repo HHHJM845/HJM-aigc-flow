@@ -144,6 +144,7 @@ function Flow({
   onSetAssistant,
   initialScriptText,
   onSaveScript,
+  onActiveViewChange,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -184,10 +185,12 @@ function Flow({
   onSetAssistant: (open: boolean) => void;
   initialScriptText?: string;
   onSaveScript?: (text: string) => void;
+  onActiveViewChange?: (view: ActiveView) => void;
 }) {
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [storyboardRows, setStoryboardRows] = useState<StoryboardRow[]>(initialStoryboardRows);
   const [activeView, setActiveView] = useState<ActiveView>(initialActiveView);
+  useEffect(() => { onActiveViewChange?.(activeView); }, [activeView, onActiveViewChange]);
   const [topicDraft, setTopicDraft] = useState(initialTopicDraft);
   const [breakdownInitText, setBreakdownInitText] = useState('');
   const [storyboardOrder, setStoryboardOrder] = useState<string[]>(initialStoryboardOrder);
@@ -1407,6 +1410,7 @@ export default function App() {
   }, [view, role]);
 
   const [showAssistant, setShowAssistant] = useState(false);
+  const [innerActiveView, setInnerActiveView] = useState<string>('canvas');
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   // ── Annotation AI suggestions ────────────────────────
@@ -1755,9 +1759,11 @@ export default function App() {
     setView('home');
   };
 
+  const showUserMenu = view !== 'canvas' || innerActiveView === 'canvas';
+
   return (
     <>
-    <UserMenu
+    {showUserMenu && <UserMenu
       username={username}
       role={role}
       onLogout={handleLogout}
@@ -1778,7 +1784,7 @@ export default function App() {
         const proj = projects.find(p => p.id === projectId);
         if (proj) handleOpenProject(proj);
       }}
-    />
+    />}
     <ReactFlowProvider>
       {view === 'admin' ? (
         <AdminView
@@ -1836,6 +1842,7 @@ export default function App() {
           revisionNodeRequest={revisionNodeRequest}
           showAssistant={showAssistant}
           onSetAssistant={setShowAssistant}
+          onActiveViewChange={setInnerActiveView}
         />
       )}
     </ReactFlowProvider>
