@@ -162,7 +162,7 @@ type AnnotationSuggestion = {
 interface Props {
   initialRows?: StoryboardRow[];
   initialScriptText?: string;
-  onImport: (rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => void;
+  onImport?: (rows: StoryboardRow[], ratio: string, cardW: number, cardH: number) => void;
   onRowsChange?: (rows: StoryboardRow[]) => void;
   onScriptChange?: (text: string) => void;
   externalInitText?: string;
