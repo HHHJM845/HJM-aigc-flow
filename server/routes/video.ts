@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { Request } from 'express';
-import { uploadBase64ToOss, uploadUrlToOss, uploadUrlsToOss } from '../oss.js';
+import { uploadBase64ToOss, uploadUrlsToOss } from '../oss.js';
 
 const router = Router();
 
@@ -42,17 +42,9 @@ async function resolveReferenceImage(referenceImage: string | undefined, origin:
     return undefined;
   }
 
-  if (raw.startsWith('/uploads/')) {
-    return absoluteUrl;
-  }
-
-  if (absoluteUrl.startsWith(origin)) {
-    try {
-      return await uploadUrlToOss(absoluteUrl, 'images');
-    } catch (err) {
-      console.warn('[video] failed to mirror reference image to OSS, using public URL:', err);
-      return absoluteUrl;
-    }
+  if (raw.startsWith('/uploads/') || absoluteUrl.startsWith(origin)) {
+    console.warn('[video] ignored local reference image; use OSS upload for image-to-video:', raw.slice(0, 120));
+    return undefined;
   }
 
   return absoluteUrl;
