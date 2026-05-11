@@ -175,10 +175,11 @@ interface Props {
   annotationSuggestionsLoading?: boolean;
   onDismissSuggestion?: (rowId: string) => void;
   onApplySuggestion?: (rowId: string, prompt: string, rowIndex: number) => void;
+  onGoToAssets?: () => void;
 }
 
 // ── Main Component ────────────────────────────────────
-export default function BreakdownView({ initialRows, initialScriptText, onImport, onRowsChange, onScriptChange, externalInitText, projectId, projectName, annotations = [], onSnapshotRestore, onSaveSnapshot, annotationSuggestions, annotationSuggestionsLoading = false, onDismissSuggestion, onApplySuggestion }: Props) {
+export default function BreakdownView({ initialRows, initialScriptText, onImport, onRowsChange, onScriptChange, externalInitText, projectId, projectName, annotations = [], onSnapshotRestore, onSaveSnapshot, annotationSuggestions, annotationSuggestionsLoading = false, onDismissSuggestion, onApplySuggestion, onGoToAssets }: Props) {
   const [scriptText, setScriptText] = useState(initialScriptText ?? '');
   const [committedScript, setCommittedScript] = useState('');
   const [rows, setRows] = useState<StoryboardRow[]>(initialRows ?? []);
@@ -592,15 +593,18 @@ export default function BreakdownView({ initialRows, initialScriptText, onImport
             </div>
           </div>
 
-          {/* 导入画布按钮 */}
+          {/* 生成/导入人物场景资产按钮 */}
           <div className="mt-auto pt-6">
             <button
-              onClick={handleImport}
-              disabled={rows.length === 0}
+              onClick={() => {
+                onRowsChange?.(rows);
+                onGoToAssets?.();
+              }}
+              disabled={rows.length === 0 || !onGoToAssets}
               className="w-full py-4 rounded-xl bg-[#e0e0e0] text-[#0a0a0a] font-bold tracking-tight glow-button flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed font-label"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_fix_high</span>
-              导入画布并生成节点
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>palette</span>
+              生成/导入人物场景资产
               {rows.length > 0 && (
                 <div className="w-2 h-2 rounded-full bg-[#1a1a1a] animate-pulse ml-1" />
               )}
