@@ -75,27 +75,28 @@ export default function TemplateLibraryView() {
   return (
     <div className="flex-1 overflow-y-auto p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex min-w-0 items-center gap-3">
           <BookMarked size={20} className="text-gray-400" />
-          <h1 className="text-white font-semibold text-lg">模板库</h1>
+          <h1 className="text-white font-semibold text-lg truncate">模板库</h1>
         </div>
         <button
           onClick={openCreate}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-xl transition-colors"
+          className="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-[#e0e0e0] px-8 py-3 text-sm font-bold text-[#1a1a1a] transition-all hover:bg-white"
         >
-          + 新建模板
+          <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
+          新建模板
         </button>
       </div>
 
       {/* Node type tabs */}
-      <div className="flex gap-1 bg-white/5 rounded-xl p-1 w-fit mb-5">
+      <div className="flex gap-1 bg-[#1c1c1e] border border-white/10 rounded-full p-1 w-fit mb-5">
         {(['image', 'video'] as const).map(t => (
           <button
             key={t}
             onClick={() => { setNodeType(t); setGenre('全部'); }}
-            className={`px-5 py-1.5 rounded-lg text-sm transition-all ${
-              nodeType === t ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+            className={`rounded-full px-5 py-2 text-sm transition-all ${
+              nodeType === t ? 'bg-[#e0e0e0] text-[#1a1a1a] font-bold' : 'text-gray-500 hover:text-gray-300'
             }`}
           >
             {t === 'image' ? '图片模板' : '视频模板'}
@@ -146,13 +147,13 @@ export default function TemplateLibraryView() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => openEdit(t)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] text-gray-500 hover:text-gray-200 bg-white/5 hover:bg-white/10 transition-colors"
+                className="flex items-center gap-1 rounded-full border border-white/10 bg-[#1c1c1e] px-3 py-1.5 text-[11px] text-gray-400 transition-colors hover:bg-[#252528] hover:text-gray-100"
               >
                 <Pencil size={11} /> 编辑
               </button>
               <button
                 onClick={() => handleDelete(t.id)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] text-gray-500 hover:text-red-400 bg-white/5 hover:bg-red-500/10 transition-colors"
+                className="flex items-center gap-1 rounded-full border border-white/10 bg-[#1c1c1e] px-3 py-1.5 text-[11px] text-gray-400 transition-colors hover:border-red-400/25 hover:bg-red-500/10 hover:text-red-300"
               >
                 <Trash2 size={11} /> 删除
               </button>

@@ -97,7 +97,7 @@ function VideoCard({
         <span className="text-white/40 text-[10px] truncate flex-1">{item.label || `视频 ${padded}`}</span>
         <button
           onClick={() => onDownload(item.url, index)}
-          className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/[0.08] rounded text-[9px] text-white/30 hover:text-white/60 transition-colors"
+          className="flex-shrink-0 flex items-center gap-1 rounded-full border border-white/10 bg-[#1c1c1e] px-2.5 py-1 text-[9px] text-white/45 transition-colors hover:bg-[#252528] hover:text-white/75"
         >
           <Download size={9} />
           下载
@@ -136,17 +136,17 @@ export default function VideoView({ videoOrder, onReorder, onRemove }: Props) {
   return (
     <div className="absolute inset-0 bg-black flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] flex-shrink-0">
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-white/[0.06] flex-shrink-0">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span className="text-white font-medium text-[14px]">视频管理</span>
-          <span className="text-white/30 text-xs">已选 {videoOrder.length} 个视频</span>
+          <span className="text-white/30 text-xs truncate">已选 {videoOrder.length} 个视频</span>
         </div>
         {videoOrder.length > 0 && (
           <button
             onClick={handleDownloadAll}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 rounded-lg text-white/60 text-xs transition-colors"
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/12 bg-[#1c1c1e] px-6 py-3 text-sm font-medium text-[#e0e0e0] transition-all hover:bg-[#252528]"
           >
-            <Download size={12} />
+            <Download size={16} />
             全部下载（{videoOrder.length}个）
           </button>
         )}

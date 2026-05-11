@@ -1759,7 +1759,7 @@ export default function App() {
     setView('home');
   };
 
-  const showUserMenu = view !== 'canvas' || innerActiveView === 'canvas';
+  const showUserMenu = view === 'canvas' && innerActiveView === 'canvas';
 
   return (
     <>

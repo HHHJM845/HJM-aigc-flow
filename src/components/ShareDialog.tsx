@@ -1,21 +1,51 @@
 import React, { useState } from 'react';
 
 interface Props {
-  projectName: string;
+  projectName?: string;
   shareUrl: string;
   expiresAt: number;
   onClose: () => void;
 }
 
 export default function ShareDialog({ projectName, shareUrl, expiresAt, onClose }: Props) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const fullUrl = `${window.location.origin}${shareUrl}`;
 
+  const fallbackCopy = () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = fullUrl;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+      return document.execCommand('copy');
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  };
+
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(fullUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    let didCopy = false;
+
+    try {
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(fullUrl);
+        didCopy = true;
+      } else {
+        didCopy = fallbackCopy();
+      }
+    } catch {
+      didCopy = fallbackCopy();
+    }
+
+    setCopyState(didCopy ? 'copied' : 'failed');
+    setTimeout(() => setCopyState('idle'), 2000);
   };
 
   const expiryDate = new Date(expiresAt).toLocaleDateString('zh-CN', {
@@ -35,20 +65,21 @@ export default function ShareDialog({ projectName, shareUrl, expiresAt, onClose 
           <button onClick={onClose} className="text-white/30 hover:text-white/60 transition-colors text-lg leading-none">×</button>
         </div>
 
-        <p className="text-xs text-white/35 mb-2">{projectName} · 快照已保存</p>
+        <p className="text-xs text-white/35 mb-2">{projectName ? `${projectName} · ` : ''}快照已保存</p>
 
         <div className="bg-black/40 border border-white/10 rounded-xl p-3 mb-4 flex items-center gap-3">
           <span className="flex-1 text-xs text-white/50 truncate font-mono">{fullUrl}</span>
           <button
+            type="button"
             onClick={handleCopy}
-            className="px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex-shrink-0"
+            className="min-h-11 px-4 text-xs font-bold rounded-lg transition-all flex-shrink-0 cursor-pointer"
             style={{
-              background: copied ? 'rgba(80,200,120,0.2)' : 'rgba(255,255,255,0.08)',
-              color: copied ? 'rgba(80,200,120,0.9)' : 'rgba(255,255,255,0.6)',
-              border: copied ? '1px solid rgba(80,200,120,0.3)' : '1px solid rgba(255,255,255,0.1)',
+              background: copyState === 'copied' ? 'rgba(80,200,120,0.2)' : 'rgba(255,255,255,0.08)',
+              color: copyState === 'copied' ? 'rgba(80,200,120,0.9)' : 'rgba(255,255,255,0.6)',
+              border: copyState === 'copied' ? '1px solid rgba(80,200,120,0.3)' : '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            {copied ? '已复制 ✓' : '复制'}
+            {copyState === 'copied' ? '已复制 ✓' : copyState === 'failed' ? '复制失败' : '复制'}
           </button>
         </div>
 

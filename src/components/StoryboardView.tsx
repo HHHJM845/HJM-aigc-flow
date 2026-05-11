@@ -80,9 +80,9 @@ export default function StoryboardView({ storyboardOrder, nodes, onReorder, onTo
   return (
     <div className="w-full h-full bg-black flex flex-col overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/6 shrink-0">
-        <span className="text-[15px] font-semibold text-white">分镜管理</span>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-white/6 shrink-0">
+        <span className="min-w-0 text-[15px] font-semibold text-white truncate">分镜管理</span>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-4">
           <span className="text-[12px] text-white/35">
             已选 {storyboardOrder.length} 个镜头
           </span>
@@ -90,11 +90,11 @@ export default function StoryboardView({ storyboardOrder, nodes, onReorder, onTo
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-medium bg-white/10 hover:bg-white/15 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-[#1c1c1e] px-6 py-3 text-sm font-medium text-[#e0e0e0] transition-all hover:bg-[#252528] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isExporting ? (
                 <>
-                  <Loader2 size={13} className="animate-spin" />
+                  <Loader2 size={16} className="animate-spin" />
                   导出中...
                 </>
               ) : (
@@ -106,14 +106,9 @@ export default function StoryboardView({ storyboardOrder, nodes, onReorder, onTo
             <button
               onClick={handleShare}
               disabled={sharing}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-50"
-              style={{
-                background: 'rgba(200,190,220,0.15)',
-                color: 'rgba(200,190,220,0.85)',
-                border: '1px solid rgba(200,190,220,0.3)',
-              }}
+              className="flex min-h-11 items-center gap-2 rounded-full bg-[#e0e0e0] px-8 py-3 text-sm font-bold text-[#1a1a1a] transition-all hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-[13px]">share</span>
+              <span className="material-symbols-outlined text-[18px]">share</span>
               {sharing ? '生成中...' : '提交审片'}
             </button>
           )}
