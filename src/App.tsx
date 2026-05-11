@@ -1315,6 +1315,7 @@ function Flow({
           onSaveCards={handleSaveAssetWorkbenchCards}
           onAddAsset={handleAddAsset}
           onAddImageNode={handleAddWorkbenchAssetToCanvas}
+          onImportToCanvas={handleImportFromAssetWorkbench}
         />
       </div>
 

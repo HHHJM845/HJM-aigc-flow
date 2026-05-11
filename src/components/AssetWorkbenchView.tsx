@@ -19,6 +19,7 @@ interface Props {
   onSaveCards: (cards: AssetWorkbenchCard[]) => void;
   onAddAsset: (asset: AssetItem) => void;
   onAddImageNode: (asset: AssetItem) => void;
+  onImportToCanvas?: () => void;
 }
 
 const KIND_OPTIONS: { kind: AssetWorkbenchKind; label: string; icon: string }[] = [
@@ -70,6 +71,7 @@ export default function AssetWorkbenchView({
   onSaveCards,
   onAddAsset,
   onAddImageNode,
+  onImportToCanvas,
 }: Props) {
   const [activeKind, setActiveKind] = useState<AssetWorkbenchKind>('character');
   const [selectedId, setSelectedId] = useState<string | null>(cards[0]?.id ?? null);
@@ -825,6 +827,17 @@ export default function AssetWorkbenchView({
           )}
         </div>
       </aside>
+      {onImportToCanvas && (
+        <div className="px-4 pb-6 pt-2">
+          <button
+            onClick={onImportToCanvas}
+            className="w-full py-4 rounded-xl bg-[#e0e0e0] text-[#0a0a0a] font-bold tracking-tight glow-button flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-[0.98] font-label"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_fix_high</span>
+            完成 → 导入画布
+          </button>
+        </div>
+      )}
     </div>
   );
 }
