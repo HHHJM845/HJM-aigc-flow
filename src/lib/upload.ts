@@ -7,6 +7,10 @@ export interface UploadedFile {
   type: 'image' | 'video';
 }
 
+interface UploadOptions {
+  fallbackToServer?: boolean;
+}
+
 function fileKind(file: File): 'image' | 'video' {
   return file.type.startsWith('video') ? 'video' : 'image';
 }
@@ -30,7 +34,9 @@ async function uploadViaServer(file: File): Promise<UploadedFile> {
   };
 }
 
-export async function uploadFile(file: File): Promise<UploadedFile> {
+export async function uploadFile(file: File, options: UploadOptions = {}): Promise<UploadedFile> {
+  const fallbackToServer = options.fallbackToServer ?? file.size <= 1024 * 1024;
+
   try {
     const params = new URLSearchParams({
       filename: file.name,
@@ -68,6 +74,11 @@ export async function uploadFile(file: File): Promise<UploadedFile> {
       type: fileKind(file),
     };
   } catch (error) {
+    if (!fallbackToServer) {
+      throw error instanceof Error
+        ? error
+        : new Error('OSS 直传失败，请检查 Bucket CORS 配置。');
+    }
     console.warn('[upload] direct OSS upload failed, falling back to server upload:', error);
     return uploadViaServer(file);
   }

@@ -211,7 +211,7 @@ export default function AssetWorkbenchView({
     const kind = activeKind;
     setIsUploadingCard(true);
     try {
-      const uploaded = await uploadFile(file);
+      const uploaded = await uploadFile(file, { fallbackToServer: false });
       const now = Date.now();
       const card: AssetWorkbenchCard = {
         ...createAssetWorkbenchCard(kind, now),
@@ -227,6 +227,8 @@ export default function AssetWorkbenchView({
       commitCards([card, ...cardsRef.current]);
       setActiveKind(kind);
       setSelectedId(card.id);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '上传失败，请检查 OSS 跨域配置。');
     } finally {
       setIsUploadingCard(false);
     }
@@ -250,7 +252,7 @@ export default function AssetWorkbenchView({
     }), true);
 
     try {
-      const data = await uploadFile(file);
+      const data = await uploadFile(file, { fallbackToServer: false });
 
       updateCardById(cardId, latest => {
         const nextGeneratedImage = latest.generatedImage;

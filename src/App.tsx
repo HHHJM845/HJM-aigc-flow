@@ -1760,8 +1760,7 @@ export default function App() {
   };
 
   const isOnCanvas = view === 'canvas' && innerActiveView === 'canvas';
-  // Always show UserMenu on home page and all inner project views; only hide assistant toggle when not on canvas inner view.
-  const showUserMenu = view === 'home' || view === 'canvas';
+  const showUserMenu = view === 'home' || isOnCanvas;
 
   return (
     <>
