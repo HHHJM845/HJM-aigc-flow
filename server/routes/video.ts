@@ -42,7 +42,11 @@ async function resolveReferenceImage(referenceImage: string | undefined, origin:
     return undefined;
   }
 
-  if (absoluteUrl.startsWith(origin) || raw.startsWith('/uploads/')) {
+  if (raw.startsWith('/uploads/')) {
+    return absoluteUrl;
+  }
+
+  if (absoluteUrl.startsWith(origin)) {
     try {
       return await uploadUrlToOss(absoluteUrl, 'images');
     } catch (err) {

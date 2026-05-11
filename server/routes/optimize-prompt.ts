@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 
 const router = Router();
+const UPSTREAM_TIMEOUT = 45000;
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -49,18 +50,21 @@ ${parts.join('\n')}`.trim()
 
 ${parts.join('\n')}`.trim();
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT);
     const upstream = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
+      signal: controller.signal,
       body: JSON.stringify({
         model: 'deepseek-chat',
         messages: [{ role: 'user', content: userPrompt }],
         temperature: 0.7,
       }),
-    });
+    }).finally(() => clearTimeout(timeout));
 
     if (!upstream.ok) {
       const err = await upstream.text();
@@ -72,6 +76,9 @@ ${parts.join('\n')}`.trim();
     const optimized = data.choices?.[0]?.message?.content?.trim() ?? '';
     res.json({ prompt: optimized });
   } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return res.status(504).json({ error: 'AI 优化超时，请稍后重试' });
+    }
     next(err);
   }
 });

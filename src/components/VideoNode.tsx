@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { generateVideo } from '../lib/api';
+import { uploadFile } from '../lib/upload';
 import { Handle, Position, useStore, type ReactFlowState } from '@xyflow/react';
 import {
   Plus,
@@ -71,6 +72,7 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
 
   // ── Reference image (image-to-video mode) ─────────
   const [manualRefImage, setManualRefImage] = useState<string | null>(null);
+  const [isRefUploading, setIsRefUploading] = useState(false);
   const activeRefImage = mode === 'image' ? (data.referenceImage || manualRefImage) : undefined;
 
   // ── File inputs ────────────────────────────────────
@@ -172,18 +174,25 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
     e.target.value = '';
   };
 
-  const handleRefImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRefImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => setManualRefImage(event.target?.result as string);
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    setIsRefUploading(true);
+    setGenError('');
+    try {
+      const uploaded = await uploadFile(file, { fallbackToServer: false });
+      setManualRefImage(uploaded.url);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : '参考图上传失败，请检查 OSS CORS 配置');
+    } finally {
+      setIsRefUploading(false);
+      e.target.value = '';
+    }
   };
 
   // ── Generate ───────────────────────────────────────
   const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating) return;
+    if (!prompt.trim() || isGenerating || isRefUploading) return;
     setIsGenerating(true);
     setGenError('');
     try {
@@ -387,6 +396,11 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
                   {activeRefImage ? (
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 group flex-shrink-0">
                       <img src={activeRefImage} alt="参考图" className="w-full h-full object-cover" />
+                      {isRefUploading && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Loader2 size={16} className="text-white animate-spin" />
+                        </div>
+                      )}
                       {data.referenceImage && (
                         <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[8px] text-white/70 py-0.5">链接</div>
                       )}
@@ -402,9 +416,14 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
                   ) : (
                     <button
                       onClick={() => refImageInputRef.current?.click()}
+                      disabled={isRefUploading}
                       className="w-16 h-16 rounded-xl border-2 border-dashed border-white/20 hover:border-white/40 flex items-center justify-center flex-shrink-0 transition-colors"
                     >
-                      <ImageIcon size={20} className="text-gray-500" />
+                      {isRefUploading ? (
+                        <Loader2 size={20} className="text-gray-400 animate-spin" />
+                      ) : (
+                        <ImageIcon size={20} className="text-gray-500" />
+                      )}
                     </button>
                   )}
                   <input
@@ -415,7 +434,7 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
                     onChange={handleRefImageUpload}
                   />
                   <span className="text-[11px] text-gray-600">
-                    {activeRefImage ? '参考图已就绪，可连线图片节点替换' : '上传或连线图片节点作为参考'}
+                    {isRefUploading ? '参考图上传中...' : activeRefImage ? '参考图已就绪，可连线图片节点替换' : '上传或连线图片节点作为参考'}
                   </span>
                 </div>
               </div>
@@ -632,7 +651,7 @@ export default function VideoNode({ id, data, selected }: { id: string; data: an
               {/* 生成按钮 */}
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating || !prompt.trim()}
+                disabled={isGenerating || isRefUploading || !prompt.trim()}
                 className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white text-[13px] font-medium shadow-lg shadow-orange-900/40 transition-all active:scale-95"
               >
                 {isGenerating
