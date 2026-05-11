@@ -1,6 +1,7 @@
 // src/components/AssetManagerView.tsx — Phase 2: server upload
 import React, { useRef, useState } from 'react';
 import type { AssetItem } from '../lib/storage';
+import { uploadFile } from '../lib/upload';
 import AssetGenerateDialog from './AssetGenerateDialog';
 
 type FilterKey = 'all' | 'character' | 'scene' | 'other' | 'video';
@@ -68,15 +69,7 @@ export default function AssetManagerView({ assets, onAddAsset, onDeleteAsset, on
     const isVideo = file.type.startsWith('video');
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const resp = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: 'unknown' }));
-        alert(`上传失败：${err.error}`);
-        return;
-      }
-      const data = await resp.json() as { url: string; filename: string; type: string };
+      const data = await uploadFile(file);
       if (isVideo) {
         // Videos don't need category selection — add directly
         onAddAsset({

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { generateImages } from '../lib/api';
 import type { AssetItem } from '../lib/storage';
+import { uploadFile } from '../lib/upload';
 
 const RATIO_SIZES: Record<string, { w: number; h: number }> = {
   '1:1':  { w: 380, h: 380 },
@@ -178,12 +179,8 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    const formData = new FormData();
-    formData.append('file', file);
     try {
-      const resp = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!resp.ok) return;
-      const result = await resp.json() as { url: string };
+      const result = await uploadFile(file);
       data.onUpdate?.(id, { content: [result.url] });
       setCurrentIndex(0);
     } catch { /* ignore */ }
@@ -194,12 +191,8 @@ export default function ImageNode({ id, data, selected }: { id: string; data: an
     e.target.value = '';
     const urls: string[] = [];
     await Promise.all(files.map(async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
       try {
-        const resp = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!resp.ok) return;
-        const result = await resp.json() as { url: string };
+        const result = await uploadFile(file);
         urls.push(result.url);
       } catch { /* ignore */ }
     }));

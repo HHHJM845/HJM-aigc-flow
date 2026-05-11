@@ -14,6 +14,7 @@ import {
   type AssetWorkbenchRatio,
 } from '../lib/assetWorkbench';
 import type { AssetItem } from '../lib/storage';
+import { uploadFile } from '../lib/upload';
 
 interface Props {
   cards: AssetWorkbenchCard[];
@@ -219,13 +220,7 @@ export default function AssetWorkbenchView({
     }), true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await response.json().catch(() => ({})) as { url?: string; error?: string };
-      if (!response.ok || !data.url) {
-        throw new Error(data.error || '参考图上传失败，请重新选择文件。');
-      }
+      const data = await uploadFile(file);
 
       updateCardById(cardId, latest => {
         const nextGeneratedImage = latest.generatedImage;

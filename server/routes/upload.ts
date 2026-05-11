@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -32,6 +33,63 @@ const upload = multer({
 });
 
 const router = Router();
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+
+function sanitizeFilename(filename: string): string {
+  const ext = path.extname(filename);
+  const base = path.basename(filename, ext).replace(/[^a-zA-Z0-9_\-]/g, '_') || 'upload';
+  return `${base}${ext}`;
+}
+
+router.get('/oss-policy', (req, res) => {
+  const accessKeyId = process.env.OSS_ACCESS_KEY_ID;
+  const accessKeySecret = process.env.OSS_ACCESS_KEY_SECRET;
+  const bucket = process.env.OSS_BUCKET || 'augc-flow';
+  const region = process.env.OSS_REGION || 'oss-cn-shenzhen';
+  const publicBaseUrl = process.env.OSS_PUBLIC_BASE_URL;
+
+  if (!accessKeyId || !accessKeySecret) {
+    res.status(500).json({ error: 'OSS credentials are not configured' });
+    return;
+  }
+
+  const filename = sanitizeFilename(String(req.query.filename || 'upload'));
+  const mimeType = String(req.query.type || '');
+  const folder = mimeType.startsWith('video') ? 'videos' : 'images';
+  const key = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}_${filename}`;
+  const host = `https://${bucket}.${region}.aliyuncs.com`;
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  const policy = {
+    expiration: expiresAt,
+    conditions: [
+      ['content-length-range', 1, MAX_UPLOAD_BYTES],
+      ['starts-with', '$key', `${folder}/`],
+      ['starts-with', '$Content-Type', ''],
+      { bucket },
+      { success_action_status: '200' },
+    ],
+  };
+
+  const policyBase64 = Buffer.from(JSON.stringify(policy)).toString('base64');
+  const signature = crypto
+    .createHmac('sha1', accessKeySecret)
+    .update(policyBase64)
+    .digest('base64');
+
+  res.json({
+    host,
+    key,
+    url: `${publicBaseUrl || host}/${key}`,
+    fields: {
+      key,
+      policy: policyBase64,
+      OSSAccessKeyId: accessKeyId,
+      signature,
+      success_action_status: '200',
+      'Content-Type': mimeType || 'application/octet-stream',
+    },
+  });
+});
 
 router.post('/', upload.single('file'), (req, res) => {
   if (!req.file) {

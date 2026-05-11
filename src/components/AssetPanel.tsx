@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, Image as ImageIcon, Film } from 'lucide-react';
 import type { AssetItem } from '../lib/storage';
+import { uploadFile } from '../lib/upload';
 
 type ActiveCategory = 'all' | 'character' | 'scene' | 'other';
 
@@ -37,11 +38,7 @@ export default function AssetPanel({ assets, onUpload, onRemove, onRename }: Pro
     const pending: PendingFile[] = [];
     await Promise.all(files.map(async file => {
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const resp = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!resp.ok) return;
-        const data = await resp.json() as { url: string };
+        const data = await uploadFile(file);
         const type: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image';
         pending.push({ src: data.url, name: file.name, type });
       } catch { /* skip failed uploads */ }
