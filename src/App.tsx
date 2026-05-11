@@ -350,6 +350,7 @@ function Flow({
   }, [setNodes, setEdges, onSaveRows, assets]);
 
   const handleImportFromAssetWorkbench = useCallback(async () => {
+    // 380×214 = 16:9 card dimensions from CARD_RATIOS in BreakdownView
     await handleImportFromBreakdown(storyboardRows, '16:9', 380, 214);
   }, [storyboardRows, handleImportFromBreakdown]);
 
