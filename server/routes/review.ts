@@ -74,6 +74,11 @@ router.post('/projects/:id/snapshot', (req, res) => {
 
 router.post('/projects/:id/share', (req, res) => {
   const { id } = req.params;
+  const { nodes: bodyNodes, storyboardOrder: bodyOrder, storyboardRows: bodyRows } = req.body as {
+    nodes?: Project['nodes'];
+    storyboardOrder?: Project['storyboardOrder'];
+    storyboardRows?: Project['storyboardRows'];
+  };
 
   const projects = getAllProjects();
   const project = projects.find(p => p.id === id);
@@ -83,7 +88,14 @@ router.post('/projects/:id/share', (req, res) => {
   const snapshotId = genId();
   const now = new Date();
   const label = `提交审片 · ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const data = buildSnapshotData(project);
+  // Prefer client-supplied state over DB project to avoid autosave race
+  const effectiveProject: Project = {
+    ...project,
+    nodes: bodyNodes ?? project.nodes,
+    storyboardOrder: bodyOrder ?? project.storyboardOrder,
+    storyboardRows: bodyRows ?? project.storyboardRows,
+  };
+  const data = buildSnapshotData(effectiveProject);
   createSnapshot(snapshotId, id, data, label, true);
 
   const shareId = genId();

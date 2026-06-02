@@ -35,7 +35,12 @@ export default function StoryboardView({ storyboardOrder, nodes, onReorder, onTo
     if (!projectId || sharing) return;
     setSharing(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/share`, { method: 'POST' });
+      // Send current nodes/order so snapshot uses live state, bypassing autosave debounce
+      const res = await fetch(`/api/projects/${projectId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodes, storyboardOrder }),
+      });
       if (!res.ok) throw new Error('share failed');
       const { url, expiresAt } = await res.json() as { url: string; expiresAt: number };
       setShareDialogData({ shareUrl: url, expiresAt });
