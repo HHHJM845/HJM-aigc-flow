@@ -36,19 +36,28 @@ function buildSnapshotData(project: Project): SnapshotData {
   const order = project.storyboardOrder ?? [];
   const rows = project.storyboardRows ?? [];
   const nodes = project.nodes ?? [];
+
+  // storyboardOrder stores node IDs (e.g. "storyboard-row_a" or "node_xyz").
+  // Normalize each entry to a rowId by stripping the "storyboard-" prefix when
+  // present, so it lines up with storyboardRows[].id used by ReviewPage.
+  const items = order.map(nodeOrRowId => {
+    const node = nodes.find(n => n.id === nodeOrRowId);
+    const rowId = nodeOrRowId.startsWith('storyboard-')
+      ? nodeOrRowId.slice('storyboard-'.length)
+      : nodeOrRowId;
+    const data = node?.data as Record<string, unknown> | undefined;
+    const rawContent = data?.content;
+    const contentUrl = Array.isArray(rawContent)
+      ? (rawContent as string[])[0] ?? null
+      : (rawContent as string | null | undefined) ?? null;
+    const imageUrl = contentUrl ?? (data?.referenceImage as string | null | undefined) ?? null;
+    return { rowId, imageUrl };
+  });
+
   return {
-    storyboardOrder: order,
+    storyboardOrder: items.map(it => it.rowId),
     storyboardRows: rows,
-    imageNodes: order.map(rowId => {
-      const node = nodes.find(n => n.id === `storyboard-${rowId}`);
-      const data = node?.data as Record<string, unknown> | undefined;
-      const rawContent = data?.content;
-      const contentUrl = Array.isArray(rawContent)
-        ? (rawContent as string[])[0] ?? null
-        : (rawContent as string | null | undefined) ?? null;
-      const imageUrl = contentUrl ?? (data?.referenceImage as string | null | undefined) ?? null;
-      return { rowId, imageUrl };
-    }),
+    imageNodes: items.map(it => ({ rowId: it.rowId, imageUrl: it.imageUrl })),
   };
 }
 
