@@ -213,6 +213,7 @@ export default function AssetWorkbenchView({
     try {
       const uploaded = await uploadFile(file, { fallbackToServer: false });
       const now = Date.now();
+      const assetId = createAssetId();
       const card: AssetWorkbenchCard = {
         ...createAssetWorkbenchCard(kind, now),
         name: file.name.replace(/\.[^/.]+$/, '') || (kind === 'character' ? '上传角色' : '上传场景'),
@@ -220,13 +221,15 @@ export default function AssetWorkbenchView({
           ? '由上传图片创建的人物形象卡。'
           : '由上传图片创建的场景资产卡。',
         generatedImage: uploaded.url,
-        status: 'generated',
+        assetId,
+        status: 'saved',
         updatedAt: now,
       };
 
       commitCards([card, ...cardsRef.current]);
       setActiveKind(kind);
       setSelectedId(card.id);
+      onAddAsset(createAssetFromWorkbenchCard(card, assetId, now));
     } catch (error) {
       alert(error instanceof Error ? error.message : '上传失败，请检查 OSS 跨域配置。');
     } finally {
@@ -312,14 +315,19 @@ export default function AssetWorkbenchView({
       const generatedImage = data.urls?.[0] ?? data.url;
       if (!generatedImage) throw new Error('生成接口没有返回图片。');
 
-      updateCardById(cardAtStart.id, latest => ({
+      const now = Date.now();
+      const assetId = cardAtStart.assetId ?? createAssetId();
+      const updatedCard = updateCardById(cardAtStart.id, latest => ({
         ...latest,
         generatedImage,
-        assetId: undefined,
-        status: 'generated',
+        assetId,
+        status: 'saved',
         errorMessage: undefined,
-        updatedAt: Date.now(),
+        updatedAt: now,
       }));
+      if (updatedCard) {
+        onAddAsset(createAssetFromWorkbenchCard(updatedCard, assetId, now));
+      }
     } catch (error) {
       updateCardById(cardAtStart.id, latest => ({
         ...latest,
@@ -363,6 +371,7 @@ export default function AssetWorkbenchView({
       if (!generatedImage) throw new Error('生成接口没有返回图片。');
 
       const now = Date.now();
+      const threeViewAssetId = createAssetId();
       const threeViewCard: AssetWorkbenchCard = {
         ...cardAtStart,
         id: `workbench_${now}_${Math.random().toString(36).slice(2, 8)}`,
@@ -371,14 +380,15 @@ export default function AssetWorkbenchView({
         referenceImage: cardAtStart.generatedImage,
         ratio: '16:9',
         generatedImage,
-        assetId: undefined,
-        status: 'generated',
+        assetId: threeViewAssetId,
+        status: 'saved',
         errorMessage: undefined,
         createdAt: now,
         updatedAt: now,
       };
 
       saveCard(threeViewCard);
+      onAddAsset(createAssetFromWorkbenchCard(threeViewCard, threeViewAssetId, now));
       setActiveKind('character');
     } catch (error) {
       updateCardById(cardAtStart.id, latest => ({

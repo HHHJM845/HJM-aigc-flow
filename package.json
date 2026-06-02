@@ -19,7 +19,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.6.0",
+    "@react-three/fiber": "^9.6.1",
     "@tailwindcss/vite": "^4.1.14",
     "@types/multer": "^2.1.0",
     "@vitejs/plugin-react": "^5.0.4",

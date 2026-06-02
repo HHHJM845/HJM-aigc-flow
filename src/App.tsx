@@ -675,7 +675,10 @@ function Flow({
 
   const handleAddAsset = useCallback((asset: AssetItem) => {
     setAssets(prev => {
-      const updated = [asset, ...prev];
+      const exists = prev.some(a => a.id === asset.id);
+      const updated = exists
+        ? prev.map(a => a.id === asset.id ? asset : a)
+        : [asset, ...prev];
       onSaveAssets(updated);
       return updated;
     });
