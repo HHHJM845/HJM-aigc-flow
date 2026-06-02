@@ -3,8 +3,6 @@ import type { Request, Response, NextFunction } from 'express';
 import { getProjectContext } from '../db.js';
 
 const router = Router();
-const ARK_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
-const TEXT_MODEL = 'doubao-1-5-pro-32k-250115';
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -18,8 +16,9 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       return res.json({ matches: [] });
     }
 
-    const apiKey = process.env.IMAGE_API_KEY;
-    if (!apiKey) return res.status(500).json({ error: '服务端未配置 IMAGE_API_KEY' });
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    const baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
+    if (!apiKey) return res.status(500).json({ error: '服务端未配置 DEEPSEEK_API_KEY' });
 
     const assetList = assets
       .map(a => `- ID: ${a.id} | 名称: ${a.name} | 类别: ${a.category ?? '未分类'}`)
@@ -51,14 +50,14 @@ ${rowList}
 
 只返回JSON，格式：{"matches": [{"rowId": "...", "assetId": "..."}]}${ctxNote}`;
 
-    const upstream = await fetch(`${ARK_BASE}/chat/completions`, {
+    const upstream = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: TEXT_MODEL,
+        model: 'deepseek-chat',
         messages: [{ role: 'user', content: userPrompt }],
         temperature: 0,
       }),

@@ -1269,7 +1269,7 @@ function Flow({
           initialRows={storyboardRows}
           initialScriptText={initialScriptText}
           onImport={handleImportFromBreakdown}
-          onRowsChange={onSaveRows}
+          onRowsChange={(rows) => { setStoryboardRows(rows); onSaveRows(rows); }}
           onScriptChange={onSaveScript}
           externalInitText={breakdownInitText}
           projectId={projectId}
