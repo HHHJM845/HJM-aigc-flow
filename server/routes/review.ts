@@ -42,9 +42,11 @@ function buildSnapshotData(project: Project): SnapshotData {
     imageNodes: order.map(rowId => {
       const node = nodes.find(n => n.id === `storyboard-${rowId}`);
       const data = node?.data as Record<string, unknown> | undefined;
-      const imageUrl = (data?.contents as string[] | undefined)?.[0]
-        ?? (data?.content as string | undefined)
-        ?? null;
+      const rawContent = data?.content;
+      const contentUrl = Array.isArray(rawContent)
+        ? (rawContent as string[])[0] ?? null
+        : (rawContent as string | null | undefined) ?? null;
+      const imageUrl = contentUrl ?? (data?.referenceImage as string | null | undefined) ?? null;
       return { rowId, imageUrl };
     }),
   };
